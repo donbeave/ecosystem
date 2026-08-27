@@ -118,10 +118,15 @@ Then one server host with Docker. Then several hosts, one daemon each.
 No decision may bake in single-host assumptions that block the move.
 (D-017)
 
-## 10. Verification of the implementation
+## 10. How the product is built
 
-Every milestone is verified visually in the real Linear and GitHub UIs
-with `agent-browser` on one persistent logged-in profile. (D-032)
+The product is built with its own workflow: Linear issues, jackin roles,
+pull requests (D-033). Work targets the latest jackin, installed locally
+from the working branch; local build and verification are the default and
+CI is confirmation, not a gate (D-034). Every milestone is verified visually
+in the real Linear and GitHub UIs with `agent-browser` on one persistent
+logged-in profile (D-032). The end-to-end workflow is written out in
+`concept/workflow.md`.
 
 ## 11. Open questions
 

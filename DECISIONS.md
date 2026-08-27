@@ -350,3 +350,49 @@ repeated logins and two-factor prompts from the verification loop.
   ship `agent-browser` and be able to reuse that profile.
 - This applies to the implementation phase; it does not make the manager
   itself depend on a browser at runtime.
+
+## D-033 — 2026-08-27 — This product is built with its own workflow
+
+**Decision.** The manager is built using the workflow it implements: work
+is defined as Linear issues with repository, branch, role, runtime, prompt,
+and checklist; issues are assigned to jackin; jackin roles execute them in
+containers; progress is pushed back to Linear; results arrive as pull
+requests on GitHub. As soon as any part of the loop works, it is used to
+build the next part. Until the daemon exists, the same issue contract is
+executed by hand through `jackin load` with the same prompts.
+
+**Rationale.** Dogfooding is a Tailrocks principle and the fastest way to
+find where the workflow is wrong. A workflow the builders will not use is
+not worth shipping.
+
+**Consequences.** The Linear workspace, the repositories (jackin, termrock,
+this one), the roles, and the browser profile (D-032) are set up first, as
+the first milestone. Every later milestone is a set of Linear issues.
+
+## D-034 — 2026-08-27 — Iterate fast and locally on the latest jackin
+
+**Decision.** All work targets the latest jackin version and improves from
+it; nothing is built against an older release. Changes to jackin go to its
+`main` branch through one or more pull requests, and a new jackin version
+is released when needed, but the preferred mode is a single working branch
+that is installed locally from the branch (jackin supports local install
+from a branch) and used to verify everything on the local machine. Nothing
+waits for CI/CD to build or publish; local builds and local verification
+are the default, and CI is confirmation, not a gate on iteration speed.
+
+**Rationale.** Speed of iteration is the constraint that matters in this
+phase. CI is slow relative to a local build; a locally installed branch
+gives the same binary minutes earlier.
+
+**Consequences.**
+
+- Development environment setup includes building and installing jackin
+  from the working branch locally, plus rebuilding roles locally instead of
+  waiting for `jackin-role-action` to publish images.
+- Branch discipline: one long-lived working branch per repository for this
+  effort where possible; split into several pull requests only when a
+  piece is independently releasable.
+- Releases of jackin happen when a milestone needs a published version
+  (for example for a role image that pins one), not on a schedule.
+- `SPEC.md` and the implementation plan record "verified locally" as the
+  completion criterion for a step; CI green is recorded afterwards.
