@@ -54,13 +54,21 @@ finish() {
 part=${1:-}
 case "$part" in
   container)
-    printf '%s\n' "no container part for this task" # host row (D-061)
+    run_cmd 'jackin workspace create task-<id> --workdir /workspace --mount <ws>:/workspace'
+    run_cmd 'git -C /workspace log -1 --format=%B'
+    need_evidence 'review-crucible-sha.txt' ''
+    need_evidence 'throwaway.txt' ''
     finish
     ;;
   host)
-    run_cmd 'jackin role validate'
-    run_cmd 'jackin load donbeave/crew-reviewer probe-M1-05c --agent claude'
-    run_cmd 'docker exec -u agent <name> sh -c '\''…'\'''
+    need_evidence 'verify.container.out' 'status: DONE'
+    if [ "$fail" -ne 0 ]; then
+      printf '%s\n' "container part has not passed"
+      printf '%s\n' "status: PENDING"
+      exit 1
+    fi
+    run_cmd 'jackin role validate ~/.jackin/roles/donbeave/crew-reviewer/default'
+    run_cmd 'docker exec -u agent -w /workspace "$(cat tasks/M1-05c/throwaway.txt)" sh -c '\''…'\'''
     run_cmd 'test -f /home/agent/.agents/skills/review-crucible/SKILL.md'
     run_cmd 'test -d "${CODEX_HOME:-$HOME/.codex}/agents"'
     run_cmd '! command -v cargo'

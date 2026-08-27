@@ -9,16 +9,16 @@ part = "container"
 contains = "status: DONE"
 
 [[evidence]]
-path = "throwaway/status.json"
+path = "throwaway.txt"
 part = "container"
 contains = ""
 
 [[evidence]]
-path = "throwaway/preflight.out"
+path = "preflight.out"
 part = "container"
 contains = ""
 
 [[evidence]]
-path = "throwaway/inside.out"
+path = "smoke.out"
 part = "container"
 contains = ""

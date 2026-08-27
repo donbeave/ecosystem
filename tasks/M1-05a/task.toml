@@ -34,28 +34,39 @@ attempts = 3
 
 [verify]
 script = "verify.sh"
-has_container_part = false
-container = []
+has_container_part = true
+container = [
+  "jackin workspace create task-<id> --workdir /workspace --mount <ws>:/workspace",
+  "git -C /workspace log -1 --format=%B",
+]
 host = [
-  "jackin role validate",
-  "jackin load donbeave/crew-builder probe-M1-05a --agent claude",
-  "jackin status --format json",
-  "docker exec -u agent <name> sh -c '…'",
+  "jackin role validate ~/.jackin/roles/donbeave/crew-builder/default",
+  "docker exec -u agent \"$(cat tasks/M1-05a/throwaway.txt)\" sh -c '…'",
   "mise install",
-  "git clone",
-  "grep -cE 'installing|downloading' <that output>",
+  "grep -cE 'installing|downloading'",
   "cargo nextest --version",
   "cargo public-api --version",
-  "agent-browser",
-  "op",
+  "! command -v agent-browser",
+  "! command -v op",
+  "test -s tasks/M1-05a/tailrocks-skills-sha.txt",
 ]
 
 [[evidence]]
-path = "throwaway/status.json"
-part = "host"
+path = "verify.container.out"
+part = "container"
+contains = "status: DONE"
+
+[[evidence]]
+path = "tailrocks-skills-sha.txt"
+part = "container"
 contains = ""
 
 [[evidence]]
-path = "throwaway/inside.out"
-part = "host"
+path = "throwaway.txt"
+part = "container"
+contains = ""
+
+[[evidence]]
+path = "smoke.out"
+part = "container"
 contains = ""

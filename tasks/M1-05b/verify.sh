@@ -55,9 +55,11 @@ part=${1:-}
 case "$part" in
   container)
     run_cmd 'jackin role validate && ! grep -qE '\''^[env.OP_SERVICE_ACCOUNT_TOKEN]'\'' jackin.role.toml && ! grep -qE '\''^model *='\'' jackin.role.toml && grep -q AGENT_BROWSER_EXECUTABLE_PATH jackin.role.toml'
-    need_evidence 'throwaway/status.json' ''
-    need_evidence 'throwaway/preflight.out' ''
-    need_evidence 'throwaway/inside.out' ''
+    run_cmd 'jackin workspace create task-<id> --workdir /workspace --mount <ws>:/workspace'
+    run_cmd 'git -C /workspace log -1 --format=%B'
+    need_evidence 'throwaway.txt' ''
+    need_evidence 'preflight.out' ''
+    need_evidence 'smoke.out' ''
     finish
     ;;
   host)
@@ -67,9 +69,9 @@ case "$part" in
       printf '%s\n' "status: PENDING"
       exit 1
     fi
-    run_cmd 'jackin load donbeave/crew-operator probe-M1-05b --agent claude --mount ~/.jackin/agent-browser-profile:/home/agent/.agent-browser-profile'
-    run_cmd 'docker logs <name>'
-    run_cmd 'docker exec -u agent <name> sh -c '\''…'\'''
+    run_cmd 'jackin role validate ~/.jackin/roles/donbeave/crew-operator/default'
+    run_cmd 'docker logs "$(cat tasks/M1-05b/throwaway.txt)"'
+    run_cmd 'docker exec -u agent "$(cat tasks/M1-05b/throwaway.txt)" sh -c '\''…'\'''
     run_cmd 'gh --version'
     run_cmd 'agent-browser --version'
     run_cmd 'python3 --version'
@@ -77,6 +79,7 @@ case "$part" in
     run_cmd 'agent-browser doctor --json'
     run_cmd 'agent-browser open about:blank'
     run_cmd '! command -v cargo'
+    run_cmd 'agent-browser close --all'
     finish
     ;;
   *)

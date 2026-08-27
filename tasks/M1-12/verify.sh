@@ -54,6 +54,7 @@ finish() {
 part=${1:-}
 case "$part" in
   container)
+    run_cmd 'jackin workspace create task-M1-12 --workdir /workspace --mount <ws>:/workspace'
     need_evidence 'issues.json' ''
     finish
     ;;

@@ -48,7 +48,7 @@ container-relative (D-086).
 ## Checklist
 
 - [ ] The scope above is implemented in the listed repositories.
-- [ ] The container part of the verify contract below holds.
+- [ ] container check passes: `jackin workspace create task-M1-12 --workdir /workspace --mount <ws>:/workspace`
 - [ ] host check passes: `jq -r '.[].label' tasks/M1-13/lanes.json`
 - [ ] `verify.container.out` is filed in the task folder.
 - [ ] `issues.json` is filed in the task folder.
@@ -59,7 +59,7 @@ container-relative (D-086).
 
 Container part (run inside the task container):
 
-> `tasks/M1-12/issues.json` has one URL per non-"planned" M2+ row
+> container (cwd `/workspace`, from `jackin workspace create task-M1-12 --workdir /workspace --mount <ws>:/workspace`): `/workspace/issues.json`, which the host session files as `tasks/M1-12/issues.json`, has one URL per non-"planned" M2+ row
 
 Host part (run by the host Claude Code session, D-061):
 

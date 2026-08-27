@@ -54,23 +54,29 @@ finish() {
 part=${1:-}
 case "$part" in
   container)
-    printf '%s\n' "no container part for this task" # host row (D-061)
+    run_cmd 'jackin workspace create task-<id> --workdir /workspace --mount <ws>:/workspace'
+    run_cmd 'git -C /workspace log -1 --format=%B'
+    need_evidence 'tailrocks-skills-sha.txt' ''
+    need_evidence 'throwaway.txt' ''
+    need_evidence 'smoke.out' ''
     finish
     ;;
   host)
-    run_cmd 'jackin role validate'
-    run_cmd 'jackin load donbeave/crew-builder probe-M1-05a --agent claude'
-    run_cmd 'jackin status --format json'
-    run_cmd 'docker exec -u agent <name> sh -c '\''…'\'''
+    need_evidence 'verify.container.out' 'status: DONE'
+    if [ "$fail" -ne 0 ]; then
+      printf '%s\n' "container part has not passed"
+      printf '%s\n' "status: PENDING"
+      exit 1
+    fi
+    run_cmd 'jackin role validate ~/.jackin/roles/donbeave/crew-builder/default'
+    run_cmd 'docker exec -u agent "$(cat tasks/M1-05a/throwaway.txt)" sh -c '\''…'\'''
     run_cmd 'mise install'
-    run_cmd 'git clone'
-    run_cmd 'grep -cE '\''installing|downloading'\'' <that output>'
+    run_cmd 'grep -cE '\''installing|downloading'\'''
     run_cmd 'cargo nextest --version'
     run_cmd 'cargo public-api --version'
-    run_cmd 'agent-browser'
-    run_cmd 'op'
-    need_evidence 'throwaway/status.json' ''
-    need_evidence 'throwaway/inside.out' ''
+    run_cmd '! command -v agent-browser'
+    run_cmd '! command -v op'
+    run_cmd 'test -s tasks/M1-05a/tailrocks-skills-sha.txt'
     finish
     ;;
   *)

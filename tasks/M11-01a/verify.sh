@@ -67,6 +67,7 @@ case "$part" in
     run_cmd 'jackin-role validate .'
     run_cmd 'gh run watch "$(cat tasks/M11-01a/run-<p>.txt)" -R donbeave/jackin-crew-<p> --exit-status'
     run_cmd 'gh run view "$(cat tasks/M11-01a/run-<p>.txt)" -R donbeave/jackin-crew-<p> --json status,conclusion | jq -e '\''.status=="completed" and .conclusion=="success"'\'''
+    need_evidence 'squash-body.md' ''
     finish
     ;;
   *)

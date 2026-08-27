@@ -24,7 +24,7 @@ Create `donbeave/crew-builder`.
 
 ## Scope
 
-Per `concept/roles.md` §3: construct base, `agents = ["claude","codex"]`, no `[claude].model` (the lane sets it, D-078), termrock's mise toolchain (D-048: not jackin's), `tailrocks-skills` (marketplace `source = "tailrocks/tailrocks-skills"`; Codex skills-dir clone pinned to the commit `ARG TAILROCKS_SKILLS_SHA`, recorded in `tasks/M1-05a/`) and official plugins, Codex skills as files, `[docker] min_profile = "standard"`, `preflight.sh`, `hooks/source.sh` writing the lane's Codex `model`/`model_reasoning_effort` into `$CODEX_HOME/config.toml` (D-078; the hook is sourced, not executed: it opens with `CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"`, never sets `-e` and never calls `exit`, and is a no-op when `JACKIN_LANE_CODEX_MODEL` is unset), env defaults; `AGENTS.md` with threat model stating that the agent merges its own PR when the task says so (D-055, D-079). The repository commits directly to `main` (D-074). No `agent-browser`, no `op`.
+Per `concept/roles.md` §3: construct base, `agents = ["claude","codex"]`, no `[claude].model` (the lane sets it, D-078), termrock's mise toolchain (D-048: not jackin's), `tailrocks-skills` (marketplace `source = "tailrocks/tailrocks-skills"`; Codex skills-dir clone pinned to the commit `ARG TAILROCKS_SKILLS_SHA`, whose value this task writes to `tasks/M1-05a/tailrocks-skills-sha.txt` — the file `goal/PREFLIGHT.md` §1 reads, so no standing check ever carries a placeholder) and official plugins, Codex skills as files, `[docker] min_profile = "standard"`, `preflight.sh`, `hooks/source.sh` writing the lane's Codex `model`/`model_reasoning_effort` into `$CODEX_HOME/config.toml` (D-078; the hook is sourced, not executed: it opens with `CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"`, never sets `-e` and never calls `exit`, and is a no-op when `JACKIN_LANE_CODEX_MODEL` is unset), env defaults; `AGENTS.md` with threat model stating that the agent merges its own PR when the task says so (D-055, D-079). The repository commits directly to `main` (D-074). No `agent-browser`, no `op`.
 
 ## References
 
@@ -48,19 +48,21 @@ container-relative (D-086).
 ## Checklist
 
 - [ ] The scope above is implemented in the listed repositories.
-- [ ] host check passes: `jackin role validate`
-- [ ] host check passes: `jackin load donbeave/crew-builder probe-M1-05a --agent claude`
-- [ ] host check passes: `jackin status --format json`
-- [ ] host check passes: `docker exec -u agent <name> sh -c '…'`
+- [ ] container check passes: `jackin workspace create task-<id> --workdir /workspace --mount <ws>:/workspace`
+- [ ] container check passes: `git -C /workspace log -1 --format=%B`
+- [ ] host check passes: `jackin role validate ~/.jackin/roles/donbeave/crew-builder/default`
+- [ ] host check passes: `docker exec -u agent "$(cat tasks/M1-05a/throwaway.txt)" sh -c '…'`
 - [ ] host check passes: `mise install`
-- [ ] host check passes: `git clone`
-- [ ] host check passes: `grep -cE 'installing|downloading' <that output>`
+- [ ] host check passes: `grep -cE 'installing|downloading'`
 - [ ] host check passes: `cargo nextest --version`
 - [ ] host check passes: `cargo public-api --version`
-- [ ] host check passes: `agent-browser`
-- [ ] host check passes: `op`
-- [ ] `throwaway/status.json` is filed in the task folder.
-- [ ] `throwaway/inside.out` is filed in the task folder.
+- [ ] host check passes: `! command -v agent-browser`
+- [ ] host check passes: `! command -v op`
+- [ ] host check passes: `test -s tasks/M1-05a/tailrocks-skills-sha.txt`
+- [ ] `verify.container.out` is filed in the task folder.
+- [ ] `tailrocks-skills-sha.txt` is filed in the task folder.
+- [ ] `throwaway.txt` is filed in the task folder.
+- [ ] `smoke.out` is filed in the task folder.
 - [ ] Every touched repository is committed and pushed.
 - [ ] `sh verify.sh` prints `status: DONE` for each part.
 
@@ -68,16 +70,22 @@ container-relative (D-086).
 
 Container part (run inside the task container):
 
-> none
+> container (cwd `/workspace`, from `jackin workspace create task-<id> --workdir /workspace --mount <ws>:/workspace`): the role's own files are present under `/workspace` and `git -C /workspace log -1 --format=%B` carries a `Signed-off-by:` trailer
 
 Host part (run by the host Claude Code session, D-061):
 
-> `jackin role validate` passes on the cached checkout; the host session performs the throwaway load of `goal/EXECUTION.md` §5 step 4b (`jackin load donbeave/crew-builder probe-M1-05a --agent claude`, with the termrock checkout mounted) and files `tasks/M1-05a/throwaway/status.json`, the `jackin status --format json` row, showing role `donbeave/crew-builder` and agent `claude`; `tasks/M1-05a/throwaway/inside.out`, the output of `docker exec -u agent <name> sh -c '…'` running `mise install` in a fresh `git clone` of termrock and asserting `grep -cE 'installing|downloading' <that output>` is 0 (the pre-warmed toolchain is exactly termrock's own `mise.toml` plus `rust-toolchain.toml` 1.97.1 and "cargo-public-api 0.52.0", D-048: nothing from jackin's `mise.toml`), `cargo nextest --version`, `cargo public-api --version` and `rustup run 1.97.1 cargo --version`, and asserting that neither `agent-browser` nor `op` is on PATH, ends with the line `inside: ok`; the probe is ejected by the session before the verify runs, so `verify.sh` itself never launches, attaches, or ejects
+> `jackin role validate ~/.jackin/roles/donbeave/crew-builder/default` passes on the host, never inside a container; the host session performs the throwaway load of `goal/EXECUTION.md` §4 (workspace `probe-M1-05a` with the termrock clone at `~/.jackin/managed/M1-05a/termrock` mounted at `/workspace`, name recorded in `tasks/M1-05a/throwaway.txt`) and files `tasks/M1-05a/smoke.out`, the output of `docker exec -u agent "$(cat tasks/M1-05a/throwaway.txt)" sh -c '…'` running `mise install` in that clone with `grep -cE 'installing|downloading'` over its output equal to 0 (the pre-warmed toolchain is exactly termrock's own `mise.toml` plus `rust-toolchain.toml` 1.97.1 and "cargo-public-api 0.52.0", D-048: nothing from jackin's `mise.toml`), `cargo nextest --version`, `cargo public-api --version`, `rustup run 1.97.1 cargo --version`, and `! command -v agent-browser` and `! command -v op`; `test -s tasks/M1-05a/tailrocks-skills-sha.txt`; the probe is ejected by the session before the verify runs, so `verify.sh` itself never launches, attaches, or ejects
+
+When a container part exists the host part first asserts that
+`tasks/M1-05a/verify.container.out` ends with `status: DONE`, so a
+passing host part can never mask a failed container part (D-086).
 
 ## Evidence expected (D-118)
 
-- `tasks/M1-05a/throwaway/status.json` (host part)
-- `tasks/M1-05a/throwaway/inside.out` (host part)
+- `tasks/M1-05a/verify.container.out` (container part, containing `status: DONE`)
+- `tasks/M1-05a/tailrocks-skills-sha.txt` (container part)
+- `tasks/M1-05a/throwaway.txt` (container part)
+- `tasks/M1-05a/smoke.out` (container part)
 
 ## Proof (browser/attach)
 

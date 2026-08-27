@@ -36,11 +36,13 @@ script = "verify.sh"
 has_container_part = true
 container = [
   "jackin role validate && ! grep -qE '^[env.OP_SERVICE_ACCOUNT_TOKEN]' jackin.role.toml && ! grep -qE '^model *=' jackin.role.toml && grep -q AGENT_BROWSER_EXECUTABLE_PATH jackin.role.toml",
+  "jackin workspace create task-<id> --workdir /workspace --mount <ws>:/workspace",
+  "git -C /workspace log -1 --format=%B",
 ]
 host = [
-  "jackin load donbeave/crew-operator probe-M1-05b --agent claude --mount ~/.jackin/agent-browser-profile:/home/agent/.agent-browser-profile",
-  "docker logs <name>",
-  "docker exec -u agent <name> sh -c '…'",
+  "jackin role validate ~/.jackin/roles/donbeave/crew-operator/default",
+  "docker logs \"$(cat tasks/M1-05b/throwaway.txt)\"",
+  "docker exec -u agent \"$(cat tasks/M1-05b/throwaway.txt)\" sh -c '…'",
   "gh --version",
   "agent-browser --version",
   "python3 --version",
@@ -48,6 +50,7 @@ host = [
   "agent-browser doctor --json",
   "agent-browser open about:blank",
   "! command -v cargo",
+  "agent-browser close --all",
 ]
 
 [[evidence]]
@@ -56,16 +59,16 @@ part = "container"
 contains = "status: DONE"
 
 [[evidence]]
-path = "throwaway/status.json"
+path = "throwaway.txt"
 part = "container"
 contains = ""
 
 [[evidence]]
-path = "throwaway/preflight.out"
+path = "preflight.out"
 part = "container"
 contains = ""
 
 [[evidence]]
-path = "throwaway/inside.out"
+path = "smoke.out"
 part = "container"
 contains = ""

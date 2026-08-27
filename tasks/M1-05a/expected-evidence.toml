@@ -4,11 +4,21 @@
 task = "M1-05a"
 
 [[evidence]]
-path = "throwaway/status.json"
-part = "host"
+path = "verify.container.out"
+part = "container"
+contains = "status: DONE"
+
+[[evidence]]
+path = "tailrocks-skills-sha.txt"
+part = "container"
 contains = ""
 
 [[evidence]]
-path = "throwaway/inside.out"
-part = "host"
+path = "throwaway.txt"
+part = "container"
+contains = ""
+
+[[evidence]]
+path = "smoke.out"
+part = "container"
 contains = ""

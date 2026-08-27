@@ -3,5 +3,7 @@
 # when a declared artefact is missing or does not contain its marker.
 task = "M11-01a"
 
-# This row declares no named artefact of its own; the filed verify
-# output of each part is the evidence.
+[[evidence]]
+path = "squash-body.md"
+part = "host"
+contains = ""
