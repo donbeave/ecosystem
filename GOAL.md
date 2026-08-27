@@ -27,8 +27,8 @@ absent; `goal/PREFLIGHT.md` is done.
    command, set that row `blocked`, continue with every other runnable task.
 5. Stuck — no new evidence for 30 minutes, or three verify failures — spawns diagnostic
    subagents; apply their fix first.
-6. Fix involved projects, never work around them, on `feat/managed-execution` (role
-   repositories too, after their first commit on `main`); this repository on `main`.
+6. Fix involved projects, never work around them, on `feat/managed-execution` (roles too,
+   after their first `main` commit); this repository on `main`.
 7. `git commit -s` always, `git fetch && git rebase` before every push, never `--force`, push
    at once, after every task transition.
 8. Credentials only as `op://` references in 1Password; no secret value in any file, log or
