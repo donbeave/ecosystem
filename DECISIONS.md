@@ -1226,6 +1226,9 @@ merges"; `AGENTS.md` rule 9 is unchanged for this repository.
 
 ## D-056 — 2026-08-27 — The host is OrbStack; laptop caps are 6/3/1/1
 
+Amended by D-071: the `~/.claude` cap for this run is 2, not 3, because the
+host session is a permanent consumer of that account home.
+
 **Decision.** The developer machine runs OrbStack 2.2.3 (18 CPU, about
 122 GiB available to Docker, 1.6 TiB free disk; Docker context `orbstack`;
 no Docker Desktop). jackin treats it as a plain Docker daemon
@@ -1238,8 +1241,8 @@ DinD, and one Claude account can carry three concurrent sessions.
 
 **Consequences.** Every "Docker Desktop" mention in the preflights is
 replaced by the OrbStack facts; M3-05 and `SPEC.md` §6 carry the new caps;
-wave planning in `ROADMAP.md` §3 may schedule up to three `~/.claude` tasks
-at once.
+wave planning in `ROADMAP.md` §3 may schedule up to two `~/.claude`
+container tasks at once (three minus the host session, D-071).
 
 ## D-057 — 2026-08-27 — Automatic lane fallback on quota exhaustion or stuck
 
@@ -2557,4 +2560,21 @@ normative by `SPEC.md` and `ROADMAP.md` sat only in
 place of the draft text; `SPEC.md` line 8 cites `DECISIONS.md` for
 D-018..D-031. Any future proposal drafted in a concept document is moved
 into `DECISIONS.md` when it is adopted.
+
+## D-107 — 2026-08-28 — `D-056` is amended by `D-071`; amendments are reciprocal
+
+**Decision.** The `~/.claude` concurrency cap for this run is 2. `D-056`
+carries an "Amended by D-071" note directly under its heading, and
+`SPEC.md` §6 step 2 states 2 rather than 3. Every decision that amends or
+supersedes another carries the forward note in the amending decision and
+the reciprocal note in the amended one, in the same commit.
+
+**Rationale.** `ROADMAP.md` §3, `GOAL.md` and `goal/EXECUTION.md` already
+enforce 2 citing D-071, while `SPEC.md` still said 3 citing D-056 and
+D-056 recorded no amendment. A reader following the precedence rules
+reached the wrong number (K-41).
+
+**Consequences.** `SPEC.md` §6 step 2 and `DECISIONS.md` D-056 are
+corrected here. Any later amendment adds both notes; the cross-document
+invariant lint (D-105) checks caps and reciprocal amendment notes.
 

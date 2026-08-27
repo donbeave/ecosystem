@@ -114,10 +114,11 @@ sees a pending session.
    repository state (`merging = 1`), and per provider account. Candidates
    sort by Linear priority, then oldest `createdAt`, then identifier; when
    every host is at capacity the daemon waits. Laptop defaults (Q-010
-   adopted, revised by D-056): `max_concurrent_agents = 6`, per Codex
-   account home 1, for `~/.claude` 3, and a per-role cap of 1 for
-   `donbeave/crew-operator` (one Chrome profile). (D-022, D-039, D-053,
-   D-056)
+   adopted, revised by D-056, amended by D-071 and D-107):
+   `max_concurrent_agents = 6`, per Codex account home 1, for `~/.claude`
+   2 (D-071: the host session is a permanent consumer of that home), and a
+   per-role cap of 1 for `donbeave/crew-operator` (one Chrome profile).
+   (D-022, D-039, D-053, D-056, D-071)
 3. **Workspace.** Clone or reuse under the daemon's workspace root keyed by
    the sanitized issue identifier; fetch; pull and reuse the branch if it
    exists on the remote, otherwise create it from the base branch. The
