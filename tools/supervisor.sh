@@ -12,6 +12,19 @@
 #   tools/supervisor.sh resume  [options]   start or re-attach a run
 #   tools/supervisor.sh status              print supervisor and run state
 #   tools/supervisor.sh stop                stop the coordinator session
+#   tools/supervisor.sh watch   [options]   block until a task pane is ready
+#
+# `watch` is how the coordinator waits for a container task without spending
+# one model turn per poll (R3-52): the sleeping happens in this process.
+#   --pane <name>               tmux session holding the task (required)
+#   --pattern <ere>             pane text that means "ready" (default: a
+#                               runtime input prompt)
+#   --timeout <s>               budget in seconds (default 900, a cold build)
+#   --interval <s>              seconds between captures (default 5)
+#   --done-file <path>          also return as soon as this file's last line
+#                               is `status: DONE`
+# Exit: 0 ready, 3 stuck (budget spent, pane no longer changing), 4 the pane
+# is gone. On expiry with a still-changing pane it extends itself once.
 #
 # Options:
 #   --dry-run                   do everything except launching the coordinator
@@ -34,7 +47,7 @@ REPO=""
 LEASE_OWNER="supervisor"
 
 usage() {
-	sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'
+	sed -n '2,37p' "$0" | sed 's/^# \{0,1\}//'
 }
 
 log() {
@@ -259,6 +272,75 @@ supervise() {
 	done
 }
 
+# ---------------------------------------------------------------------------
+# watch: block until a task pane is ready, without model turns (R3-52)
+# ---------------------------------------------------------------------------
+
+# Default "the runtime is waiting for input" pattern: the Claude Code and
+# Codex input boxes, and a bare shell prompt.
+WATCH_PATTERN='(^│ *> |^> $|^╰─+╯|Ready for input|\$ $)'
+WATCH_PANE=""
+WATCH_TIMEOUT=900
+WATCH_INTERVAL=5
+WATCH_DONE_FILE=""
+
+pane_text() {
+	tmux capture-pane -p -S -200 -t "$WATCH_PANE" 2>/dev/null || return 1
+}
+
+done_file_ready() {
+	[ -n "$WATCH_DONE_FILE" ] || return 1
+	[ -f "$WATCH_DONE_FILE" ] || return 1
+	[ "$(tail -n 1 "$WATCH_DONE_FILE" 2>/dev/null)" = "status: DONE" ]
+}
+
+# One budget of waiting. Returns 0 ready, 3 expired, 4 pane gone.
+watch_once() {
+	deadline=$(($(date +%s) + WATCH_TIMEOUT))
+	while [ "$(date +%s)" -lt "$deadline" ]; do
+		if ! tmux has-session -t "$WATCH_PANE" 2>/dev/null; then
+			return 4
+		fi
+		if done_file_ready; then
+			return 0
+		fi
+		if pane_text | grep -qE "$WATCH_PATTERN"; then
+			return 0
+		fi
+		sleep "$WATCH_INTERVAL"
+	done
+	return 3
+}
+
+cmd_watch() {
+	[ -n "$WATCH_PANE" ] || {
+		printf 'watch: --pane is required\n' >&2
+		exit 2
+	}
+	command -v tmux >/dev/null 2>&1 || {
+		printf 'watch: tmux is not installed\n' >&2
+		exit 2
+	}
+	before="$(pane_text | tail -n 20 | cksum || true)"
+	# `set -e` would abort on a non-zero return, so every call is guarded.
+	if watch_once; then rc=0; else rc=$?; fi
+	if [ "$rc" -eq 3 ]; then
+		after="$(pane_text | tail -n 20 | cksum || true)"
+		if [ "$before" != "$after" ]; then
+			# Still producing output (a cold `docker build` or `pull`):
+			# extend exactly once, then the stuck rule applies.
+			log "watch $WATCH_PANE: budget spent, pane still changing; extending once"
+			if watch_once; then rc=0; else rc=$?; fi
+		fi
+	fi
+	case "$rc" in
+	0) log "watch $WATCH_PANE: ready" ;;
+	3) log "watch $WATCH_PANE: stuck after the budget, pane no longer changing" ;;
+	4) log "watch $WATCH_PANE: no such tmux session" ;;
+	esac
+	return "$rc"
+}
+
 cmd_status() {
 	printf 'session: %s\n' "$SESSION"
 	if command -v tmux >/dev/null 2>&1 && tmux has-session -t "$SESSION" 2>/dev/null; then
@@ -288,7 +370,27 @@ cmd_stop() {
 COMMAND=""
 while [ $# -gt 0 ]; do
 	case "$1" in
-	start | resume | status | stop) COMMAND="$1" ;;
+	start | resume | status | stop | watch) COMMAND="$1" ;;
+	--pane)
+		shift
+		WATCH_PANE="${1:-}"
+		;;
+	--pattern)
+		shift
+		WATCH_PATTERN="${1:-}"
+		;;
+	--timeout)
+		shift
+		WATCH_TIMEOUT="${1:-900}"
+		;;
+	--interval)
+		shift
+		WATCH_INTERVAL="${1:-5}"
+		;;
+	--done-file)
+		shift
+		WATCH_DONE_FILE="${1:-}"
+		;;
 	--dry-run) DRY_RUN=1 ;;
 	--once) ONCE=1 ;;
 	--coordinator-cmd)
@@ -344,6 +446,10 @@ PID_FILE="$LOG_DIR/coordinator.pid"
 case "$COMMAND" in
 status) cmd_status ;;
 stop) cmd_stop ;;
+watch)
+	cmd_watch
+	exit $?
+	;;
 start)
 	if command -v tmux >/dev/null 2>&1 && tmux has-session -t "$SESSION" 2>/dev/null; then
 		log "a coordinator session $SESSION is already live; use resume"
