@@ -5,9 +5,7 @@
 
 [plan]
 commit = "130cb4b7e1153af289da9bda1abb5de14fc94c70"
-tag = ""
-# tag is empty: creating the review tag is a human-only step
-# (readiness plan row 0.2). Fill it in and re-run write.
+tag = "plan-review-2026-08-28"
 
 [external]
 jackin_default = "4d43da44188f9d9a5a5c815549091a659410e614"
@@ -128,4 +126,4 @@ profile_sha256 = "3c49e3d43bb16afe2f2b2a3c2481c9260c2938dc1064b5fc30d72cb4d7daf1
 
 [run]
 epoch = 1
-lock_hash = "72f4da2a9091b5692efc9ed83dedd455158e5da27df0d606695b778b207eb073"
+lock_hash = "1c222cef1ce71c4afffdaa3cf4143d106c4b34fc8184aaad794dbad3f38aecf8"
