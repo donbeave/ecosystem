@@ -2221,3 +2221,20 @@ only thing a judge can check without reading prose.
 step 8; `README.md` working rules. The remaining findings of
 `analysis/bulletproof-round3-findings.md` stay unapplied and keep their
 archive status.
+
+## D-094 — 2026-08-27 — `GOAL.md` is the pure `/goal` prompt; the invocation lives in `README.md`
+
+**Decision.** `GOAL.md` contains only the prompt the `/goal` runner executes
+(≤4000 characters: mission, sources of truth, laws, task loop, resume,
+termination, never). Everything about how to start the run — prerequisites,
+the exact line to paste, the two outcomes — lives in `README.md` "Start the
+run" and `goal/EXECUTION.md` §1. Supersedes the D-083 wording "the
+invocation line of GOAL.md".
+
+**Rationale.** A prompt that explains itself wastes its own character
+budget and dilutes instructions; the human reads README, the runner reads
+GOAL.md.
+
+**Consequences.** Pointers updated in PREFLIGHT-DEFECTS.md, ROADMAP.md §6,
+goal/PREFLIGHT.md, AGENTS.md. Task count in GOAL.md follows `verify.sh`
+(81 ids incl. M1-01's wave-0 row).
