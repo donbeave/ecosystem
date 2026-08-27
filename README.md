@@ -35,7 +35,8 @@ which reconciles leases and live containers, launches the coordinator in the tmu
 `GOAL COMPLETE`/`GOAL BLOCKED` — see `goal/EXECUTION.md` §1 "Supervisor".
 
 Wave 0 is armed once, by `python3 tools/state.py arm`: it moves every dependency-free task
-— M1-01, which authors every task bundle (D-072) — from `planned` to `ready`, and is
+— M1-01, which verifies the pre-materialised task bundles (D-072, D-114) — from
+`planned` to `ready`, and is
 idempotent. Every later `done` transition promotes each `planned` task whose dependencies
 are all `done` to `ready`, so a row is `ready` before it is ever dispatched and no task
 runs from a bare row.

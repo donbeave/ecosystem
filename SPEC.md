@@ -480,9 +480,10 @@ Further rules of the unattended run (D-060..D-063):
 - Host-only `verify.sh` (every `host` row) is run by the host Claude Code
   session that drives the roadmap; its output is filed in the task folder.
   (D-061)
-- Task folders exist for M1..M5 now (M1-01) and for M6..M12 when reached;
-  milestones may overlap; operator preflights are merged per sitting.
-  (D-062)
+- All 81 task bundles are materialised and hash-pinned in `run/LOCK.toml`
+  before any product task runs; there is no runtime authoring phase.
+  Milestones may overlap; operator preflights are merged per sitting.
+  (D-062 as amended by D-114)
 - Evidence: text (GraphQL JSON, `.cast`, logs, verify output) in the task
   folder; screenshots and recordings attached to the Linear issue. (D-059)
 - Model identifiers and effort knobs per lane are discovered and recorded
