@@ -219,8 +219,9 @@ when it picks the issue up, stores it locally, and the agent works on the
 local copy through the `/goal` command. The local file is the working status
 tracker: the agent updates it only when it finishes a checklist item, and on
 each such update the progress is pushed back to the tracker so the issue
-shows clear progress. The daemon does not make repeated requests to the
-tracker while working; it reads once and writes on completion of items.
+shows clear progress. The daemon does not make repeated reads of the
+tracker while working; it reads once and writes on completion of items
+(and, per D-049, on every run-status change and heartbeat).
 
 **Rationale.** One read plus write-on-progress keeps tracker traffic and
 rate-limit exposure minimal, keeps the agent's working state local and
@@ -739,3 +740,42 @@ skills; a second Rust role for jackin would drift from it.
 - Fixes the-architect needs for this effort (for example `default_agent`
   after M3-02) are made in `jackin-project/jackin-the-architect` on
   `feat/managed-execution` (D-046, D-047).
+
+## D-049 — 2026-08-27 — Live status of every run is synced to Linear; stuck and blocked are visible there
+
+**Decision.** The jackin daemon continuously syncs the status of every
+in-progress issue back to Linear so that Linear alone shows what is going
+on: which issue is being worked, by which role, runtime, model, and
+account, on which host and container, since when, and in which state —
+starting, working, waiting for input, blocked, stuck (no progress within
+the stall window), failed, verifying, done. A stuck or blocked agent must
+be recognizable at a glance from the Linear issue and project view without
+opening a terminal. This is designed as a first-class feature, not a side
+effect of checklist ticks.
+
+**Rationale.** The human's goal is to see from Linear who is working on
+what and whether anyone is stuck or blocked. Attach (D-016) shows the
+truth for one agent; Linear must show the truth for all of them.
+
+**Consequences.**
+
+- Mapping onto Linear's agent-session model
+  (`analysis/linear-agents.md`): daemon-driven `thought`/`action`
+  activities for state changes, `elicitation` for waiting-for-input and
+  blocked (session `awaitingInput`), `error` for failed, `response` for
+  done; the session `plan` mirrors the checklist; `externalUrls` carries
+  the attach target and the container identity; a periodic heartbeat
+  keeps the session out of `stale` and carries "last progress at". Stuck
+  is surfaced explicitly (activity plus a label or state the project view
+  can filter on), not inferred by the human from silence.
+- The project view must answer "who is working on what, who is stuck" via
+  labels or states the daemon maintains (convention decided with Q-013).
+- D-013 is amended: the daemon still reads the issue once at pickup and
+  makes no reads while working, but it writes on every status change and
+  heartbeat in addition to checklist-item completion. Write volume stays
+  bounded by the state machine, not by agent chatter.
+- This becomes its own milestone in `ROADMAP.md`, placed right after the
+  prompt reaches the agent (M4) and before or together with checklist
+  write-back (M5), since it is what makes the whole fleet observable.
+- Stall detection (proposed D-021) is a prerequisite: "stuck" needs a
+  definition the daemon can compute.

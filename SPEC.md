@@ -110,6 +110,15 @@ prompt and the live session. Programmatic launch must preserve this; runs
 that only capture stdout are not acceptable. The TUI lists running
 containers and offers attach. (D-016)
 
+Linear shows the live status of every run: who (role, runtime, model,
+account), where (host, container, attach target), since when, and the
+state — starting, working, waiting for input, blocked, stuck, failed,
+verifying, done — through daemon-driven agent-session activities, the
+session plan, external URLs, heartbeats, and filterable labels or states.
+A stuck or blocked agent is visible at a glance in the issue and project
+views. The daemon reads the issue once at pickup; it writes on checklist
+completion, on every status change, and on heartbeat. (D-013, D-049)
+
 ## 8. State
 
 Linear is the only authority for what work exists and its status. The

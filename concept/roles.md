@@ -3,7 +3,7 @@
 > scope is therefore termrock, ecosystem authoring, and the role
 > repositories — not jackin. Read "builder serves jackin tasks" below as
 > "the-architect serves jackin tasks". The role-set proposal number is
-> D-049 (D-046..D-048 were taken while this was drafted).
+> D-050 (D-046..D-049 were taken while this was drafted).
 
 # Roles that build this product (Q-016, D-045)
 
