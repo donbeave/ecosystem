@@ -103,9 +103,16 @@ credential to rotate, and blocks the commit.
   `blocked`, `leased`, `resource-waiting`, `failed-system`, `done`. Only a row with its own
   open `PREFLIGHT-DEFECTS.md` row is ever `blocked`; dependents stay `ready` and are simply
   not runnable (D-084).
-- `tasks/README.md` and `PROGRESS.md` are generated projections of the run state store
-  (`run/state.db` or `run/events.jsonl`) and are never hand-edited; a transition is written
-  to the store and the projections are regenerated (D-111). The run's terminal class is one
+- `tasks/README.md` and `PROGRESS.md` are generated projections of the run state store and
+  are never hand-edited; a hand edit is a defect, not a transition, and the next render
+  discards it. The store is the append-only event log `run/events.jsonl`, written only
+  through `tools/state.py` (`transition`, `lease`, `release`, `event`), which appends under a
+  flock on `run/events.lock` with `O_APPEND` and `fsync` and chains each event to the
+  previous one by hash. Each event carries the lease owner, epoch, and fencing token, and
+  every external mutation an idempotency key `sha256(run, task, attempt, operation)`; a
+  duplicate key or a superseded token is refused with a non-zero exit and an audit event
+  (D-111, D-113). After every transition the host session runs `python3 tools/state.py
+  render` and commits the two regenerated files with the log. The run's terminal class is one
   of `DONE`, `BLOCKED HUMAN`, `FAILED SYSTEM`, `PENDING`, derived by `verify.sh` from the
   store, never asserted by an agent (D-110).
 - A row is `done` only when `tasks/<id>/verify.out` ends with `status: DONE`,
