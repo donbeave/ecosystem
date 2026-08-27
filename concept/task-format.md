@@ -261,7 +261,7 @@ exit codes, output hashes, tool versions and the integrated SHA.
 | `created`, `updated` | RFC 3339 UTC strings | when the manifest was first written and last written |
 | `result_class` | enum | exactly one of `DONE`, `BLOCKED HUMAN`, `FAILED SYSTEM`, `PENDING` (D-110) |
 | `attempt` | integer | the attempt within the epoch (`limits.attempts`, D-070) |
-| `epoch` | integer | the run epoch (D-100) |
+| `epoch` | integer | the run epoch (D-113) |
 | `fencing_token` | integer | the lease's fencing token at write time (D-113) |
 
 No secret value is ever written to the manifest: commands are recorded as
