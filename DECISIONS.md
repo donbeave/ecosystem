@@ -424,10 +424,14 @@ happen and cannot be rotated or audited.
 ## D-036 — 2026-08-27 — Work is done through subagents, heavily
 
 **Decision.** In this workflow, every unit of work is carried out by
-subagents: research, analysis, design proposals, implementation of each
-checklist item, verification, review. The top-level agent in a session
+delegated agents: subagents inside a session, or separate agents spawned
+through jackin (`jackin load <role>` today, the daemon later) when the
+work needs its own container, role, or runtime. Research, analysis,
+design proposals, implementation of each checklist item, verification,
+and review are all delegated. The top-level agent in a session
 coordinates, delegates, integrates, and decides; it does not do the bulk
-of the work itself. This applies to planning in this repository, to
+of the work itself. Building this product itself follows the same rule
+from the first iteration, so each iteration also proves the workflow. This applies to planning in this repository, to
 implementation of jackin, termrock, and the daemon, and to the agents the
 daemon runs on issues.
 

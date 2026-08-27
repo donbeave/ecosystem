@@ -138,8 +138,11 @@ rotation unit (`linear-agent-app`, `github-app-jackin-daemon`,
 ## 9b. Delegation
 
 All work — planning here, implementation, and the agents the daemon runs —
-is carried out by subagents; the top-level agent coordinates and decides.
-(D-036)
+is carried out by delegated agents: subagents in a session, or agents
+spawned through jackin when the work needs its own container, role, or
+runtime. The top-level agent coordinates and decides. Building this
+product follows the same rule from the first iteration, so every
+iteration is also a proof of the workflow. (D-033, D-036)
 
 ## 10. How the product is built
 
