@@ -5,8 +5,9 @@ conversation that reaches agreement. It states only what is decided in
 `DECISIONS.md`. Under D-050 and D-053 every recommended answer that existed
 on 2026-08-27 is a decided default and is stated here as such; the three
 questions that remain in `OPEN-QUESTIONS.md` (Q-002, Q-005, Q-009) block
-nothing. The Symphony-derived rules D-018..D-031 are adopted as written in
-`concept/borrowed-from-symphony.md` (D-053) and are cited by their numbers.
+nothing. The Symphony-derived rules D-018..D-031 are recorded in full in
+`DECISIONS.md` (D-053, D-103) and are cited by their numbers; no normative
+decision text lives outside `DECISIONS.md`.
 
 ## 1. Purpose
 
