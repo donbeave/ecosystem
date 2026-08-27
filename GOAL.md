@@ -66,8 +66,6 @@ End the turn only with a message of exactly this shape, nothing after:
 - then, BLOCKED only, the open `PREFLIGHT-DEFECTS.md` rows verbatim;
 - last, the literal output of `sh verify.sh` from this turn.
 
-Any other turn end is not the goal.
-
 ## Never
 
 End a turn any other way. Claim `GOAL COMPLETE` without that output. Fill an `exhausted:`
