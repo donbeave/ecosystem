@@ -1,0 +1,50 @@
+# Generated from the ROADMAP.md row for this task by tools/bundle.py
+# (D-114). Do not edit by hand; edit the roadmap row and regenerate.
+id = "M10-02"
+milestone = "M10"
+title = "termrock: host-loop drain hook"
+repo = "tailrocks/termrock"
+repos = [
+  "termrock",
+]
+branch = "feat/managed-execution"
+base = "main"
+role = "donbeave/crew-builder"
+runtime = "claude"
+lane = "L1"
+fallback_lane = "L2"
+account_home = "~/.claude"
+delivery = "goal"
+size = "M"
+depends_on = []
+decisions = [
+  "D-047",
+  "D-053",
+  "D-055",
+  "D-061",
+  "D-064",
+  "D-088",
+]
+
+[limits]
+attempts = 3
+
+[verify]
+script = "verify.sh"
+has_container_part = true
+container = [
+  "mise run test",
+]
+host = [
+  "git show origin/feat/managed-execution:CONTRIBUTING.md | grep -qi 'agent-authored'",
+]
+
+[[evidence]]
+path = "verify.container.out"
+part = "container"
+contains = "status: DONE"
+
+[[evidence]]
+path = "migration.md"
+part = "container"
+contains = ""

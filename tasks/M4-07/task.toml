@@ -1,0 +1,41 @@
+# Generated from the ROADMAP.md row for this task by tools/bundle.py
+# (D-114). Do not edit by hand; edit the roadmap row and regenerate.
+id = "M4-07"
+milestone = "M4"
+title = "Review M4 pull request"
+repo = "jackin-project/jackin"
+repos = [
+  "jackin",
+]
+branch = "feat/managed-execution"
+base = "main"
+role = "donbeave/crew-reviewer"
+runtime = "codex"
+lane = "L6"
+fallback_lane = "L1"
+account_home = "~/.codex-chainargos2"
+delivery = "prompt"
+size = "S"
+depends_on = [
+  "M4-06",
+]
+decisions = [
+  "D-016",
+  "D-055",
+  "D-079",
+  "D-091",
+]
+
+[limits]
+attempts = 3
+
+[verify]
+script = "verify.sh"
+has_container_part = true
+container = []
+host = []
+
+[[evidence]]
+path = "verify.container.out"
+part = "container"
+contains = "status: DONE"

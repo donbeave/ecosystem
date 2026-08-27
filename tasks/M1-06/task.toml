@@ -1,0 +1,44 @@
+# Generated from the ROADMAP.md row for this task by tools/bundle.py
+# (D-114). Do not edit by hand; edit the roadmap row and regenerate.
+id = "M1-06"
+milestone = "M1"
+title = "Verify the persistent `agent-browser` browser state"
+repo = ""
+repos = [
+  "host",
+]
+branch = "main"
+base = "main"
+role = "host"
+runtime = "host"
+lane = ""
+fallback_lane = ""
+account_home = ""
+delivery = "prompt"
+size = "M"
+depends_on = [
+  "M1-05b",
+  "M1-05d",
+]
+decisions = [
+  "D-061",
+  "D-077",
+  "D-088",
+  "D-090",
+]
+
+[limits]
+attempts = 3
+
+[verify]
+script = "verify.sh"
+has_container_part = true
+container = [
+  "test -s ~/.jackin/agent-browser-profile/state.json",
+]
+host = []
+
+[[evidence]]
+path = "verify.container.out"
+part = "container"
+contains = "status: DONE"

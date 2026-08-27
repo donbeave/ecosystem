@@ -1,0 +1,43 @@
+# Generated from the ROADMAP.md row for this task by tools/bundle.py
+# (D-114). Do not edit by hand; edit the roadmap row and regenerate.
+id = "M1-10"
+milestone = "M1"
+title = "Authorize the app into the workspace"
+repo = ""
+repos = [
+  "Linear",
+  "1Password",
+]
+branch = "main"
+base = "main"
+role = "donbeave/crew-operator"
+runtime = "codex"
+lane = "L6"
+fallback_lane = "L1"
+account_home = "~/.codex-chainargos2"
+delivery = "prompt"
+size = "S"
+depends_on = [
+  "M1-07",
+]
+decisions = [
+  "D-080",
+  "D-087",
+  "D-108",
+]
+
+[limits]
+attempts = 3
+
+[verify]
+script = "verify.sh"
+has_container_part = true
+container = [
+  "op read … | curl",
+]
+host = []
+
+[[evidence]]
+path = "verify.container.out"
+part = "container"
+contains = "status: DONE"

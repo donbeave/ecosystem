@@ -1,0 +1,57 @@
+# Generated from the ROADMAP.md row for this task by tools/bundle.py
+# (D-114). Do not edit by hand; edit the roadmap row and regenerate.
+id = "M3-07"
+milestone = "M3"
+title = "M3 proof run"
+repo = "tailrocks/ecosystem"
+repos = [
+  "ecosystem",
+  "Linear",
+  "GitHub",
+]
+branch = "main"
+base = "main"
+role = "donbeave/crew-operator"
+runtime = "claude"
+lane = "L3"
+fallback_lane = "L4"
+account_home = "~/.claude"
+delivery = "prompt"
+size = "S"
+depends_on = [
+  "M3-05",
+  "M3-06",
+  "M1-13",
+]
+decisions = [
+  "D-061",
+  "D-089",
+]
+
+[limits]
+attempts = 3
+
+[verify]
+script = "verify.sh"
+has_container_part = true
+container = []
+host = [
+  "gh repo view \"$(cat tasks/M3-07/scratch-repo.txt)\" --json owner --jq .owner.login",
+  "gh api repos/jackin-project/jackin-managed-scratch/branches/main/protection",
+  "jq -e",
+]
+
+[[evidence]]
+path = "verify.container.out"
+part = "container"
+contains = "status: DONE"
+
+[[evidence]]
+path = "scratch-repo.txt"
+part = "container"
+contains = ""
+
+[[evidence]]
+path = "status-before.json"
+part = "container"
+contains = ""

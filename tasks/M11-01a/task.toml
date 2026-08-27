@@ -1,0 +1,44 @@
+# Generated from the ROADMAP.md row for this task by tools/bundle.py
+# (D-114). Do not edit by hand; edit the roadmap row and regenerate.
+id = "M11-01a"
+milestone = "M11"
+title = "Merge jackin `feat/managed-execution` to `main` and republish the preview validator"
+repo = "jackin-project/jackin"
+repos = [
+  "jackin",
+]
+branch = "feat/managed-execution"
+base = "main"
+role = "the-architect"
+runtime = "claude"
+lane = "L2"
+fallback_lane = "L3"
+account_home = "~/.claude"
+delivery = "goal"
+size = "S"
+depends_on = [
+  "M10-05",
+]
+decisions = [
+  "D-055",
+  "D-061",
+  "D-074",
+  "D-089",
+]
+
+[limits]
+attempts = 3
+
+[verify]
+script = "verify.sh"
+has_container_part = false
+container = []
+host = [
+  "gh pr view <n> -R jackin-project/jackin --json state --jq .state",
+  "gh release view preview --repo jackin-project/jackin --json targetCommitish --jq .targetCommitish",
+  "git rev-parse origin/main",
+  "jackin-role",
+  "gh release download preview --pattern 'jackin-<host target>.tar.gz'",
+  "jackin-role validate .",
+  "gh run list -R donbeave/jackin-crew-<p> --workflow ci.yml --branch main --limit 1 --json conclusion | jq -e '.[0].conclusion==\"success\"'",
+]

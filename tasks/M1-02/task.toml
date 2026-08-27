@@ -1,0 +1,50 @@
+# Generated from the ROADMAP.md row for this task by tools/bundle.py
+# (D-114). Do not edit by hand; edit the roadmap row and regenerate.
+id = "M1-02"
+milestone = "M1"
+title = "Build and install jackin from `feat/managed-execution`"
+repo = "jackin-project/jackin"
+repos = [
+  "jackin",
+  "host",
+]
+branch = "feat/managed-execution"
+base = "main"
+role = "the-architect"
+runtime = "claude"
+lane = "L1"
+fallback_lane = "L2"
+account_home = "~/.claude"
+delivery = "goal"
+size = "S"
+depends_on = []
+decisions = [
+  "D-009",
+  "D-034",
+  "D-047",
+  "D-064",
+  "D-086",
+]
+
+[limits]
+attempts = 3
+
+[verify]
+script = "verify.sh"
+has_container_part = true
+container = [
+  "jackin --version",
+  "command -v jackin",
+  "jackin doctor",
+]
+host = []
+
+[[evidence]]
+path = "verify.container.out"
+part = "container"
+contains = "status: DONE"
+
+[[evidence]]
+path = "checkout.txt"
+part = "container"
+contains = ""

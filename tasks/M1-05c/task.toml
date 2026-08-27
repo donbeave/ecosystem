@@ -1,0 +1,46 @@
+# Generated from the ROADMAP.md row for this task by tools/bundle.py
+# (D-114). Do not edit by hand; edit the roadmap row and regenerate.
+id = "M1-05c"
+milestone = "M1"
+title = "Create `donbeave/crew-reviewer`"
+repo = "donbeave/jackin-crew-builder"
+repos = [
+  "jackin-crew-reviewer (new)",
+]
+branch = "main"
+base = "main"
+role = "the-architect"
+runtime = "codex"
+lane = "L6"
+fallback_lane = "L1"
+account_home = "~/.codex-chainargos2"
+delivery = "goal"
+size = "S"
+depends_on = [
+  "M1-04a",
+]
+decisions = [
+  "D-074",
+  "D-078",
+  "D-079",
+]
+
+[limits]
+attempts = 3
+
+[verify]
+script = "verify.sh"
+has_container_part = true
+container = [
+  "test -f /home/agent/.agents/skills/review-crucible/SKILL.md",
+  "git -C /opt/review-crucible rev-parse HEAD",
+  "cargo",
+  "op",
+  "agent-browser",
+]
+host = []
+
+[[evidence]]
+path = "verify.container.out"
+part = "container"
+contains = "status: DONE"

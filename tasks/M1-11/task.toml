@@ -1,0 +1,55 @@
+# Generated from the ROADMAP.md row for this task by tools/bundle.py
+# (D-114). Do not edit by hand; edit the roadmap row and regenerate.
+id = "M1-11"
+milestone = "M1"
+title = "Assign a test issue and observe (M1 proof run)"
+repo = ""
+repos = [
+  "Linear",
+]
+branch = "main"
+base = "main"
+role = "donbeave/crew-operator"
+runtime = "claude"
+lane = "L3"
+fallback_lane = "L4"
+account_home = "~/.claude"
+delivery = "prompt"
+size = "S"
+depends_on = [
+  "M1-09",
+  "M1-10",
+]
+decisions = [
+  "D-059",
+  "D-061",
+  "D-080",
+  "D-087",
+  "D-091",
+]
+
+[limits]
+attempts = 3
+
+[verify]
+script = "verify.sh"
+has_container_part = true
+container = [
+  "jq -e '.data.issue.delegate.id == $app' tasks/M1-11/issue.json",
+]
+host = []
+
+[[evidence]]
+path = "verify.container.out"
+part = "container"
+contains = "status: DONE"
+
+[[evidence]]
+path = "issue.json"
+part = "container"
+contains = ""
+
+[[evidence]]
+path = "api-delegation.json"
+part = "container"
+contains = ""

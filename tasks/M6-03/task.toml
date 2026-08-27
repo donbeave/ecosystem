@@ -1,0 +1,50 @@
+# Generated from the ROADMAP.md row for this task by tools/bundle.py
+# (D-114). Do not edit by hand; edit the roadmap row and regenerate.
+id = "M6-03"
+milestone = "M6"
+title = "M6 proof run"
+repo = "tailrocks/ecosystem"
+repos = [
+  "ecosystem",
+  "Linear",
+]
+branch = "main"
+base = "main"
+role = "donbeave/crew-operator"
+runtime = "claude"
+lane = "L3"
+fallback_lane = "L4"
+account_home = "~/.claude"
+delivery = "prompt"
+size = "S"
+depends_on = [
+  "M6-02",
+  "M1-13",
+]
+decisions = [
+  "D-061",
+  "D-081",
+  "D-087",
+]
+
+[limits]
+attempts = 3
+
+[verify]
+script = "verify.sh"
+has_container_part = false
+container = []
+host = [
+  "grep -c issue.read",
+  "grep -c pre-read",
+]
+
+[[evidence]]
+path = "writes.txt"
+part = "host"
+contains = ""
+
+[[evidence]]
+path = "daemon.log"
+part = "host"
+contains = ""

@@ -1,0 +1,45 @@
+# Generated from the ROADMAP.md row for this task by tools/bundle.py
+# (D-114). Do not edit by hand; edit the roadmap row and regenerate.
+id = "M10-05"
+milestone = "M10"
+title = "M10 proof run"
+repo = "tailrocks/ecosystem"
+repos = [
+  "ecosystem",
+]
+branch = "main"
+base = "main"
+role = "donbeave/crew-operator"
+runtime = "claude"
+lane = "L3"
+fallback_lane = "L4"
+account_home = "~/.claude"
+delivery = "prompt"
+size = "S"
+depends_on = [
+  "M10-04",
+]
+decisions = [
+  "D-061",
+]
+
+[limits]
+attempts = 3
+
+[verify]
+script = "verify.sh"
+has_container_part = false
+container = []
+host = [
+  "grep -c",
+]
+
+[[evidence]]
+path = "fleet.cast"
+part = "host"
+contains = ""
+
+[[evidence]]
+path = "fleet.txt"
+part = "host"
+contains = ""

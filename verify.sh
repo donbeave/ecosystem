@@ -156,7 +156,8 @@ fi
 # otherwise the SHA-256 of the three bundle files in a fixed order.
 bundle_hash() {
   if [ -f tools/bundle.py ]; then
-    python3 tools/bundle.py hash "$1" 2>/dev/null | tr -d ' \t' | tail -n 1
+    # `bundle.py hash <id>` prints "<id> <hash>"; take the hash field.
+    python3 tools/bundle.py hash "$1" 2>/dev/null | tail -n 1 | awk '{print $NF}'
   else
     python3 -c 'import hashlib,sys
 h = hashlib.sha256()

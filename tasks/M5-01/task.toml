@@ -1,0 +1,42 @@
+# Generated from the ROADMAP.md row for this task by tools/bundle.py
+# (D-114). Do not edit by hand; edit the roadmap row and regenerate.
+id = "M5-01"
+milestone = "M5"
+title = "Run state machine and activity mapping"
+repo = "jackin-project/jackin"
+repos = [
+  "jackin",
+]
+branch = "feat/managed-execution"
+base = "main"
+role = "the-architect"
+runtime = "claude"
+lane = "L1"
+fallback_lane = "L2"
+account_home = "~/.claude"
+delivery = "goal"
+size = "M"
+depends_on = [
+  "M4-04",
+  "M2-04",
+]
+decisions = [
+  "D-013",
+  "D-021",
+  "D-049",
+  "D-051",
+]
+
+[limits]
+attempts = 3
+
+[verify]
+script = "verify.sh"
+has_container_part = true
+container = []
+host = []
+
+[[evidence]]
+path = "verify.container.out"
+part = "container"
+contains = "status: DONE"

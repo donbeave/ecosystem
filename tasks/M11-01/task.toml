@@ -1,0 +1,46 @@
+# Generated from the ROADMAP.md row for this task by tools/bundle.py
+# (D-114). Do not edit by hand; edit the roadmap row and regenerate.
+id = "M11-01"
+milestone = "M11"
+title = "Runtime credentials and daemon service account"
+repo = ""
+repos = [
+  "1Password",
+]
+branch = "main"
+base = "main"
+role = "donbeave/crew-operator"
+runtime = "codex"
+lane = "L6"
+fallback_lane = "L1"
+account_home = "~/.codex-chainargos2"
+delivery = "prompt"
+size = "M"
+depends_on = [
+  "M10-05",
+]
+decisions = [
+  "D-061",
+  "D-076",
+  "D-081",
+  "D-088",
+  "D-090",
+]
+
+[limits]
+attempts = 3
+
+[verify]
+script = "verify.sh"
+has_container_part = false
+container = []
+host = [
+  "op read",
+  "wc -c",
+  "grep -c 'auth_forward *= *\"sync\"' \"${JACKIN_CONFIG_DIR:-$HOME/.config/jackin}/config.toml\"",
+]
+
+[[evidence]]
+path = "daemon-credentials.md"
+part = "host"
+contains = ""

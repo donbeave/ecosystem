@@ -1,0 +1,60 @@
+# Generated from the ROADMAP.md row for this task by tools/bundle.py
+# (D-114). Do not edit by hand; edit the roadmap row and regenerate.
+id = "M10-06"
+milestone = "M10"
+title = "Review M10 pull requests"
+repo = "jackin-project/jackin"
+repos = [
+  "jackin",
+  "termrock",
+]
+branch = "feat/managed-execution"
+base = "main"
+role = "donbeave/crew-reviewer"
+runtime = "codex"
+lane = "L5"
+fallback_lane = "L6"
+account_home = "~/.codex-chainargos"
+delivery = "prompt"
+size = "S"
+depends_on = [
+  "M10-05",
+]
+decisions = [
+  "D-006",
+  "D-055",
+  "D-061",
+  "D-079",
+  "D-091",
+]
+
+[limits]
+attempts = 3
+
+[verify]
+script = "verify.sh"
+has_container_part = true
+container = [
+  "gh pr review",
+  "gh api repos/<owner>/<repo>/pulls/<n>/reviews --jq '.[-1].commit_id'",
+]
+host = [
+  "grep -q '^verdict:' tasks/M10-06/review.md",
+  "sed -n 2p tasks/M10-06/pr.txt",
+  "git merge-base --is-ancestor",
+]
+
+[[evidence]]
+path = "verify.container.out"
+part = "container"
+contains = "status: DONE"
+
+[[evidence]]
+path = "review.md"
+part = "container"
+contains = ""
+
+[[evidence]]
+path = "pr.txt"
+part = "container"
+contains = ""

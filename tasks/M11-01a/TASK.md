@@ -1,0 +1,114 @@
+# M11-01a Merge jackin `feat/managed-execution` to `main` and republish the preview validator
+
+Generated from the `ROADMAP.md` row for this task by `tools/bundle.py`
+(D-114). Do not edit by hand: an edit here is lost on the next
+generation and makes `tools/bundle.py verify --all` fail. Change the
+roadmap row instead.
+
+| Field | Value |
+| --- | --- |
+| milestone | M11 |
+| depends on | M10-05 |
+| role | `the-architect` |
+| lane | L2 |
+| runtime | claude |
+| fallback lane | L3 |
+| delivery | goal |
+| size | S |
+| repositories | jackin |
+| branch | `feat/managed-execution` |
+
+## Objective
+
+Merge jackin `feat/managed-execution` to `main` and republish the preview validator.
+
+## Scope
+
+The `jackin-role-action` used by every role repository's `ci.yml` and by `publish.yml` downloads `jackin-role` from jackin's `preview` release, built by `preview.yml` from `main` only; jackin `main` knows manifests up to `v1alpha6`, and the crew manifests are `v1alpha7` since M3-02a, so no image can be published before `main` carries the branch (D-089; D-055 forbids releases and tap publishes, not this merge, and D-074 allows a merge a task's scope names). Ensure the rolling jackin PR is green on `ci-required` and `DCO` (fix on the branch if not; rebase on `origin/main` when behind), `gh pr merge <n> --squash` through the forwarded `gh`, `gh run watch` the `preview.yml` push run on `main` until `publish-preview` succeeds, then `git merge origin/main` back into `feat/managed-execution` and push (D-074). No tag, no release, no Homebrew tap.
+
+## References
+
+The container never sees this repository, so every reference below is
+container-relative (D-086).
+
+- `.jackin/task/refs/sources.txt` — the roadmap row and the decisions
+  this task is bound by.
+- `.jackin/task/TASK.md` — this file.
+- `.jackin/task/verify.sh` — the verification this task must pass.
+- `.jackin/task/expected-evidence.toml` — the evidence it must file.
+
+## Steps
+
+1. Read the scope above and the references it names.
+2. Do the work in the repositories listed, on the branch named above.
+3. File the expected evidence in the task folder.
+4. Run `sh verify.sh container` (and, host-side, `sh verify.sh host`)
+   until the last line is `status: DONE`.
+
+## Checklist
+
+- [ ] The scope above is implemented in the listed repositories.
+- [ ] host check passes: `gh pr view <n> -R jackin-project/jackin --json state --jq .state`
+- [ ] host check passes: `gh release view preview --repo jackin-project/jackin --json targetCommitish --jq .targetCommitish`
+- [ ] host check passes: `git rev-parse origin/main`
+- [ ] host check passes: `jackin-role`
+- [ ] host check passes: `gh release download preview --pattern 'jackin-<host target>.tar.gz'`
+- [ ] host check passes: `jackin-role validate .`
+- [ ] host check passes: `gh run list -R donbeave/jackin-crew-<p> --workflow ci.yml --branch main --limit 1 --json conclusion | jq -e '.[0].conclusion=="success"'`
+- [ ] Every touched repository is committed and pushed.
+- [ ] `sh verify.sh` prints `status: DONE` for each part.
+
+## Verify contract
+
+Container part (run inside the task container):
+
+> none (host row, D-061)
+
+Host part (run by the host Claude Code session, D-061):
+
+> `gh pr view <n> -R jackin-project/jackin --json state --jq .state` is `MERGED`; `gh release view preview --repo jackin-project/jackin --json targetCommitish --jq .targetCommitish` equals `git rev-parse origin/main`; a fresh `jackin-role` from that release (`gh release download preview --pattern 'jackin-<host target>.tar.gz'`) runs `jackin-role validate .` green on the three crew checkouts; `gh run list -R donbeave/jackin-crew-<p> --workflow ci.yml --branch main --limit 1 --json conclusion | jq -e '.[0].conclusion=="success"'` after a re-run for all three
+
+## Evidence expected (D-118)
+
+- The verify output of each part, filed in the task folder.
+
+## Proof (browser/attach)
+
+None for this task.
+
+## Definition of done
+
+The scope is implemented, the evidence above is filed, every touched
+repository is committed and pushed, and `verify.sh` prints
+`status: DONE` as its last line for every part this task has.
+
+## Constraints
+
+Always `git commit -s` (DCO is a required check, D-089). Work only on
+this task; do not touch another task's area. Fix an involved project
+rather than working around it (D-046). No secret value in any file,
+log, message, or image: every credential is an `op://` reference
+(D-035, D-081).
+
+## Preflight (D-050)
+
+preflight: none beyond the milestone's "Operator preflight" list in
+`ROADMAP.md`. An input only a human can provide that is discovered
+missing mid-task is a preflight defect: finish what does not depend on
+it and mark the task blocked with the exact item.
+
+## Authorization (D-055, D-079)
+
+This task text is the operator's per-PR authorization: when a step
+names a merge, merge the pull request yourself with `gh pr merge` once
+every required check is green; do not wait for a further "merge it";
+never bypass a failed check. Role repositories commit to `main`
+(D-074).
+
+## When stuck (D-063)
+
+If this task stalls or takes longer than expected, do not escalate
+first. Spawn subagents to analyze why (wrong assumption, missing input,
+failing check, environment) and to propose a solution; apply it; only
+then, if it is a genuine operator input, mark the task blocked with the
+exact item.

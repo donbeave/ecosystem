@@ -1,0 +1,44 @@
+# Generated from the ROADMAP.md row for this task by tools/bundle.py
+# (D-114). Do not edit by hand; edit the roadmap row and regenerate.
+id = "M9-02"
+milestone = "M9"
+title = "M9 proof run"
+repo = "tailrocks/ecosystem"
+repos = [
+  "ecosystem",
+  "Linear",
+  "GitHub",
+]
+branch = "main"
+base = "main"
+role = "donbeave/crew-operator"
+runtime = "claude"
+lane = "L3"
+fallback_lane = "L4"
+account_home = "~/.claude"
+delivery = "prompt"
+size = "S"
+depends_on = [
+  "M9-01",
+  "M3-07",
+]
+decisions = [
+  "D-061",
+]
+
+[limits]
+attempts = 3
+
+[verify]
+script = "verify.sh"
+has_container_part = false
+container = []
+host = [
+  "gh pr view <n> -R <proof repository> --json state --jq .state",
+  "grep -c dispatchable",
+]
+
+[[evidence]]
+path = "daemon.log"
+part = "host"
+contains = ""

@@ -1,0 +1,41 @@
+# Generated from the ROADMAP.md row for this task by tools/bundle.py
+# (D-114). Do not edit by hand; edit the roadmap row and regenerate.
+id = "M1-01"
+milestone = "M1"
+title = "Seed the run state store and verify all 81 task bundles"
+repo = "tailrocks/ecosystem"
+repos = [
+  "ecosystem",
+]
+branch = "main"
+base = "main"
+role = "donbeave/crew-builder"
+runtime = "claude"
+lane = "L3"
+fallback_lane = "L4"
+account_home = "~/.claude"
+delivery = "goal"
+size = "M"
+depends_on = []
+decisions = [
+  "D-061",
+  "D-072",
+  "D-086",
+  "D-088",
+  "D-111",
+  "D-114",
+]
+
+[limits]
+attempts = 3
+
+[verify]
+script = "verify.sh"
+has_container_part = false
+container = []
+host = [
+  "python3 tools/roadmap_compile.py --bundles 2>&1 | grep -q '81/81 bundles valid'",
+  "python3 tools/bundle.py verify --all",
+  "shellcheck -s sh tasks/M1-01/verify.sh",
+  "dash -n tasks/M1-01/verify.sh",
+]

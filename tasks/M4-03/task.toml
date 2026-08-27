@@ -1,0 +1,40 @@
+# Generated from the ROADMAP.md row for this task by tools/bundle.py
+# (D-114). Do not edit by hand; edit the roadmap row and regenerate.
+id = "M4-03"
+milestone = "M4"
+title = "Exec-with-result inside an instance"
+repo = "jackin-project/jackin"
+repos = [
+  "jackin",
+]
+branch = "feat/managed-execution"
+base = "main"
+role = "the-architect"
+runtime = "codex"
+lane = "L4"
+fallback_lane = "L5"
+account_home = "~/.codex"
+delivery = "goal"
+size = "M"
+depends_on = [
+  "M1-02",
+]
+decisions = [
+  "D-061",
+]
+
+[limits]
+attempts = 3
+
+[verify]
+script = "verify.sh"
+has_container_part = true
+container = []
+host = [
+  "jackin daemon exec <instance> -- sh -c 'echo status: DONE'",
+]
+
+[[evidence]]
+path = "verify.container.out"
+part = "container"
+contains = "status: DONE"

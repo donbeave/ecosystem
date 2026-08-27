@@ -1,0 +1,53 @@
+# Generated from the ROADMAP.md row for this task by tools/bundle.py
+# (D-114). Do not edit by hand; edit the roadmap row and regenerate.
+id = "M8-01"
+milestone = "M8"
+title = "GitHub App `github-app-jackin-daemon`"
+repo = ""
+repos = [
+  "GitHub",
+  "1Password",
+]
+branch = "main"
+base = "main"
+role = "donbeave/crew-operator"
+runtime = "codex"
+lane = "L6"
+fallback_lane = "L1"
+account_home = "~/.codex-chainargos2"
+delivery = "prompt"
+size = "S"
+depends_on = [
+  "M1-03",
+]
+decisions = [
+  "D-061",
+  "D-076",
+  "D-081",
+]
+
+[limits]
+attempts = 3
+
+[verify]
+script = "verify.sh"
+has_container_part = true
+container = [
+  "op read",
+  "openssl",
+  "gh api /installation/repositories",
+]
+host = [
+  "gitleaks detect --no-git --source tasks/M8-01",
+  "grep -c repository_selection tasks/M8-01/app.md",
+]
+
+[[evidence]]
+path = "verify.container.out"
+part = "container"
+contains = "status: DONE"
+
+[[evidence]]
+path = "app.md"
+part = "container"
+contains = ""

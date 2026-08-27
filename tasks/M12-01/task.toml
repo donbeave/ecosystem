@@ -1,0 +1,42 @@
+# Generated from the ROADMAP.md row for this task by tools/bundle.py
+# (D-114). Do not edit by hand; edit the roadmap row and regenerate.
+id = "M12-01"
+milestone = "M12"
+title = "Remote daemon transport"
+repo = "jackin-project/jackin"
+repos = [
+  "jackin",
+]
+branch = "feat/managed-execution"
+base = "main"
+role = "the-architect"
+runtime = "claude"
+lane = "L1"
+fallback_lane = "L2"
+account_home = "~/.claude"
+delivery = "goal"
+size = "L"
+depends_on = [
+  "M11-03",
+]
+decisions = [
+  "D-061",
+]
+
+[limits]
+attempts = 3
+
+[verify]
+script = "verify.sh"
+has_container_part = true
+container = [
+  "cargo nextest run -p jackin-daemon remote::",
+]
+host = [
+  "jackin daemon status --host <server>",
+]
+
+[[evidence]]
+path = "verify.container.out"
+part = "container"
+contains = "status: DONE"

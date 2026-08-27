@@ -1,0 +1,50 @@
+# Generated from the ROADMAP.md row for this task by tools/bundle.py
+# (D-114). Do not edit by hand; edit the roadmap row and regenerate.
+id = "M1-05a"
+milestone = "M1"
+title = "Create `donbeave/crew-builder`"
+repo = "donbeave/jackin-crew-builder"
+repos = [
+  "jackin-crew-builder (new)",
+]
+branch = "main"
+base = "main"
+role = "the-architect"
+runtime = "codex"
+lane = "L4"
+fallback_lane = "L5"
+account_home = "~/.codex"
+delivery = "goal"
+size = "M"
+depends_on = [
+  "M1-04a",
+]
+decisions = [
+  "D-048",
+  "D-055",
+  "D-074",
+  "D-078",
+  "D-079",
+]
+
+[limits]
+attempts = 3
+
+[verify]
+script = "verify.sh"
+has_container_part = true
+container = [
+  "jackin role validate",
+  "jackin load donbeave/crew-builder --agent claude",
+  "mise install",
+  "cargo nextest --version",
+  "cargo public-api --version",
+  "agent-browser",
+  "op",
+]
+host = []
+
+[[evidence]]
+path = "verify.container.out"
+part = "container"
+contains = "status: DONE"

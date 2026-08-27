@@ -1,0 +1,49 @@
+# Generated from the ROADMAP.md row for this task by tools/bundle.py
+# (D-114). Do not edit by hand; edit the roadmap row and regenerate.
+id = "M7-01"
+milestone = "M7"
+title = "Verify command location and run"
+repo = "jackin-project/jackin"
+repos = [
+  "jackin",
+]
+branch = "feat/managed-execution"
+base = "main"
+role = "the-architect"
+runtime = "claude"
+lane = "L1"
+fallback_lane = "L2"
+account_home = "~/.claude"
+delivery = "goal"
+size = "M"
+depends_on = [
+  "M6-02",
+  "M4-03",
+]
+decisions = [
+  "D-018",
+  "D-061",
+]
+
+[limits]
+attempts = 3
+
+[verify]
+script = "verify.sh"
+has_container_part = true
+container = [
+  "cargo nextest run -p jackin-daemon verify::command",
+]
+host = [
+  "tail -n1 tasks/M7-01/verify.container.out",
+]
+
+[[evidence]]
+path = "verify.container.out"
+part = "container"
+contains = "status: DONE"
+
+[[evidence]]
+path = "verify.container.out"
+part = "container"
+contains = ""

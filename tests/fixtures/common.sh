@@ -48,7 +48,7 @@ write_bundle_tool() {
   cat >"$1/tools/bundle.py" <<'PY'
 #!/usr/bin/env python3
 """Fixture stand-in for tools/bundle.py: `bundle.py hash <task-id>` prints the
-SHA-256 of the task's three bundle files, in a fixed order."""
+task id and the SHA-256 of its three bundle files, in a fixed order."""
 import hashlib
 import sys
 
@@ -60,7 +60,7 @@ digest = hashlib.sha256()
 for name in ("TASK.md", "task.toml", "verify.sh"):
     with open("tasks/%s/%s" % (sys.argv[2], name), "rb") as handle:
         digest.update(handle.read())
-print(digest.hexdigest())
+print("%s %s" % (sys.argv[2], digest.hexdigest()))
 PY
 }
 
@@ -129,7 +129,7 @@ build_base() {
 # write_evidence <root> <id> <sha>
 write_evidence() {
   root="$1"; id="$2"; sha="$3"
-  hash="$( cd "$root" && python3 tools/bundle.py hash "$id" )"
+  hash="$( cd "$root" && python3 tools/bundle.py hash "$id" | awk '{print $NF}' )"
   cat >"$root/tasks/$id/verify.out" <<EOF
 task: $id
 side: host
