@@ -31,13 +31,20 @@ that is an empty shell. The recommended split, adopted as the working model:
 - **Manager (new):** roadmap and run ledger, plan graph, scheduler, task
   dispatch, verification, artifacts, decision inbox, reporting, multi-host
   awareness.
-- **jackin daemon (executor, D-008):** a long-running process per host that
-  spawns agent containers programmatically, tracks every container it
-  started, continuously verifies where each runs and in what state, and
-  exposes that through a programmatic interface: start (role, mounts,
-  brief), list with live status, stream events, stop, restart, "execute and
-  return result" for verification scripts. It reconciles state after its own
-  restart. Only the daemon talks to the container backend for agent runs.
+- **jackin CLI (unchanged, D-009):** the same commands, creating the same
+  containers. Nothing in this project redesigns it.
+- **jackin daemon (additive, D-008/D-009):** a long-running process per host
+  that (1) monitors every agent container on the host, whether started by
+  the CLI or by the daemon, continuously verifying where each runs and in
+  what state, and (2) connects to the task system, takes tasks from it, and
+  executes them by creating containers through the same mechanism the CLI
+  uses. It exposes start (role, mounts, brief), list with live status,
+  stream events, stop, restart, and "execute and return result" for
+  verification scripts, and reconciles state after its own restart.
+- **Task system (Q-003):** where the human provides roadmaps and tasks and
+  where status is reported back. The daemon is its consumer; the manager
+  logic (scheduling, verification policy, inbox) sits between the task
+  system and the daemon, in the daemon binary or beside it (Q-001).
 
 Whether the manager ships inside the jackin daemon binary or beside it is
 Q-001.
@@ -45,13 +52,20 @@ Q-001.
 ## Layering
 
 ```text
-human ── termrock TUI ── manager (roadmap, scheduler, verification, inbox)
-                              │  programmatic interface
-                        jackin daemon (per host: spawn, track, verify containers)
+human ── termrock TUI ──┐
+                        ├── task system (roadmap, tasks, status)      Q-003
+human ── jackin CLI ──┐ │
+      (unchanged)     │ │  takes tasks, reports status
+                      │ manager logic (scheduler, verification, inbox) Q-001
+                      │ │
+                      │ jackin daemon (per host: monitor all containers,
+                      │               execute tasks)                  D-008/9
+                      │ │
+                      └─┴─ same container-creation mechanism
                               │
                         container backend (Docker / Apple Container)
                               │
-                        one agent container per task
+                        one agent container per task (or per CLI session)
 ```
 
 ## Lifecycle of a task

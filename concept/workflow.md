@@ -34,9 +34,11 @@ decisions.
 
 ## What changes in the ecosystem
 
-- **jackin** gains a programmatic session API, detached launches, a daemon
-  the manager can drive, verification execution, and remote-host mode
-  (`analysis/jackin.md`, section 10).
+- **jackin** keeps its commands unchanged (D-009) and gains an additive
+  daemon that monitors containers and executes tasks from the task system
+  (D-008); internal capabilities the daemon needs — detached launch, brief
+  injection, execute-and-return — are shared with the CLI path, not
+  replacements (`analysis/jackin.md`, section 10).
 - **termrock** gains pane management, a terminal pane, a live task graph,
   multi-source stream coalescing, and a host-loop drain hook so a live fleet
   UI is possible on its synchronous runtime (`analysis/termrock.md`, section

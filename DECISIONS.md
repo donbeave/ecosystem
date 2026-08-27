@@ -124,3 +124,32 @@ report fleet status or start agents on behalf of another program.
 - Q-012 is closed: a task run maps to a container started by the daemon,
   observed through the daemon. Q-001 is narrowed: the manager sits on top
   of the jackin daemon; whether it ships in the same binary is still open.
+
+## D-009 — 2026-08-27 — jackin CLI stays as it is; the daemon is additive
+
+**Decision.** jackin itself is not redesigned. The existing commands keep
+working unchanged and keep creating the same containers the same way. The
+daemon is added beside them with two jobs: monitor the containers on its host
+(whether started by the CLI or by the daemon), and connect to a task system
+where the human provides tasks, taking tasks from there and executing them by
+creating containers through the same mechanism the CLI uses.
+
+**Rationale.** The isolation and role model already works and is in daily
+use; changing it risks the thing that is not broken. The missing capability
+is unattended execution and observation, which an additive daemon provides
+without touching the interactive path.
+
+**Consequences.**
+
+- No breaking change to jackin's commands, config schemas, or role contract
+  is planned by this project. Where the daemon needs a capability the CLI
+  path lacks (detached launch, programmatic brief injection, execute-and-
+  return for verification), it is added as a shared internal path that the
+  CLI may also use, never as a replacement.
+- The daemon reconciles against the container backend, so containers started
+  interactively appear in the same status view as daemon-started ones.
+- The "task system" the daemon connects to is a separate concern from the
+  daemon: it is where roadmaps and tasks live and where status is reported.
+  Its form is Q-003 (files on a branch, a service, or both). The daemon is a
+  consumer of that system.
+- D-008 stands; this decision narrows how it is achieved.
