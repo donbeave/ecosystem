@@ -71,11 +71,17 @@ human ── jackin CLI ──┐ │
 
 ## Lifecycle of an issue
 
-1. **Authored.** A human creates an issue in the tracker. Its Markdown
-   holds a checklist of tasks (D-013) and it defines the jackin role, the
-   agent runtime, model, effort, delivery, repository, and branch (D-012,
-   D-014, D-043, D-044; convention in `concept/task-format.md`, D-053).
-2. **Assigned.** The human assigns the issue to jackin (D-011). The daemon
+1. **Authored.** An agent creates the issue in the tracker from the task
+   folder (D-067; M1-12 for this roadmap). Its Markdown holds a checklist
+   of tasks (D-013) and it defines the jackin role, the agent runtime,
+   model, effort, delivery, repository, and branch (D-012, D-014, D-043,
+   D-044; convention in `concept/task-format.md`, D-053). Every roadmap
+   issue carries the `auto-dispatch` label; a follow-up an agent creates
+   during work stays unassigned in the backlog unless its parent issue
+   carries that label (D-067).
+2. **Assigned.** The issue is assigned to jackin by an agent, in dependency
+   order, with no human in the loop (D-067; outside this roadmap the
+   D-011 default still applies). The daemon
    notices (D-005, by polling: 5 s for sessions and delegated issues, 30 s
    reconciliation, D-053) and validates the required fields; a missing one
    is reported back on the issue as one `error` activity and the issue is
@@ -123,7 +129,9 @@ human ── jackin CLI ──┐ │
    carry no individual verification (D-030).
 7. **Done** when the checklist is complete and verification passes; the
    daemon marks the PR ready, moves the issue to the review state, and
-   posts a `response`. Otherwise **failed** and the retry policy applies
+   posts a `response`. Review never gates what follows: `crew-reviewer`
+   tasks run in parallel with the next task and their findings become
+   follow-up checklist items on the issue they reviewed (D-055). Otherwise **failed** and the retry policy applies
    (D-021, D-027): continuation after a clean exit, bounded backoff for
    agent-class failures, hold with a comment for config and workspace
    failures; each attempt is a new container in the same workspace and
@@ -139,9 +147,13 @@ human ── jackin CLI ──┐ │
    attempt's lane. Implemented by M6-05; by hand before that, recorded in
    `PROGRESS.md` only, never as a preflight defect (D-071).
 8. **Pull request and merge.** The daemon opens or updates the pull
-   request on GitHub from the task's branch (D-014). A human moves the
-   issue to the merging state; one `merge` attempt per repository at a
-   time brings the branch up to date and merges; the daemon confirms the
+   request on GitHub from the task's branch (D-014). The agent merges it
+   itself, using the forwarded `gh` identity, whenever its task text names
+   the merge — that text is the per-PR authorization and carries the fixed
+   "Authorization (D-055)" section (D-055, D-079); the daemon then moves
+   the issue to the merging state. Work the roadmap does not need merged
+   stays on `feat/managed-execution` (D-055). One `merge` attempt per
+   repository at a time brings the branch up to date and merges; the daemon confirms the
    merge, sets `Done`, and removes the workspace (D-031). Issues blocked by
    this one become dispatchable on the next tick.
 
@@ -183,10 +195,19 @@ human ── jackin CLI ──┐ │
 
 ## Human interaction model
 
-The human does three things: writes or approves the roadmap, marks it ready,
-and answers escalations. Everything else is unattended. The interface must
-make the third thing fast: a decision inbox where each item carries the
-evidence needed to decide and a small set of actions.
+The human does two things: writes or approves the roadmap, and supplies
+inputs only a human can supply — a login, an OTP, a consent screen, billing,
+a credential created in a UI, physical hardware. Everything else is
+unattended: issues are created and assigned by agents (D-067), agents merge
+their own pull requests when the task text authorizes it (D-055, D-079),
+and no review, merge, or confirmation waits on a person (D-050, D-055).
+
+There is no human decision inbox and no approval queue. What an agent cannot
+resolve itself is escalated in the tracker (D-029, D-068) or, when it is an
+input only a human can provide, filed as a preflight defect with the command
+that proves it in place while the rest of the roadmap keeps running (D-050,
+D-070). The interface must therefore make one thing fast: seeing what is
+running, what is blocked, and on which named missing input.
 
 ## What this borrows from existing research in jackin
 
