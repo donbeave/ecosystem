@@ -1,0 +1,12 @@
+   Replacing /Users/donbeave/.cargo/bin/jackin
+   Replacing /Users/donbeave/.cargo/bin/jackin-role
+    Replaced package `jackin v0.6.4 (/Users/donbeave/.jackin/managed/jackin/crates/jackin)` with `jackin v0.6.4 (/Users/donbeave/.jackin/managed/jackin/crates/jackin)` (executables `build-jackin-capsule`, `jackin`, `jackin-role`)
+    Finished `release` profile [optimized] target(s) in 19.16s
+   Replacing /Users/donbeave/.cargo/bin/jackin-capsule
+    Replaced package `jackin-capsule v0.6.4 (/Users/donbeave/.jackin/managed/jackin/crates/jackin-capsule)` with `jackin-capsule v0.6.4 (/Users/donbeave/.jackin/managed/jackin/crates/jackin-capsule)` (executable `jackin-capsule`)
+Error: cargo-zigbuild not reachable on PATH: No such file or directory (os error 2)
+Install the pinned toolchain from mise.toml with:
+  mise install zig cargo:cargo-zigbuild
+    Finished `release` profile [optimized] target(s) in 0.22s
+[build] cached at: /Users/donbeave/.jackin/cache/jackin-capsule/0.6.4_f42d702/linux-arm64/jackin-capsule
+[build] to use:    export JACKIN_CAPSULE_BIN=/Users/donbeave/.jackin/cache/jackin-capsule/0.6.4_f42d702/linux-arm64/jackin-capsule

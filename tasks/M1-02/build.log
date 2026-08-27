@@ -1,0 +1,125 @@
+=== cargo install --path crates/jackin --locked --force (CI=1) : last 40 lines ===
+   Compiling spki v0.8.0
+   Compiling x509-cert v0.3.0
+   Compiling x509-cert v0.2.5
+   Compiling sigstore_protobuf_specs v0.5.1
+   Compiling openidconnect v4.0.1
+   Compiling tabled_derive v0.11.0
+   Compiling tabled v0.21.0
+   Compiling jackin-tui v0.6.4 (/Users/donbeave/.jackin/managed/jackin/crates/jackin-tui)
+   Compiling jackin-oppicker v0.6.4 (/Users/donbeave/.jackin/managed/jackin/crates/jackin-oppicker)
+   Compiling rustls-webpki v0.103.13
+   Compiling tokio-rustls v0.26.4
+   Compiling rustls-platform-verifier v0.7.0
+   Compiling tonic v0.14.6
+   Compiling hyper-rustls v0.27.9
+   Compiling turso_sync_engine v0.7.0
+   Compiling reqwest v0.13.4
+   Compiling bollard v0.21.0
+   Compiling fast-down v5.0.2
+   Compiling oci-client v0.17.0
+   Compiling tonic-prost v0.14.6
+   Compiling opentelemetry-proto v0.32.0
+   Compiling tonic-types v0.14.6
+   Compiling sigstore v0.14.0
+   Compiling opentelemetry-otlp v0.32.0
+   Compiling jackin-env v0.6.4 (/Users/donbeave/.jackin/managed/jackin/crates/jackin-env)
+   Compiling jackin-instance v0.6.4 (/Users/donbeave/.jackin/managed/jackin/crates/jackin-instance)
+   Compiling jackin-isolation v0.6.4 (/Users/donbeave/.jackin/managed/jackin/crates/jackin-isolation)
+   Compiling jackin-host v0.6.4 (/Users/donbeave/.jackin/managed/jackin/crates/jackin-host)
+   Compiling jackin-console v0.6.4 (/Users/donbeave/.jackin/managed/jackin/crates/jackin-console)
+   Compiling turso_sync_sdk_kit v0.7.0
+   Compiling turso v0.7.0
+   Compiling jackin-usage v0.6.4 (/Users/donbeave/.jackin/managed/jackin/crates/jackin-usage)
+    Finished `release` profile [optimized] target(s) in 2m 29s
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+  Installing /Users/donbeave/.cargo/bin/build-jackin-capsule
+  Installing /Users/donbeave/.cargo/bin/jackin
+  Installing /Users/donbeave/.cargo/bin/jackin-role
+   Installed package `jackin v0.6.4 (/Users/donbeave/.jackin/managed/jackin/crates/jackin)` (executables `build-jackin-capsule`, `jackin`, `jackin-role`)
+EXIT_JACKIN=0
+
+=== cargo install --path crates/jackin-capsule --locked --force (CI=1) : last 40 lines ===
+   Compiling num-bigint v0.4.8
+   Compiling rustls-webpki v0.103.13
+   Compiling turso_ext v0.7.0
+   Compiling tokio-util v0.7.18
+   Compiling tokio-stream v0.1.18
+   Compiling jackin-telemetry v0.6.4 (/Users/donbeave/.jackin/managed/jackin/crates/jackin-telemetry)
+   Compiling jackin-process v0.6.4 (/Users/donbeave/.jackin/managed/jackin/crates/jackin-process)
+   Compiling bigdecimal v0.4.10
+   Compiling opentelemetry_sdk v0.32.1
+   Compiling h2 v0.4.16
+   Compiling tower v0.5.3
+   Compiling turso_core v0.7.0
+   Compiling axum v0.8.9
+   Compiling tower-http v0.6.11
+   Compiling turso_sdk_kit v0.7.0
+   Compiling jackin-protocol v0.6.4 (/Users/donbeave/.jackin/managed/jackin/crates/jackin-protocol)
+   Compiling jackin-config v0.6.4 (/Users/donbeave/.jackin/managed/jackin/crates/jackin-config)
+   Compiling hyper v1.10.1
+   Compiling hyper-util v0.1.20
+   Compiling tokio-rustls v0.26.4
+   Compiling rustls-platform-verifier v0.7.0
+   Compiling jackin-agent-status v0.6.4 (/Users/donbeave/.jackin/managed/jackin/crates/jackin-agent-status)
+   Compiling hyper-timeout v0.5.2
+   Compiling hyper-rustls v0.27.9
+   Compiling tonic v0.14.6
+   Compiling reqwest v0.13.4
+   Compiling tonic-prost v0.14.6
+   Compiling opentelemetry-proto v0.32.0
+   Compiling tonic-types v0.14.6
+   Compiling opentelemetry-otlp v0.32.0
+   Compiling jackin-diagnostics v0.6.4 (/Users/donbeave/.jackin/managed/jackin/crates/jackin-diagnostics)
+   Compiling jackin-tui v0.6.4 (/Users/donbeave/.jackin/managed/jackin/crates/jackin-tui)
+   Compiling turso_sync_engine v0.7.0
+   Compiling turso_sync_sdk_kit v0.7.0
+   Compiling turso v0.7.0
+   Compiling jackin-usage v0.6.4 (/Users/donbeave/.jackin/managed/jackin/crates/jackin-usage)
+    Finished `release` profile [optimized] target(s) in 54.39s
+  Installing /Users/donbeave/.cargo/bin/jackin-capsule
+   Installed package `jackin-capsule v0.6.4 (/Users/donbeave/.jackin/managed/jackin/crates/jackin-capsule)` (executable `jackin-capsule`)
+EXIT_CAPSULE=0
+
+=== build-jackin-capsule --arch arm64 (linux capsule into ~/.jackin/cache) : last 40 lines ===
+   Compiling vte v0.15.0
+   Compiling jackin-config v0.6.4 (/Users/donbeave/.jackin/managed/jackin/crates/jackin-config)
+   Compiling jackin-capsule v0.6.4 (/Users/donbeave/.jackin/managed/jackin/crates/jackin-capsule)
+   Compiling compact_str v0.10.0
+   Compiling serial2 v0.2.37
+   Compiling downcast-rs v1.2.1
+   Compiling shell-words v1.1.1
+   Compiling jackin-term v0.6.4 (/Users/donbeave/.jackin/managed/jackin/crates/jackin-term)
+   Compiling jackin-brand v0.6.4 (/Users/donbeave/.jackin/managed/jackin/crates/jackin-brand)
+   Compiling ratatui-widgets v0.3.2
+   Compiling ratatui-crossterm v0.1.2
+   Compiling jackin-agent-status v0.6.4 (/Users/donbeave/.jackin/managed/jackin/crates/jackin-agent-status)
+   Compiling filedescriptor v0.8.3
+   Compiling portable-pty v0.9.0
+   Compiling ratatui-macros v0.7.2
+   Compiling termrock v0.11.0 (https://github.com/tailrocks/termrock.git?rev=1ac0d0793b8cfd9edc61ced241e2b2ecb89162b4#1ac0d079)
+   Compiling ratatui v0.30.2
+   Compiling rustls-webpki v0.103.13
+   Compiling tokio-rustls v0.26.4
+   Compiling rustls-platform-verifier v0.7.0
+   Compiling tonic v0.14.6
+   Compiling hyper-rustls v0.27.9
+   Compiling reqwest v0.13.4
+   Compiling tonic-prost v0.14.6
+   Compiling tonic-types v0.14.6
+   Compiling opentelemetry-proto v0.32.0
+   Compiling opentelemetry-otlp v0.32.0
+   Compiling turso_sync_engine v0.7.0
+   Compiling jackin-tui v0.6.4 (/Users/donbeave/.jackin/managed/jackin/crates/jackin-tui)
+   Compiling turso_sync_sdk_kit v0.7.0
+   Compiling turso v0.7.0
+   Compiling jackin-usage v0.6.4 (/Users/donbeave/.jackin/managed/jackin/crates/jackin-usage)
+warning: linker stderr: ignoring deprecated linker optimization setting '1'
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `jackin-capsule` (bin "jackin-capsule") generated 1 warning
+    Finished `release` profile [optimized] target(s) in 1m 18s
+[build] cached at: /Users/donbeave/.jackin/cache/jackin-capsule/0.6.4_4d43da4/linux-arm64/jackin-capsule
+[build] to use:    export JACKIN_CAPSULE_BIN=/Users/donbeave/.jackin/cache/jackin-capsule/0.6.4_4d43da4/linux-arm64/jackin-capsule

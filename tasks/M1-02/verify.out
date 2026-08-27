@@ -1,0 +1,35 @@
+M1-02 subagents path, run goal-run-1
+jackin 0.6.4+f42d702
+integrated_sha: f42d7023c82ad385f4182f97257c52a9534a9426
+commit: f42d7023c82ad385f4182f97257c52a9534a9426
+bundle_hash: ef33fcfbfc5786ffdfe699dbf8404e5375d391f5fb99013fd790af5d2f04ecf3
+run: jackin --version
+jackin 0.6.4+f42d702
+ok: jackin --version
+run: command -v jackin
+/Users/donbeave/.cargo/bin/jackin
+ok: command -v jackin
+run: jackin doctor
+
+  [1m[48;2;0;255;65m[38;2;0;0;0m jackin[38;2;255;255;255m❯[38;2;0;0;0m [0m
+doctor
+
+  [32mok  [39m  docker_daemon  Docker daemon reachable
+  [32mok  [39m  docker_version  Docker server 29.4.0
+  [32mok  [39m  disk_space  1649292 MiB free
+  [32mok  [39m  config_dir  /Users/donbeave/.config/jackin exists and is writable
+  [32mok  [39m  jackin_dir  /Users/donbeave/.jackin exists
+  [32mok  [39m  capsule_cache  jackin-capsule 0.6.4+f42d702 cached at /Users/donbeave/.jackin/cache/jackin-capsule/0.6.4_f42d702/linux-arm64/jackin-capsule
+  [32mok  [39m  gh_auth  gh CLI authenticated
+  [32mok  [39m  op_cli  1Password CLI signed in
+  [2mskip[0m  mise  Not in a source checkout — mise not required
+  [32mok  [39m  clock_skew  System clock looks reasonable
+  [33mwarn[39m  orphaned_containers  1 orphaned container(s): jk-prewarm-dind-dind
+         → [2mRun `jackin prune orphaned` to remove them[0m
+  [32mok  [39m  stale_isolation  No stale isolation.json files found
+
+[32m✓  all checks passed (or warned)[39m
+telemetry: invocation 99708152-df56-4545-a1af-493c14709ef3 - OpenTelemetry export disabled
+ok: jackin doctor
+status: DONE
+status: DONE
