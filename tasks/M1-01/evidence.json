@@ -1,0 +1,47 @@
+{
+  "task": "M1-01",
+  "bundle_hash": "08bbf791f1e4a69bceff0ad1ea92fc973b94abfdadb03d5ec11b39731350cf97",
+  "integrated_sha": "29c470a875afdcc70f559c3d6efc16a562d66914",
+  "attempt": 1,
+  "epoch": 1,
+  "fencing_token": 0,
+  "created": "2026-08-27T22:23:58Z",
+  "commands": [
+    {
+      "cmd": [
+        "sh",
+        "tasks/M1-01/verify.sh",
+        "host"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "b448ab9df64ee0b3767f608018123c6d0d5f28e0f0124a8f2fb0a86f176adf41",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "started": "2026-08-27T22:23:58Z",
+      "finished": "2026-08-27T22:24:00Z"
+    },
+    {
+      "cmd": [
+        "python3",
+        "tools/bundle.py",
+        "verify",
+        "--all"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "759523f3c509da82051a92a48fe27b99c1397d010e9361f6fd546968fcfc6a5f",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "started": "2026-08-27T22:24:00Z",
+      "finished": "2026-08-27T22:24:00Z"
+    }
+  ],
+  "external_object_ids": {},
+  "tool_versions": {
+    "git": "git version 2.50.1 (Apple Git-155)",
+    "jq": "jq-1.7.1-apple",
+    "python3": "Python 3.14.7",
+    "gitleaks": "8.30.1",
+    "gh": "gh version 2.98.0 (2026-08-20)",
+    "docker": "Docker version 29.4.0, build 9d7ad9f"
+  },
+  "result_class": "DONE",
+  "updated": "2026-08-27T22:24:00Z"
+}

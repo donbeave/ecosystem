@@ -1,3 +1,6 @@
+M1-01 host path, run goal-run-1
+commit: 29c470a875afdcc70f559c3d6efc16a562d66914
+bundle_hash: 08bbf791f1e4a69bceff0ad1ea92fc973b94abfdadb03d5ec11b39731350cf97
 run: python3 tools/roadmap_compile.py --bundles 2>&1 | grep -q '81/81 bundles valid'
 ok: python3 tools/roadmap_compile.py --bundles 2>&1 | grep -q '81/81 bundles valid'
 run: python3 tools/bundle.py verify --all
