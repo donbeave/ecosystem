@@ -34,6 +34,12 @@
 #   --once                      supervise exactly one coordinator run
 #   --repo <path>               repository root (default: this script's parent)
 #
+# Environment:
+#   SUPERVISOR_BACKOFF_START    seconds before the first restart (default 5)
+#   SUPERVISOR_BACKOFF_MAX      ceiling for the doubling backoff (default 300)
+# The two exist so a test can bound how long a restart takes instead of
+# racing the production backoff with a fixed timeout of its own.
+#
 # POSIX sh; shellcheck clean.
 
 set -eu
@@ -239,7 +245,8 @@ launch_coordinator() {
 
 supervise() {
 	restarts=0
-	backoff=5
+	backoff="${SUPERVISOR_BACKOFF_START:-5}"
+	backoff_max="${SUPERVISOR_BACKOFF_MAX:-300}"
 	while :; do
 		before="$(done_count)"
 		reconcile
@@ -268,7 +275,7 @@ supervise() {
 		log "no terminal message; resuming from durable state in ${backoff}s (restart $restarts)"
 		sleep "$backoff"
 		backoff=$((backoff * 2))
-		[ "$backoff" -le 300 ] || backoff=300
+		[ "$backoff" -le "$backoff_max" ] || backoff="$backoff_max"
 	done
 }
 

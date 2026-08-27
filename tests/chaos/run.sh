@@ -43,6 +43,18 @@ TRANSCRIPT="$CHAOS_TMP/transcript.log"
 COUNTER="$ECOSYSTEM_STORE/coordinator.runs"
 FAILURES=0
 
+# The supervisor's production backoff doubles from 5s and is capped at 300s,
+# so by the fourth restart a fixed wait here would be racing a 40s sleep and
+# by the sixth a 160s one. The rehearsal bounds it instead of guessing at it;
+# the backoff path itself is still exercised, just on a short clock.
+SUPERVISOR_BACKOFF_START=2
+SUPERVISOR_BACKOFF_MAX=8
+export SUPERVISOR_BACKOFF_START SUPERVISOR_BACKOFF_MAX
+
+# Every wait below is a poll of an explicit condition with this budget. It is
+# deliberately generous: nothing here is a sleep that assumes work is done.
+WAIT_BUDGET="${CHAOS_WAIT_BUDGET:-240}"
+
 say() {
 	printf '%s chaos %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" | tee -a "$TRANSCRIPT"
 }
@@ -95,31 +107,69 @@ head -5 "$SEED" >"$ECOSYSTEM_STORE/events.jsonl"
 state_py verify >>"$TRANSCRIPT" 2>&1
 say "seeded $TASK as $(state_py status | python3 -c 'import json,sys; print(json.load(sys.stdin)["counts"])')"
 
-wait_for_run() {
-	# $1 run number, $2 timeout seconds
+# Poll one explicit condition until it holds or the budget is spent. The
+# rehearsal never sleeps for a fixed period in the hope that something has
+# happened; it names the condition it is waiting for.
+wait_until() {
+	# $1 description, then the command whose success is the condition
+	what="$1"
+	shift
 	waited=0
-	while [ "$(cat "$COUNTER" 2>/dev/null || printf '0')" -lt "$1" ]; do
-		if [ "$waited" -ge "$2" ]; then
-			say "timed out waiting for coordinator run $1"
+	while ! "$@"; do
+		if [ "$waited" -ge "$WAIT_BUDGET" ]; then
+			say "timed out after ${WAIT_BUDGET}s waiting for $what"
 			return 1
 		fi
-		sleep 2
-		waited=$((waited + 2))
+		sleep 1
+		waited=$((waited + 1))
 	done
-	say "coordinator run $1 observed"
+	say "$what (after ${waited}s)"
+}
+
+# shellcheck disable=SC2329  # called indirectly through wait_until
+run_count() {
+	# The counter is append-only: one line per coordinator invocation. Its
+	# line count can only grow, so no kill can make it read low.
+	[ -f "$COUNTER" ] || { printf '0'; return; }
+	wc -l <"$COUNTER" | tr -d ' '
+}
+
+# shellcheck disable=SC2329  # called indirectly through wait_until
+run_reached() {
+	[ "$(run_count)" -ge "$1" ]
+}
+
+wait_for_run() {
+	# $1 run number
+	wait_until "coordinator run $1" run_reached "$1"
+}
+
+# shellcheck disable=SC2329  # called indirectly through wait_until
+container_running() {
+	docker ps --format '{{.Names}}' | grep -qx "$CONTAINER"
 }
 
 wait_for_container() {
-	waited=0
-	while ! docker ps --format '{{.Names}}' | grep -qx "$CONTAINER"; do
-		if [ "$waited" -ge 60 ]; then
-			say "timed out waiting for $CONTAINER"
-			return 1
-		fi
-		sleep 2
-		waited=$((waited + 2))
-	done
-	say "worker container $CONTAINER is running"
+	wait_until "worker container $CONTAINER running" container_running
+}
+
+# shellcheck disable=SC2329  # called indirectly through wait_until
+session_running() {
+	tmux has-session -t "$SESSION" 2>/dev/null
+}
+
+# shellcheck disable=SC2329  # called indirectly through wait_until
+session_gone() {
+	! tmux has-session -t "$SESSION" 2>/dev/null
+}
+
+# Kill the coordinator session, waiting for it to exist first: a kill issued
+# while the supervisor is between restarts hits nothing, and the failure it is
+# meant to inject never happens.
+kill_coordinator() {
+	wait_until "tmux session $SESSION" session_running || return 1
+	tmux kill-session -t "$SESSION" 2>/dev/null || true
+	wait_until "tmux session $SESSION gone" session_gone
 }
 
 # ---------------------------------------------------------------------------
@@ -131,36 +181,49 @@ say "starting the supervisor"
 	--max-restarts 20 --coordinator-cmd "tests/chaos/fake_coordinator.sh" \
 	>>"$TRANSCRIPT" 2>&1 &
 SUP_PID=$!
-wait_for_run 1 90
+wait_for_run 1
 wait_for_container
 
 # (a) forced compaction -------------------------------------------------------
 cat "$COORD_LOG" >>"$TRANSCRIPT" 2>/dev/null || true
 say "(a) forced compaction: re-prompting the coordinator (kill + supervisor restart)"
-tmux kill-session -t "$SESSION"
-wait_for_run 2 120
+kill_coordinator
+wait_for_run 2
 
 # (b) kill the coordinator ----------------------------------------------------
 cat "$COORD_LOG" >>"$TRANSCRIPT" 2>/dev/null || true
 say "(b) killing the coordinator session"
-tmux kill-session -t "$SESSION"
-wait_for_run 3 120
+kill_coordinator
+wait_for_run 3
 
 # (c) kill the worker container -----------------------------------------------
 cat "$COORD_LOG" >>"$TRANSCRIPT" 2>/dev/null || true
 say "(c) killing the worker container $CONTAINER"
 docker kill "$CONTAINER" >/dev/null
 docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
-tmux kill-session -t "$SESSION" 2>/dev/null || true
-wait_for_run 4 180
+kill_coordinator
+wait_for_run 4
 
 # (d) expire the lease --------------------------------------------------------
 cat "$COORD_LOG" >>"$TRANSCRIPT" 2>/dev/null || true
-say "(d) expiring the lease: TTL 1s, then sleeping 2s"
+say "(d) expiring the lease: TTL 1s, then waiting for the store to call it expired"
 state_py lease "$TASK" --owner "chaos-ttl" --ttl 1 >>"$TRANSCRIPT" 2>&1
-sleep 2
-tmux kill-session -t "$SESSION" 2>/dev/null || true
-wait_for_run 5 240
+# shellcheck disable=SC2329  # called indirectly through wait_until
+lease_expired() {
+	# The lease TTL is wall-clock: wait for the store itself to report the
+	# lease as past its expiry rather than sleeping for the TTL and hoping.
+	python3 - "$REPO" "$TASK" <<'LEASE'
+import os, sys, time
+repo, task = sys.argv[1], sys.argv[2]
+sys.path.insert(0, os.path.join(repo, "tools"))
+import state  # noqa: E402
+lease = state.project(state.read_events())["leases"].get(task)
+sys.exit(0 if lease and lease["expires_at"] <= int(time.time()) else 1)
+LEASE
+}
+wait_until "the lease on $TASK to read expired" lease_expired
+kill_coordinator
+wait_for_run 5
 
 # a superseded agent tries to repeat its external mutation ---------------------
 say "replaying a lease-holder event with the stale fencing token 1"

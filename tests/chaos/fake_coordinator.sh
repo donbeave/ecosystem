@@ -22,7 +22,7 @@ STORE="${ECOSYSTEM_STORE:?ECOSYSTEM_STORE must be set}"
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 TASK="CANARY-01"
 CONTAINER="chaos-$TASK"
-COUNTER="$STORE/coordinator.runs"
+COUNTER="$STORE/coordinator.runs"  # append-only, one line per run
 FINISH="$STORE/finish"
 
 say() {
@@ -48,8 +48,14 @@ print(snapshot["tokens"].get(task, 0))
 PY
 }
 
-RUNS=$(( $(cat "$COUNTER" 2>/dev/null || printf '0') + 1 ))
-printf '%s' "$RUNS" >"$COUNTER"
+# The run counter is append-only, one line per invocation, and is never read
+# before it is written. A read-modify-write counter cannot survive this
+# rehearsal: a kill between the truncation and the write leaves an empty file
+# and the count silently restarts at 1, so the rehearsal then waits for a run
+# number that will never arrive. Appending one short line is atomic enough
+# that no kill can lose an earlier run.
+printf 'run %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >>"$COUNTER"
+RUNS="$(wc -l <"$COUNTER" | tr -d ' ')"
 
 FACTS="$(facts)"
 STATUS="$(printf '%s\n' "$FACTS" | sed -n 1p)"
