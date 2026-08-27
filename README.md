@@ -13,6 +13,7 @@ reaches agreement on a point updates the relevant file.
 
 | File | Purpose |
 | --- | --- |
+| [SPEC.md](SPEC.md) | The living specification: only decided points, with open questions marked. Improved every conversation. |
 | [VISION.md](VISION.md) | The problem, today's workflow, observed insights, and the target we are building toward. Start here. |
 | [DECISIONS.md](DECISIONS.md) | Dated decision log. Anything agreed is recorded here before it is elaborated elsewhere. |
 | [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) | Questions not yet decided. Each one is closed by moving it into `DECISIONS.md`. |
@@ -23,7 +24,7 @@ reaches agreement on a point updates the relevant file.
 | [analysis/termrock.md](analysis/termrock.md) | What termrock is today, with citations, and its gaps for this goal. |
 | [analysis/symphony.md](analysis/symphony.md) | openai/symphony: the closest existing execution concept, and what to adopt or reject. |
 | [analysis/linear-agents.md](analysis/linear-agents.md) | Linear Agents platform facts, jackin role contract facts, and a proposed issue convention. |
-| [AGENTS.md](AGENTS.md) | Rules for agents (and humans) editing this repository. |
+| [AGENTS.md](AGENTS.md) | Rules for agents (and humans) editing this repository. `CLAUDE.md` is a symlink to it. |
 
 ## Working rules
 

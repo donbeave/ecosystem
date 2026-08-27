@@ -14,7 +14,8 @@ decisions, and concept of the project before implementation starts.
    scaffolding, or prototypes. Shell snippets inside Markdown that illustrate a
    contract are fine; runnable files are not.
 2. **Decisions are explicit.** A point is decided only when it is recorded in
-   `DECISIONS.md` with a date and a short rationale. Concept documents must
+   `DECISIONS.md` with a date and a short rationale. `SPEC.md` states only
+   decided points and marks the rest *open (Q-NNN)*. Concept documents must
    not contradict `DECISIONS.md`; when they would, update the decision first.
 3. **Open questions are tracked.** Anything undecided that affects the design
    goes into `OPEN-QUESTIONS.md`. Closing a question means recording a
@@ -35,6 +36,7 @@ decisions, and concept of the project before implementation starts.
 | --- | --- |
 | Problem statement, insights, target state | `VISION.md` |
 | Agreed decisions | `DECISIONS.md` |
+| The specification (decided points only, open points marked) | `SPEC.md` — update it in the same change as any new decision |
 | Undecided design questions | `OPEN-QUESTIONS.md` |
 | How the manager works | `concept/manager.md` |
 | Plan and task on-disk format, verification contract | `concept/task-format.md` |
