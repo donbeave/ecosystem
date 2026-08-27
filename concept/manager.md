@@ -31,12 +31,28 @@ that is an empty shell. The recommended split, adopted as the working model:
 - **Manager (new):** roadmap and run ledger, plan graph, scheduler, task
   dispatch, verification, artifacts, decision inbox, reporting, multi-host
   awareness.
-- **jackin (executor, needs changes):** typed session API (create, send,
-  read, wait, events), detached launches, a daemon interface the manager can
-  drive, "execute and return result" for verification scripts, injection of
-  the task brief into the container, remote-daemon mode for other hosts.
+- **jackin daemon (executor, D-008):** a long-running process per host that
+  spawns agent containers programmatically, tracks every container it
+  started, continuously verifies where each runs and in what state, and
+  exposes that through a programmatic interface: start (role, mounts,
+  brief), list with live status, stream events, stop, restart, "execute and
+  return result" for verification scripts. It reconciles state after its own
+  restart. Only the daemon talks to the container backend for agent runs.
 
-Whether the manager ships inside the jackin binary or beside it is Q-001.
+Whether the manager ships inside the jackin daemon binary or beside it is
+Q-001.
+
+## Layering
+
+```text
+human ── termrock TUI ── manager (roadmap, scheduler, verification, inbox)
+                              │  programmatic interface
+                        jackin daemon (per host: spawn, track, verify containers)
+                              │
+                        container backend (Docker / Apple Container)
+                              │
+                        one agent container per task
+```
 
 ## Lifecycle of a task
 
@@ -47,7 +63,7 @@ Whether the manager ships inside the jackin binary or beside it is Q-001.
    (D-005).
 3. **Runnable.** All dependencies are `done`. The scheduler picks it up,
    subject to resource limits (Q-010).
-4. **Running.** The manager asks jackin to start an isolated agent with the
+4. **Running.** The manager asks the jackin daemon to start an isolated agent with the
    right role, mounts the repository and the task folder, and hands the agent
    a prompt of the shape:
 
@@ -71,7 +87,9 @@ passes.
 
 ## Daemon behavior
 
-- Runs continuously on a host that has jackin installed.
+- Runs continuously alongside the jackin daemon on a host (same binary or
+  separate, Q-001); on multi-host setups it connects to each host's jackin
+  daemon.
 - Watches the roadmap source of truth (Q-003) for changes.
 - Keeps a durable run ledger: every dispatch, verification result, retry,
   and escalation, so a restart resumes rather than repeats.

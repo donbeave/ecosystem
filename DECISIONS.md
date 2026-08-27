@@ -98,3 +98,29 @@ verification script.
 
 **Consequences.** Roles and skills used by the manager's agents must support
 this pattern; the manager may need to make it explicit in the task prompt.
+
+## D-008 — 2026-08-27 — jackin gets its own long-running daemon that owns containers
+
+**Decision.** jackin gains a real daemon: a long-running process on each
+host that spawns agent containers programmatically (not through a foreground
+CLI session), keeps track of every container it started, and continuously
+verifies where each one runs and what state it is in. The daemon is the only
+component that talks to the container backend for agent runs.
+
+**Rationale.** Unattended execution needs a process that outlives any single
+CLI invocation and that can answer "what is running, where, and in what
+status" at any time. Today jackin runs one agent per foreground session and
+its host daemon is an empty shell (`analysis/jackin.md`), so nothing can
+report fleet status or start agents on behalf of another program.
+
+**Consequences.**
+
+- The daemon exposes a programmatic interface: start an agent container with
+  a role, mounts, and brief; list containers with live status; stream events;
+  stop or restart. The manager is a client of this interface.
+- Container status tracking is a daemon responsibility, including
+  reconciliation after daemon restart (adopt containers still running, mark
+  lost ones).
+- Q-012 is closed: a task run maps to a container started by the daemon,
+  observed through the daemon. Q-001 is narrowed: the manager sits on top
+  of the jackin daemon; whether it ships in the same binary is still open.

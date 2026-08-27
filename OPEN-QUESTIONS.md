@@ -6,11 +6,13 @@ in `DECISIONS.md` and removing the entry here.
 
 ## Q-001 — Where does the manager live?
 
-Options: (a) a jackin subcommand plus daemon mode inside the jackin binary;
-(b) a separate binary in the jackin-project organization that talks to
-jackin; (c) a separate Tailrocks product. Affects release cadence, breaking
-change exposure (jackin is pre-stable), and whether the manager can be used
-without jackin. Leaning: part of jackin (D-002), not final.
+Narrowed by D-008: the manager is a client of the jackin daemon's
+programmatic interface. Remaining options: (a) manager logic compiled into
+the jackin daemon binary; (b) a separate binary in the jackin-project
+organization that connects to one or more jackin daemons. Affects release
+cadence, breaking-change exposure (jackin is pre-stable), and whether one
+manager can drive daemons on several hosts. Leaning: (a) for the first
+version, not final.
 
 ## Q-002 — What is the project's name?
 
@@ -73,9 +75,3 @@ Limits on concurrent agents per host, per provider account, and per plan.
 Minimum: roadmap and task graph, per-task status and live log, approval
 inbox, agent fleet. Which of these are termrock gaps versus product widgets
 is listed in `analysis/termrock.md`; the product-side scope is undecided.
-
-## Q-012 — How does the manager relate to jackin's existing session model?
-
-Depends on `analysis/jackin.md` (pending). Whether a "task run" maps to one
-jackin session, whether sessions can be created and observed
-programmatically, and what jackin must add.
