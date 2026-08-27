@@ -89,8 +89,8 @@ human ── jackin CLI ──┐ │
 3. **Runnable.** `dispatchable` is true (delegate is jackin, active state,
    every `blocks` relation resolved, fields valid; D-020) and a slot is free
    under the host, repository, state, and provider-account caps (D-022;
-   laptop, D-056: 6 per host, 1 per Codex home, 3 for `~/.claude`, 1 for
-   `crew-operator`).
+   laptop, D-056 as amended by D-071: 6 per host, 1 per Codex home, 2 for
+   `~/.claude`, 1 for `crew-operator`).
 4. **Picked up.** The daemon reads the issue once, prepares the workspace
    for the named repository and branch (reuse and pull if the branch exists
    on the remote, otherwise create from the base branch, default `main`,
