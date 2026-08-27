@@ -1,13 +1,17 @@
 # Tailrocks Ecosystem — Agent Manager concept
 
-This repository is a **research and planning space**, not a codebase. It holds
-the vision, decisions, and concept documents for a new project: a manager that
-runs many AI coding agents on big tasks inside the Tailrocks ecosystem
-(jackin, termrock, parallax, velnor, tailrocks-skills, ...).
+This repository is the **plan of record and the run state** for a new project:
+a manager that runs many AI coding agents on big tasks inside the Tailrocks
+ecosystem (jackin, termrock, parallax, velnor, tailrocks-skills, ...). It holds
+the vision, decisions, and concept documents; the task bundles and evidence of
+the `/goal` run; and the machine files that run and gate it — `tools/`,
+`tests/`, `run/`, `findings/`, the root `verify.sh`, and `tasks/<id>/`, at
+exactly the paths D-118 permits.
 
-Nothing here is implemented. Every file is a plan, an analysis, or a recorded
-decision. The documents are improved incrementally: each conversation that
-reaches agreement on a point updates the relevant file.
+No product code lives here: that is written in the involved repositories
+(github.com/jackin-project, github.com/tailrocks, donbeave/jackin-*). The
+planning documents are improved incrementally — each conversation that reaches
+agreement on a point updates the relevant file.
 
 ## Start the run
 
