@@ -415,9 +415,15 @@ Assign issues, review or merge pull requests, answer design questions,
 answer GitHub sudo-mode or capsule dialogs, bless anything (golden frames
 are blessed by the session under D-075), or re-run anything. If the
 session ends BLOCKED, `PREFLIGHT-DEFECTS.md` lists exactly what is needed
-(a missing input or an `exhausted: <id>` row, D-070); clear it — leaving
-the `Resolved` cell empty is fine for both kinds: the session re-runs each
-missing-input proof command at the next start and fills it, and it closes
-an `exhausted:` row by itself, re-opening the task in a new attempt epoch
-(D-084) — and run the `/goal` invocation line of `README.md` "Start the
-run" again.
+(a missing input or an `exhausted: <id>` row, D-070); clear it, then run
+the `/goal` invocation line of `README.md` "Start the run" again. The two
+kinds are cleared differently (D-084, D-093):
+
+- A **missing-input** row carries a proof command. Provide the input and
+  leave the `Resolved` cell empty: the session re-runs that proof command
+  at the next start and fills the cell itself.
+- An **`exhausted: <id>`** row has no proof command (its proof cell reads
+  `re-run`) and is closed by the human alone. While its `Resolved` cell is
+  empty the task stays `blocked` and is never re-attempted; the session
+  never fills that cell. Fill it yourself to re-open the task in a new
+  attempt epoch.
