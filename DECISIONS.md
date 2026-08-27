@@ -779,3 +779,100 @@ truth for one agent; Linear must show the truth for all of them.
   write-back (M5), since it is what makes the whole fleet observable.
 - Stall detection (proposed D-021) is a prerequisite: "stuck" needs a
   definition the daemon can compute.
+
+## D-050 — 2026-08-27 — Unattended end to end; operator needs are collected up front
+
+**Decision.** The whole implementation is carried out without asking the
+operator (the human) for anything mid-way, until everything is finished.
+To make that possible, every milestone and every task begins with a
+preflight: determine exactly what must come from the operator to run the
+task independently — credentials and logins, consents, trust grants,
+accounts, physical steps on the host — and obtain all of it before the
+task starts. Those items are gathered into one operator checklist per
+milestone (the `host` rows in `ROADMAP.md`), executed by the human in one
+sitting before the milestone's agents start. An agent that discovers a
+missing operator input mid-task records it as a preflight defect (the
+preflight should have caught it), completes everything not depending on
+it, and marks the task blocked with the exact missing item.
+
+**Rationale.** Being blocked by obvious things (a login, a token, a
+consent) is the main way unattended work stalls. Moving all of it to a
+known moment at the front keeps the agents running and the human's
+involvement predictable.
+
+**Consequences.**
+
+- `ROADMAP.md` gains, per milestone, an "operator preflight" list; task
+  folders carry a `preflight` section listing operator inputs with their
+  `op://` references or host actions.
+- Open design questions are not a reason to stop: recommended answers are
+  adopted by default (D-053) and may be overridden later.
+- Applies to planning work in this repository as well: proposals are
+  recorded with their recommended answer instead of waiting.
+
+## D-051 — 2026-08-27 — A blocked agent is a Linear-visible state
+
+**Decision.** When an agent inside a managed run is blocked — for example
+`/goal` in Claude Code or Codex stops on a permission prompt, a tool
+refusal, a confirmation, or any wait for input that the daemon did not
+cause — the daemon detects it through the capsule's agent state and sets
+the issue's run status to blocked in Linear (D-049), with the reason as
+far as it is known and the attach target, so the human knows to connect
+to that container and verify. The state is cleared automatically when the
+agent resumes.
+
+**Rationale.** Runtime-level blocks are invisible from outside the
+container; without this the human only notices by silence. D-049 makes
+stuck visible; this makes blocked-by-the-harness visible too.
+
+**Consequences.** The capsule must expose a "waiting for input / blocked"
+signal for every runtime (ROADMAP M4-05 runtime matrix extends to block
+detection); "blocked" and "stuck" are distinct states in Linear; the M5
+status milestone includes this case in its proof.
+
+## D-052 — 2026-08-27 — The Linear issue carries the assigned container identity
+
+**Decision.** Every issue being worked on shows the identity of the jackin
+Docker container assigned to it: the container id, the jackin instance
+name, and the host, kept current by the daemon from launch to removal,
+including across retries (each attempt's container is recorded). The
+identity is shown where a human reads it (session activity and an
+external URL / attach target) and in a machine-readable place the daemon
+maintains.
+
+**Rationale.** The human must know which container is working on which
+task in order to attach (D-016, D-051).
+
+**Consequences.** Part of the M5 status-sync milestone; the container
+label ↔ issue binding (ROADMAP M3-04) is the source; the convention for
+where the identity lives on the issue is fixed with Q-013.
+
+## D-053 — 2026-08-27 — Recommended answers are adopted as defaults
+
+**Decision.** Under D-050, every open question and proposal that has a
+recommended answer in `ROADMAP.md` §7, `concept/roles.md`, or
+`concept/borrowed-from-symphony.md` is adopted as the working decision
+now, so that task authoring and execution are not blocked. Specifically
+adopted: the role set (family `crew`: `crew-builder`, `crew-operator`,
+`crew-reviewer`, template repo, local-only builds, role `host` for human
+steps); the D-032 amendment (browser proof by the operator role); the
+Symphony proposals D-018..D-031 as written in
+`concept/borrowed-from-symphony.md` (with their numbers kept as
+references, marked adopted); and the recommended answers to Q-001, Q-006,
+Q-007, Q-008, Q-010, Q-011, Q-013 (extended with `model:*`, `effort:*`,
+`delivery:*`, and daemon-maintained status labels and container identity
+per D-049/D-052), Q-014, Q-015, Q-017, Q-018, Q-019, Q-021, Q-022, Q-023,
+Q-024, Q-025. Each adopted answer is recorded in the relevant concept
+document and `SPEC.md`; any of them may be overridden by a later decision
+here. Questions that have no recommended answer (Q-002 name, Q-009
+delivery beyond Linear, Q-005 planner-approval detail) stay open and do
+not block anything.
+
+**Rationale.** The human has reviewed the recommendations twice without
+objection and has asked for independent execution; waiting on explicit
+per-item confirmation is exactly the blocking D-050 forbids.
+
+**Consequences.** `OPEN-QUESTIONS.md` keeps only the genuinely open
+items; `ROADMAP.md` §7 is reduced accordingly; `SPEC.md` is updated to
+state the adopted answers; `concept/borrowed-from-symphony.md` proposals
+are marked adopted.
