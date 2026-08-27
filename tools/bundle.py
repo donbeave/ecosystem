@@ -111,8 +111,13 @@ def commands_in(text):
     out = []
     for m in re.finditer(r"`([^`]+)`", text):
         span = m.group(1).strip()
-        first = span.split()[0] if span.split() else ""
-        first = first.lstrip("!").strip()
+        words = span.split()
+        # A negated assertion is written `! grep ...` or `!grep ...`; the
+        # command that decides whether it is a command is the one after the
+        # negation, and the span keeps the `!` so the shell negates it.
+        if words and words[0] == "!":
+            words = words[1:]
+        first = words[0].lstrip("!").strip() if words else ""
         if first in COMMANDS and span not in out:
             out.append(span)
     return out

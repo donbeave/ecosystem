@@ -36,7 +36,8 @@ container = [
   "mise run test",
 ]
 host = [
-  "git show origin/feat/managed-execution:CONTRIBUTING.md | grep -qi 'agent-authored'",
+  "! grep -niE 'do not create feature branches' AGENTS.md",
+  "grep -qi 'agent-authored' AGENTS.md CONTRIBUTING.md",
 ]
 
 [[evidence]]

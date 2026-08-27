@@ -24,7 +24,7 @@ termrock: host-loop drain hook.
 
 ## Scope
 
-Subscription or drain hook in `runtime::run` so the console can apply daemon events without a private loop (`analysis/termrock.md` §8, §10 item 5). First commit on `feat/managed-execution`: add the agent-authored-changes clause to termrock `CONTRIBUTING.md` (D-047, D-053, D-055 wording: branch, PR to `main`, `crew-reviewer` review requested, agent merges when the task says so) and push it — M10-03 carries that commit as its `depends_on = M10-02` edge (D-088: this task owns the clause; no human decides it); then switch termrock CI from velnor to GitHub-hosted runners (D-064).
+Subscription or drain hook in `runtime::run` so the console can apply daemon events without a private loop (`analysis/termrock.md` §8, §10 item 5). First commit: replace termrock's trunk-only prohibition with the agent-authored-changes clause, in both files that state it. `AGENTS.md` lines 252-253 read "All TermRock work happens directly on `main`. Do not create feature branches or pull requests." — that sentence is deleted, not left standing beside a new clause, because an agent reads `AGENTS.md` first; the same prohibition in `CONTRIBUTING.md` is replaced too. Both files then carry the clause (D-047, D-053, D-055 wording: branch, PR to `main`, `crew-reviewer` review requested, agent merges when the task says so), and the commit is pushed — M10-03 carries that commit as its `depends_on = M10-02` edge (D-088: this task owns the clause; no human decides it); then switch termrock CI from velnor to GitHub-hosted runners (D-064).
 
 ## References
 
@@ -49,7 +49,8 @@ container-relative (D-086).
 
 - [ ] The scope above is implemented in the listed repositories.
 - [ ] container check passes: `mise run test`
-- [ ] host check passes: `git show origin/feat/managed-execution:CONTRIBUTING.md | grep -qi 'agent-authored'`
+- [ ] host check passes: `! grep -niE 'do not create feature branches' AGENTS.md`
+- [ ] host check passes: `grep -qi 'agent-authored' AGENTS.md CONTRIBUTING.md`
 - [ ] `verify.container.out` is filed in the task folder.
 - [ ] `migration.md` is filed in the task folder.
 - [ ] Every touched repository is committed and pushed.
@@ -63,7 +64,7 @@ Container part (run inside the task container):
 
 Host part (run by the host Claude Code session, D-061):
 
-> `git show origin/feat/managed-execution:CONTRIBUTING.md | grep -qi 'agent-authored'` matches on the pushed branch
+> in the termrock checkout at the integrated SHA, `! grep -niE 'do not create feature branches' AGENTS.md` holds and `grep -qi 'agent-authored' AGENTS.md CONTRIBUTING.md` matches in both files
 
 When a container part exists the host part first asserts that
 `tasks/M10-02/verify.container.out` ends with `status: DONE`, so a

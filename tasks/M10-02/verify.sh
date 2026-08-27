@@ -65,7 +65,8 @@ case "$part" in
       printf '%s\n' "status: PENDING"
       exit 1
     fi
-    run_cmd 'git show origin/feat/managed-execution:CONTRIBUTING.md | grep -qi '\''agent-authored'\'''
+    run_cmd '! grep -niE '\''do not create feature branches'\'' AGENTS.md'
+    run_cmd 'grep -qi '\''agent-authored'\'' AGENTS.md CONTRIBUTING.md'
     finish
     ;;
   *)
