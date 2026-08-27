@@ -326,6 +326,12 @@ only. There is no human review gate: `crew-reviewer` tasks run in parallel
 and never block the next task; findings become follow-up checklist items
 on the reviewed issue.
 
+## 9d-ci. Continuous integration
+
+CI for every repository this roadmap changes runs on GitHub-hosted
+runners; velnor runners are not used for this work (D-064). Local
+verification remains the default; CI is confirmation (D-034).
+
 ## 9e. Unattended execution and operator preflight
 
 The whole implementation runs without asking the operator for anything

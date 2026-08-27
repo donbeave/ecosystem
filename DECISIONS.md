@@ -1039,3 +1039,28 @@ human's attention and violates D-050.
 "When stuck" section in the `TASK.md` template; `SPEC.md` §9f; the M5
 stuck transition and the M6-05 fallback are preceded by this analysis
 step.
+
+## D-064 — 2026-08-27 — CI for this roadmap runs on GitHub-hosted runners, not velnor
+
+**Decision.** For every repository this roadmap changes (jackin, termrock,
+the `donbeave` role repositories, this repository), continuous integration
+runs on GitHub-hosted runners. velnor self-hosted runners are not used for
+this work. Where a repository's workflows currently target velnor runners
+(for example termrock's CI delegating to velnor `ci-code.yml`), the
+workflows are switched to GitHub-hosted runners on `feat/managed-execution`
+(D-046, D-047).
+
+**Rationale.** velnor is itself under development in this ecosystem; CI for
+this roadmap must not depend on it. GitHub-hosted runners are always
+available and need no operator preflight. Local verification stays the
+default (D-034); CI is confirmation.
+
+**Consequences.**
+
+- Tasks that first touch a repository's workflows (M1-02 for jackin, the
+  first termrock task, the role repositories from creation) include
+  "runs-on: GitHub-hosted" as part of scope.
+- Role image validation (`jackin-role-action`) continues to run on
+  GitHub-hosted runners as it does today.
+- `analysis/roles/termrock-and-docs-needs.md` item on velnor CI is
+  superseded for this effort.
