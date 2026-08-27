@@ -154,6 +154,15 @@ in the real Linear and GitHub UIs with `agent-browser` on one persistent
 logged-in profile (D-032). The end-to-end workflow is written out in
 `concept/workflow.md`.
 
+## 10a. Milestones
+
+Ordered proofs (D-037): (1) Linear setup verified; (2) daemon listens and
+reacts to Linear; (3) an assigned issue spawns a local jackin agent in
+Docker; (4) the capsule delivers a prompt into a specific agent's session.
+Then checklist write-back, verification, pull requests, merge, TUI, server
+host, multi-host. Details and tasks: `ROADMAP.md`; task folders: `tasks/`
+(D-038).
+
 ## 11. Open questions
 
 See `OPEN-QUESTIONS.md`. Highest impact for the prototype: Q-013 (issue

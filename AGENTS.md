@@ -12,7 +12,8 @@ decisions, and concept of the project before implementation starts.
 
 1. **No implementation.** Do not add source code, build files, scripts,
    scaffolding, or prototypes. Shell snippets inside Markdown that illustrate a
-   contract are fine; runnable files are not.
+   contract are fine; runnable files are not — except verification scripts
+   inside `tasks/<task>/` (D-038).
 2. **Decisions are explicit.** A point is decided only when it is recorded in
    `DECISIONS.md` with a date and a short rationale. `SPEC.md` states only
    decided points and marks the rest *open (Q-NNN)*. Concept documents must
@@ -47,4 +48,6 @@ decisions, and concept of the project before implementation starts.
 | How the manager works | `concept/manager.md` |
 | Plan and task on-disk format, verification contract | `concept/task-format.md` |
 | Today's workflow versus target workflow | `concept/workflow.md` |
+| Milestones, task list, dependencies | `ROADMAP.md` |
+| One folder per task, indexed with status | `tasks/README.md`, `tasks/<task>/` |
 | Facts about existing repositories | `analysis/<repo>.md` |

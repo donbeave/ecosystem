@@ -103,3 +103,12 @@ D-017 excludes direct webhooks to the laptop for the prototype. Options: a
 small relay service that receives webhooks and lets daemons pull; a tunnel
 per host; polling only. Awaiting decision.
 
+## Q-016 — Which jackin agent roles build this product?
+
+D-033 and D-036 require the product to be built by agents through jackin.
+Options: reuse `the-architect` (jackin's own development role) for jackin
+and daemon work, and add roles for termrock work, for Linear/GitHub setup
+with `agent-browser`, and for verification/review (for example
+`agent-smith`); or one role with everything. Decide during `ROADMAP.md`
+planning, before task folders are created.
+

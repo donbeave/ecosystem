@@ -13,7 +13,8 @@ Format: `D-NNN` — date — title — decision — rationale — consequences.
 **Decision.** `ecosystem/` contains Markdown only: vision, decisions, concept
 documents, analyses of existing repositories. No source code, prototypes, or
 scaffolding until the concept is aligned and a separate implementation plan
-says so.
+says so. (Amended by D-038: verification scripts inside `tasks/<task>/` are
+the one permitted runnable file type.)
 
 **Rationale.** Planning is the critical phase. Implementing before the concept
 is agreed produces the same context-loss failure at project scale that large
@@ -447,3 +448,60 @@ checkable.
 - Skills used for planning and implementation are written to spawn
   subagents by default.
 - `AGENTS.md` in this repository records the rule for work done here.
+
+## D-037 — 2026-08-27 — Milestones are ordered proofs of the loop
+
+**Decision.** The product is built as a sequence of milestones, each one a
+verified proof that a part of the loop works, in this order:
+
+1. **Linear setup verified.** The Linear agent app exists, is installed in
+   the workspace, credentials are in 1Password, and an issue can be
+   assigned to jackin and observed (browser-verified, D-032).
+2. **jackin daemon listens and reacts to Linear.** The daemon receives the
+   assignment event (by whatever path Q-015 decides) and reacts visibly.
+3. **Issue spawns a local agent.** Creating and assigning a task in Linear
+   spawns a jackin agent locally: a new jackin instance in Docker with a new
+   session, using the role and runtime named on the issue.
+4. **Capsule passes prompts to a specific agent.** Through the jackin
+   capsule, a prompt can be delivered into a chosen agent's session, and
+   every step of the instance can be managed through the capsule. This is
+   what lets the prompt on the Linear issue reach the agent.
+
+Later milestones (checklist mirroring and write-back, verification, pull
+requests, merge, TUI, server host, multi-host) follow once these four are
+proven.
+
+**Rationale.** Each milestone removes one unknown. Milestone 4 is the
+capability everything else depends on and is the largest jackin gap
+(`analysis/linear-agents.md`: no initial-prompt path exists today).
+
+**Consequences.** `ROADMAP.md` holds the milestones and their tasks; each
+task is a folder under `tasks/` (D-038) and becomes a Linear issue when it
+is ready to execute.
+
+## D-038 — 2026-08-27 — Tasks live in `tasks/`, indexed by a README with status
+
+**Decision.** This repository has a `tasks/` folder. `tasks/README.md` is
+the index: a list of every task subfolder with its status. Each subfolder
+is one task, containing what an agent needs to do it (description,
+references, checklist, verification). An agent that starts a task follows
+this structure: read the index, read its task folder, work only on that
+task, update the status in the index when done. When execution starts, each
+task is turned into a Linear issue (D-010) that points at its folder; the
+folder is the plan content, Linear is the execution tracker.
+
+**Rationale.** The detailed plan must exist, with dependencies resolved,
+before execution; a folder per task is the format already observed to work
+(VISION.md) and is what the issue contract mirrors locally (D-013).
+
+**Consequences.**
+
+- D-001 is amended: runnable files are permitted only as verification
+  scripts inside `tasks/<task>/`; everything else stays Markdown.
+- `concept/task-format.md` gains an "authoring in `tasks/`" section that
+  matches the issue contract field for field.
+- Planning proceeds in two steps: first a small plan of which tasks exist,
+  what process they follow, and their dependencies (`ROADMAP.md`); only
+  after that is finalized are the task folders created and delegated.
+- Which jackin agent roles are needed to build this product (existing
+  roles or new ones) is decided during that planning; see Q-016.
