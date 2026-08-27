@@ -141,6 +141,18 @@ never lowers the bar. Clear those items in §1..§5 below and re-run it.
       every `tasks/<id>/verify.sh` is POSIX `sh` checked with `dash -n`
       and `shellcheck -s sh` because the container `sh` is dash (D-086).
       Proof: `dash -c 'echo ok'` and `shellcheck --version`.
+- [ ] `mise` installed on the host (`brew install mise`): the golden-frame
+      blessing of M10-03 and M10-04 is a host step run by the session
+      (`goal/EXECUTION.md` §5 step 4c, D-075) and it runs `mise install`
+      and `mise run bless-previews` in the termrock checkout. Installed by
+      the session, never a defect. Proof: `mise --version`.
+- [ ] jackin's own DCO trailer injection is enabled for this host, so every
+      container it launches signs its commits off (D-089 (4) amended; M1-02a
+      enables it, and the role images ship no sign-off hook of their own
+      because jackin's global `core.hooksPath` would shadow it). Enabled by
+      the session, never a defect: it runs `jackin config git dco enable`
+      itself. Proof: `grep -q 'dco = true'
+      "${JACKIN_CONFIG_DIR:-$HOME/.config/jackin}/config.toml"`.
 - [ ] `agent-browser` installed on the host. Proof:
       `agent-browser --version` prints 0.35.1 or later and `agent-browser
       state --help` lists `save <path>` and `load <path>` (the top-level
@@ -292,7 +304,9 @@ never lowers the bar. Clear those items in §1..§5 below and re-run it.
       `jackin-project/jackin-the-architect`.
 - [ ] Golden-frame blessing for M10-03 and M10-04 pre-approved (D-075):
       ticking this box is the recorded approval; the host session runs
-      `mise run bless-previews` itself. Nothing to do at run time.
+      `mise run bless-previews` itself, as `goal/EXECUTION.md` §5 step 4c,
+      between the container's work and the task's verify. Nothing further
+      to do at run time; `mise` is the §1 item above.
 
 ## 3. Before M4 (runtime matrix, M4-05)
 
