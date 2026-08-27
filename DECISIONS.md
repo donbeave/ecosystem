@@ -593,3 +593,52 @@ uninstalling `jackin-preview` and installing the branch build on `PATH`
 first; `jackin-dev` (the workflow plugin) stays. Roles built locally must
 target the branch's construct base. If the branch build breaks, the fix is
 to fix the branch, never to reinstall the preview.
+
+## D-043 — 2026-08-27 — The issue also names the model and the effort level
+
+**Decision.** Extending D-012: an issue that jackin executes names the
+jackin role, the agent runtime, the **model**, and the **reasoning effort
+level** to use. The daemon starts the role with exactly those; a missing
+model or effort falls back to the lane defaults recorded for the project
+(D-039: medium effort) and is reported on the issue as a defaulted value.
+
+**Rationale.** Model and effort decide cost and quality per task; the
+human chooses them where the task is defined, not in daemon config.
+
+**Consequences.** Two more fields in the issue contract (convention
+Q-013, for example labels `model:*` and `effort:*`). `LoadOptions` (ROADMAP
+M3-01, Q-024) carries `model` and `effort`; each runtime adapter maps the
+effort level to its own flag where the runtime exposes one.
+
+## D-044 — 2026-08-27 — Delivery mode: `/goal` by default, plain prompt on request
+
+**Decision.** When the daemon starts a task, the default is to deliver the
+issue's prompt to the agent as a `/goal` execution: `/goal <prompt>`, the
+iterate-until-done runner already used in today's workflow (VISION.md;
+`jackin-dev` skills call it the external spec-runner). An issue may
+override this with a delivery option: `prompt` sends the text as a plain
+first message with no `/goal` wrapper. The issue therefore decides how its
+text is posted; the daemon never guesses.
+
+Classification for this project's own tasks (`ROADMAP.md`):
+
+- **goal** — tasks with a checklist and a verification that must iterate
+  until `status: DONE`: every implementation task in jackin, termrock, and
+  role repositories, and authoring tasks in this repository.
+- **prompt** — one-shot operator actions, observation and proof runs, and
+  reviews that end in a verdict rather than a verified artifact.
+
+**Rationale.** `/goal` is what makes an agent keep working until the
+verification passes, which is the behavior wanted for implementation. A
+proof run, a one-time setup click-through, or a review does not have a
+loop to run and is clearer as a plain prompt.
+
+**Consequences.**
+
+- Delivery mode is an issue field (default `goal`); `concept/task-format.md`
+  and the `tasks/` folder format carry it.
+- `/goal` is a Claude Code command today. For other runtimes (D-015) the
+  daemon maps `goal` to that runtime's equivalent, or to the plain prompt
+  prefixed with the same iterate-until-DONE instruction when no equivalent
+  exists; ROADMAP M4-05 (runtime matrix for prompt delivery) covers this.
+- `ROADMAP.md` lists the delivery mode per task.

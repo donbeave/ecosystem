@@ -57,7 +57,10 @@ An issue that jackin executes must define:
 | base branch | no, default `main` | Where a new branch is created from. (D-014) |
 | role | yes | jackin agent role to spawn, resolvable by name to a published image. (D-012) |
 | runtime | yes | Agent runtime inside the role. (D-012) |
+| model | yes, lane default if absent | Model the runtime uses. (D-043) |
+| effort | yes, default medium | Reasoning effort level. (D-043) |
 | prompt | yes | Text passed to the agent. (D-012) |
+| delivery | no, default `goal` | `goal` = deliver as `/goal <prompt>` (iterate until verified); `prompt` = plain first message. (D-044) |
 | checklist | yes | Markdown task list of the work; the unit of progress. (D-013) |
 | references | recommended | Schemas, contracts, designs the result must satisfy. (D-003) |
 | verification | recommended | Executable check whose last line `status: DONE` is the only proof of completion. (D-003) |

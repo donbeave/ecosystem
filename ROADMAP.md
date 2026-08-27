@@ -357,3 +357,16 @@ New questions found while drafting, with recommended answers:
 | Q-022 | Role-branch loads require an interactive trust dialog; how does the daemon launch a locally rebuilt role? | `jackin config trust grant` once at M1-05; the daemon requires trust to be pre-granted and reports otherwise as a validation failure. |
 | Q-023 | Repository to Linear mapping: explicit on the issue or a team-level default? | Explicit `repo:` label on the issue (Q-013); a team default is added later only if the label becomes noise. |
 | Q-024 | jackin selects the account per workspace (`sync_source_dir`), not per launch; how does the daemon pick a lane per issue? | Add `account` (source folder) and `model` to `LoadOptions` in M3-01 so the daemon chooses per launch; until then one jackin workspace per lane (M1-13) and the issue's lane is expressed as an `agent:*` label value such as `agent:codex-chainargos` (Q-013 extension). Reasoning effort is pinned to medium by lane profile env (`CLAUDE_CODE_EFFORT_LEVEL`, Codex `model_reasoning_effort`) — verify the exact knobs in M1-13. |
+
+## 8. Delivery mode per task (D-044)
+
+Default is `goal` (`/goal <prompt>`, iterate until `status: DONE`). Tasks
+marked `prompt` are delivered as a plain first message.
+
+- **goal** (38): M1-01, M1-02, M1-04, M1-05, M1-08, M1-12, M1-13, M2-01, M2-02, M2-03, M2-04, M2-05, M2-06, M3-01, M3-02, M3-03, M3-04, M3-05, M3-06, M4-01, M4-02, M4-03, M4-04, M4-05, M5-01, M5-02, M6-01, M6-02, M6-03, M7-02, M8-01, M9-01, M9-02, M9-03, M9-04, M10-01, M11-01, M11-02
+- **prompt** (22): M1-02a, M1-03, M1-06, M1-07, M1-09, M1-10, M1-11, M2-07, M2-08, M3-07, M3-08, M4-06, M4-07, M5-03, M6-04, M7-01, M7-03, M8-02, M9-05, M10-02, M10-03, M11-03
+
+Rule: implementation and authoring tasks with a checklist and a
+verification are `goal`; one-shot operator actions, proof runs, and reviews
+are `prompt`. Every task also names model and effort (D-043); effort is
+medium for all lanes (D-039).

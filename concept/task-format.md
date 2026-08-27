@@ -16,6 +16,9 @@ authors in git.
 | base branch for a new branch | no, default `main` | issue field (D-014) |
 | jackin role to spawn | yes | e.g. label `role:the-architect` |
 | agent runtime inside the role | yes | e.g. label `agent:claude` |
+| model | yes, lane default if absent | e.g. label `model:opus-5` (D-043) |
+| effort | default medium | e.g. label `effort:medium` (D-043) |
+| delivery | default `goal` | `goal` or `prompt` (D-044) |
 | prompt handed to the agent | yes | issue description, or a fenced block in it |
 | checklist of tasks | yes | Markdown task list in the description or an attached Markdown file |
 | references (schemas, contracts, designs) | recommended | links or paths in the description |
