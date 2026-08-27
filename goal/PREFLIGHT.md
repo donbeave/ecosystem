@@ -182,7 +182,10 @@ run in any case.
       that runtime's config directory or an API key stored as
       `op://jackin/<runtime>-daemon/api key` (`concept/credentials.md`
       §4). A runtime without a credential is recorded as skipped by M4-05,
-      never as passed; leaving one out is allowed and is not a defect.
+      never as passed. Leaving one out is allowed: it becomes a
+      `PREFLIGHT-DEFECTS.md` row that blocks only the tasks needing that
+      runtime, and ends the run as BLOCKED only when nothing else is
+      runnable (D-050, D-070).
       Proof: `op item get <runtime>-daemon --vault jackin --format json |
       jq '.fields[].label'` per provided key lists `api key`.
 

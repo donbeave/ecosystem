@@ -11,8 +11,10 @@ reaches agreement on a point updates the relevant file.
 
 ## Start the run
 
-Prerequisites: complete `goal/PREFLIGHT.md` §1–§5 (each undone §3–§5 item is one guaranteed
-BLOCKED stop, D-050, D-070); open Claude Code in this repository.
+Prerequisites: complete `goal/PREFLIGHT.md` §1–§5. An undone §3–§5 item is not a guaranteed
+stop: it becomes a `PREFLIGHT-DEFECTS.md` row that blocks only the tasks needing it, and ends
+the run as BLOCKED only when nothing else is runnable (D-050, D-070). Open Claude Code in this
+repository.
 
 ```text
 /goal Follow GOAL.md. Goal reached only when the current turn ends with a message whose first line is exactly `GOAL COMPLETE` or `GOAL BLOCKED` and whose last lines are the literal output of `sh verify.sh` from that turn: last line `status: DONE` for COMPLETE, or `status: PENDING <n> remaining` preceded by the open PREFLIGHT-DEFECTS.md rows for BLOCKED. Any other turn end is not the goal.
