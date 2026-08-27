@@ -69,10 +69,10 @@ evidence = """ROADMAP.md:197 M3-05 depends_on is still 'M3-02, M3-03, M3-04, M2-
 id = "R3-11"
 title = """GOAL prompt Runnable formula has no milestone gate while goal/EXECUTION.md restricts early starts"""
 disposition = "fixed"
-evidence = """Fixed by D-109: the runnable predicate is one paragraph, byte-identical in GOAL.md:39-46 and goal/EXECUTION.md:144-151 (diff of the two ranges is empty at HEAD)."""
+evidence = """Fixed by D-119: the runnable predicate is one paragraph, byte-identical in GOAL.md and goal/EXECUTION.md; `python3 tools/invariant_lint.py` check d119-predicate passes at HEAD."""
 file = "GOAL.md"
-line = 39
-quote = """Runnable predicate (D-109). A `tasks/README.md` row is runnable iff: its"""
+line = 41
+quote = """Runnable predicate (D-119). A row is Runnable (D-119) iff: its status is"""
 
 [[finding]]
 id = "R3-12"
@@ -80,7 +80,7 @@ title = """M10-03 has depends_on '—' but is gated on M10-02 only in prose"""
 disposition = "fixed"
 evidence = """Fixed: the M10-03 depends_on cell is now `M10-02`, no longer an em dash, so the gate is an edge and not prose."""
 file = "ROADMAP.md"
-line = 320
+line = 324
 quote = """| M10-03 | termrock: `TerminalPane` widget"""
 
 [[finding]]
@@ -224,7 +224,7 @@ title = """M11-01 depends_on M1-03 makes it runnable in M1 time despite the pros
 disposition = "fixed"
 evidence = """Fixed: the M11-01 depends_on cell is now `M10-05`; `grep -c 'starts with M11, after' ROADMAP.md` prints 0, so the gate is no longer prose-only."""
 file = "ROADMAP.md"
-line = 358
+line = 362
 quote = """| M11-01 | Runtime credentials"""
 
 [[finding]]
@@ -383,7 +383,7 @@ title = """jackin workspace delete task-<id> is not a command; the subcommand is
 disposition = "fixed"
 evidence = """Fixed by Phase 0 row 0.13: `grep -rn 'workspace delete' --include='*.md' .` returns nothing, and goal/EXECUTION.md now ends the task lifecycle with `jackin workspace remove`."""
 file = "goal/EXECUTION.md"
-line = 222
+line = 277
 quote = """jackin workspace remove"""
 
 [[finding]]
@@ -413,7 +413,7 @@ title = """Attempt counter of an in-progress task lives only in the model's cont
 disposition = "fixed"
 evidence = """`tasks/<id>/attempts.log` is the authority at HEAD (goal/EXECUTION.md:362, AGENTS.md:24, GOAL.md, SPEC.md, D-093)."""
 file = "goal/EXECUTION.md"
-line = 362
+line = 448
 quote = """Append the attempt to `tasks/<id>/attempts.log`"""
 
 [[finding]]
@@ -431,7 +431,7 @@ title = """Final-message shape contradicts the evaluator; (A) has no first-line 
 disposition = "fixed"
 evidence = """goal/EXECUTION.md now fixes the four-part final-message shape with the first-line marker; GOAL.md and README.md mirror it (D-093)."""
 file = "goal/EXECUTION.md"
-line = 501
+line = 587
 quote = """1. Line 1, alone: `GOAL COMPLETE` or `GOAL BLOCKED`."""
 
 [[finding]]
