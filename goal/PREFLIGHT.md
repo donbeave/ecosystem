@@ -31,13 +31,21 @@ pass and a live pass can be shown to belong to the same plan.
   `tools/*.sh` and every `tasks/<id>/verify.sh`, no task verifier
   containing `hardline`, `tmux attach`, `--latest` or `newest` (durable
   evidence only), `tools/invariant_lint.py`, and `tools/state.py verify`.
-- `sh tools/readiness.sh live` — this host: the §1 standing items as
-  commands (Docker, `gh auth status`, `op account list`, `tmux`, `dash`,
-  `shellcheck`, `gitleaks`, the `claude-yolo` launcher function, the
-  `claude` and `codex` runtimes, `caffeinate` running, the screen saver
-  off, `autoContinueAtUsageLimit`), plus `sh tools/probe_permissions.sh`,
-  which launches one real `claude -p` to prove the pinned permission mode
-  never prompts (D-120; it carries its own 120-second timeout).
+- `sh tools/readiness.sh live` — this host, one line per check, in this
+  order: `docker` (`docker info`), `tmux`, `dash`, `shellcheck`,
+  `gitleaks`, `claude`, `codex`, `mise`, `jackin dco` (`dco = true` in
+  `${JACKIN_CONFIG_DIR:-$HOME/.config/jackin}/config.toml`, R3-75 — while
+  `jackin` is absent the line reads `pending: M1-02` and does not fail,
+  since M1-02 builds it), `op configured` (`op account list`),
+  `claude-yolo` (the launcher shell function, in an interactive zsh),
+  `caffeinate` running, `screensaver off`, `auto-continue`
+  (`autoContinueAtUsageLimit`), and `permission probe`
+  (`sh tools/probe_permissions.sh`, which launches one real `claude -p` to
+  prove the pinned permission mode never prompts; D-120, its own
+  120-second timeout). Then the human-only rows: `1Password signed in`,
+  `gh auth`, `operator browser profile`, `GitHub App jackin-daemon`,
+  `delete_branch_on_merge off`, `the-architect ruleset`, and
+  `pinned role refs`.
 
 `tools/invariant_lint.py` is the cross-document lint (D-116): it fails
 when two authoritative documents disagree — the D-119 runnable predicate

@@ -138,6 +138,14 @@ live_gate() {
   ok   "gitleaks"        gitleaks version
   ok   "claude"          claude --version
   ok   "codex"           codex --version
+  ok   "mise"            mise --version
+  # The jackin DCO hook signs off every agent commit (R3-75). jackin itself is
+  # built by M1-02, so an absent binary is informational, not a failure; once it
+  # is installed, `dco = true` in its config is required.
+  oksh "jackin dco" \
+    "cfg=\${JACKIN_CONFIG_DIR:-\$HOME/.config/jackin}/config.toml; \
+     command -v jackin >/dev/null 2>&1 || { echo 'pending: M1-02 (jackin not installed yet)'; exit 0; }; \
+     grep -q 'dco = true' \"\$cfg\""
   # `op whoami` prints "account is not signed in" until the desktop app unlocks
   # the session, so it cannot serve as the tool check. An account being
   # configured is what proves the CLI is installed and wired to the right
