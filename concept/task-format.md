@@ -81,7 +81,13 @@ into an issue with the convention above. It contains:
 - `verify.sh` — the task's verification (D-003); for repositories with
   `.jackin/workflow.toml`, `[verify] command` points at it. It is POSIX
   `sh` (`#!/bin/sh`, `set -u`; checked by M1-01 with `dash -n` and
-  `shellcheck -s sh`, because the container `sh` is dash) and takes one
+  `shellcheck -s sh -S warning`, because the container `sh` is dash — the
+  severity floor is `warning`, so `style` and `info` hints never fail a
+  bundle, and the two checks are `dash -n` exit 0 and `shellcheck` exit 0,
+  never a "clean output" reading; that the script is well formed is checked
+  by `grep -qE '^ *echo "?status: DONE'`, `grep -qE '^ *echo "?status:
+  FAILED'` and `grep -q 'case "$1"'`, never by inspecting the last line of
+  the file) and takes one
   argument, `container` or `host`, running only that part through
   `case "$1"`; a single-part task accepts both. The container part ends
   with `status: DONE` or `status: FAILED` and is filed as
@@ -99,7 +105,16 @@ into an issue with the convention above. It contains:
   attaches to a jackin instance is a host part (`host (D-061):` sentence
   of the roadmap verify column) run by the host session whatever the
   task's role, and only unit or fixture checks stay in-container (D-081,
-  D-091). A verify column that names a review or a manual check becomes
+  D-091). Placement is mechanical, not a judgement call: every sentence of
+  a roadmap verify column that names `op`, `gh`, `docker`, `ssh`,
+  `jackin-exec`, the Linear workspace token, `jackin load`, `jackin
+  status`, `jackin daemon`, or a daemon log belongs in the `host (D-061):`
+  part, and everything else belongs in the container part; a row that
+  carries no explicit `container:`/`host (D-061):` split is split this way
+  by the generator. `tools/bundle.py` enforces the rule — it refuses to
+  emit a bundle whose container part names any of those tokens — so a
+  container part that could only fail deterministically never reaches a
+  container. A verify column that names a review or a manual check becomes
   a checklist item whose written result is filed in the folder;
   `verify.sh` checks the filed text, never a transcript, and a verify that
   asserts a transient live state (a view, a session state) is written
