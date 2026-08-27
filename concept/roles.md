@@ -8,10 +8,8 @@
 > `crew`: `crew-builder`, `crew-operator`, `crew-reviewer`; template
 > repository; local-only builds until the server milestone; role `host` for
 > human steps) and the D-032 amendment (browser proof by the operator role)
-> are the working decision. The proposal text in §8 was drafted as "D-046"
-> and later referred to as "D-050"; neither number was recorded for it —
-> D-046..D-052 were taken by other decisions — and the role set is adopted
-> under D-053 instead. §8 is kept as the record of what was adopted.
+> are the working decision. The role set is adopted under D-053; §8 points at
+> that decision instead of restating its text (D-103).
 
 # Roles that build this product (Q-016, D-045)
 
@@ -337,64 +335,16 @@ Checklist per role (conv B.7):
 8. Record the role here and in the lane table (`ROADMAP.md` §5).
 9. M11-02: `published_image`, `publish-image.yml` with explicit GitHub-hosted `runner-*` inputs, Hub secrets; first publish is a cold build, after M11-01a.
 
-Task deltas (replace M1-04 and M1-05; role column for these bootstrap tasks
-is `the-architect`, unmodified, since the builder does not exist yet):
-
-| id | title | depends_on | role | lane | size | verification |
-| --- | --- | --- | --- | --- | --- | --- |
-| M1-04 | *dropped* | — | — | — | — | — |
-| M1-04a | Create `donbeave/jackin-role-template` | M1-02 | the-architect | L4 (codex, GPT-5.6 Sol, `~/.codex`) | S | `verify.sh`: repo is a GitHub template, has no `jackin.role.toml`, ships the preamble, `AGENTS.md.d/00-common.md`, `hooks/source.sh`, audit script, `renovate.json`, exactly three workflows (`ci.yml` running `jackin-role-action` on `ubuntu-latest`, `precommit.yml`, dispatch-only `publish-image.yml`; never the velnor fleet `ci.yml`/`ci-required` template of `jackin-the-architect`, D-064); hadolint clean; no `velnor`/`self-hosted` under `.github/workflows` |
-| M1-05a | Create `donbeave/crew-builder` | M1-04a | the-architect | L4 (codex, GPT-5.6 Sol, `~/.codex`) | M | `verify.sh`: `jackin role validate` passes; `jackin load donbeave/crew-builder --agent claude` starts; inside a throwaway container whose workdir is a termrock clone: `mise install 2>&1 | grep -cE "installing|downloading"` is 0 (a no-op), `cargo nextest --version`, `cargo public-api --version`, `rustup run 1.97.1 cargo --version` exit 0; no `agent-browser`, no `op` on PATH |
-| M1-05b | Create `donbeave/crew-operator` | M1-04a | the-architect | L5 (codex, GPT-5.6 Terra, `~/.codex-chainargos`) | M | `verify.sh`: validate passes and the manifest declares no `[env.OP_SERVICE_ACCOUNT_TOKEN]` and no `model =`; `jackin load donbeave/crew-operator --agent claude` starts; inside: `op --version` prints `2.39.0`, `gh --version`, `agent-browser --version` exit 0; `test -x /usr/bin/chromium`; `agent-browser doctor --json` exits 0 naming `/usr/bin/chromium`; profile path writable; no `cargo` on PATH (D-077) |
-| M1-05c | Create `donbeave/crew-reviewer` | M1-04a | the-architect | L6 (codex, GPT-5.6 Luna, `~/.codex-chainargos2`) | S | `verify.sh`: validate passes; loads on both runtimes; `test -f /home/agent/.agents/skills/review-crucible/SKILL.md` and `[ "$(cat /opt/review-crucible/.jackin-pin)" = "$(cat .jackin/task/refs/review-crucible-sha.txt)" ]` as user `agent`; `$CODEX_HOME/agents/` populated after `source.sh`; no `cargo`, no `op`, no `agent-browser` |
-| M1-05d | Grant trust and configure host bindings | M1-05a, M1-05b, M1-05c | host | — | S | `verify.sh` (host session, D-061): `jackin config` shows `trusted = true` for the three selectors; the profile mount scoped to `donbeave/crew-operator` exists; `jackin config env list --role donbeave/crew-operator --format json` lists `OP_SERVICE_ACCOUNT_TOKEN` with its on-demand marker and `grep` finds the entry with `on_demand = true` in `~/.config/jackin/config.toml` (the file jackin reads, D-090); three `--dry-run` loads print the selector in `.data.role` (D-078) |
-
-Other row edits: M1-06 `depends_on` = M1-05b, M1-05d; M1-13 writes the four
-per-role grant files `tasks/M1-13/grants/<role>.toml` — `[docker.grants] dind =
-"privileged"` for `the-architect` and `donbeave/crew-builder` (D-078), the
-network allowlist grant for `donbeave/crew-operator`, nothing for
-`donbeave/crew-reviewer` — and no lane template carries a Docker grant; M2-04, M5-02, M6-03, M7-02, M8-01, M10-02 lose their
-browser line, which is added to M2-07, M5-03, M6-04, M7-03, M8-02, M10-03
-respectively; M3-05 gains the per-role cap (§6 item 8); all role columns
-renamed per §6 item 6; §8 delivery lists gain M1-04a, M1-05a..c as `goal`
-and M1-05d as `prompt`.
+Task deltas: the ROADMAP rows these deltas produced are live in
+`ROADMAP.md` §2 (M1-04a, M1-05a..d and the renamed role columns); read them
+there rather than here, so the applied instructions cannot drift from the
+rows they produced.
 
 ## 8. Decision text (adopted under D-053)
 
-```markdown
-## Three `crew` roles under `donbeave` build this product (adopted by D-053; drafted as "D-046")
-
-**Decision.** The product is built by exactly three jackin roles in the
-`donbeave` GitHub account, family name `crew`: `donbeave/crew-builder`
-(repository `donbeave/jackin-crew-builder`; jackin, termrock, and ecosystem
-implementation; Rust toolchain; no browser), `donbeave/crew-operator`
-(`donbeave/jackin-crew-operator`; Linear, GitHub settings, 1Password items,
-and every browser proof; `agent-browser`, `op`; no Rust), and
-`donbeave/crew-reviewer` (`donbeave/jackin-crew-reviewer`; read-only pull
-request review posted through the GitHub Reviews API; no compiler). All
-three run Claude Code and Codex, are built from the digest-pinned
-`projectjackin/construct:0.36-trixie` base, share a text-only template
-repository `donbeave/jackin-role-template` (not a base image), load from
-their default branch with trust pre-granted per host, and stay unpublished
-until M10. Specifications live in `concept/roles.md`.
-
-**Rationale.** Each role holds one axis of privilege: code push, the human's
-UI sessions plus one vault, or comment-only review. Combining any two
-creates an attack path no task needs (`analysis/roles/`). Tooling overlap
-makes one Rust role sufficient for three repositories.
-
-**Consequences.**
-
-- D-032's consequence "roles used to implement this project must ship
-  `agent-browser`" is amended to "the role that performs the browser proof
-  ships it"; browser proofs are operator checklist items on the same issue.
-- ROADMAP M1-04 is dropped; M1-05 becomes M1-04a and M1-05a..d; role
-  columns are renamed; Q-018, Q-020 (role branches), and Q-022 are
-  rewritten as in `concept/roles.md` §6.
-- The operator writes to 1Password through a service account scoped to
-  vault `jackin`, delivered per invocation by a `jackin-exec` binding.
-- termrock's `CONTRIBUTING.md` agent-authored-changes clause is written
-  by M10-02 as its first commit (D-053 adopted, D-088); no human decides
-  it.
-- Q-016 is closed.
-```
+The decision this section recorded is `DECISIONS.md` D-053 ("Recommended
+answers are adopted as defaults"), which adopted the role set, the template
+repository, the local-only builds until the server milestone, the role `host`
+for human steps, and the D-032 amendment (the role that performs the browser
+proof ships `agent-browser`). No normative decision text lives outside
+`DECISIONS.md` (D-103); the specifications it points at are §1..§6 above.
