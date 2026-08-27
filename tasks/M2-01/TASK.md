@@ -49,9 +49,10 @@ container-relative (D-086).
 
 - [ ] The scope above is implemented in the listed repositories.
 - [ ] container check passes: `cargo nextest run -p jackin-daemon linear::auth`
-- [ ] container check passes: `op`
-- [ ] container check passes: `op item edit`
+- [ ] host check passes: `op`
+- [ ] host check passes: `gitleaks detect --no-git --source tasks/M2-01`
 - [ ] `verify.container.out` is filed in the task folder.
+- [ ] `viewer.json` is filed in the task folder.
 - [ ] Every touched repository is committed and pushed.
 - [ ] `sh verify.sh` prints `status: DONE` for each part.
 
@@ -59,11 +60,11 @@ container-relative (D-086).
 
 Container part (run inside the task container):
 
-> `cargo nextest run -p jackin-daemon linear::auth` passes with a fake `op` and a fake token endpoint (mint at start, re-mint at the threshold, no `op item edit` call); a manual run against the real client secret logs a successful "viewer" query without printing any token
+> `cargo nextest run -p jackin-daemon linear::auth` passes with a stubbed 1Password resolver and a fake token endpoint (mint at start, re-mint at the threshold, nothing written back to 1Password)
 
 Host part (run by the host Claude Code session, D-061):
 
-> none
+> the real client secret is readable by host `op` only, so the live pass is a host part — `tasks/M2-01/viewer.json`, filed by the host session from the daemon's redacted "viewer" log line, has `.data.viewer.id` equal to the id in `tasks/M1-10/app-user-id.txt`, and `gitleaks detect --no-git --source tasks/M2-01` is clean
 
 When a container part exists the host part first asserts that
 `tasks/M2-01/verify.container.out` ends with `status: DONE`, so a
@@ -72,6 +73,7 @@ passing host part can never mask a failed container part (D-086).
 ## Evidence expected (D-118)
 
 - `tasks/M2-01/verify.container.out` (container part, containing `status: DONE`)
+- `tasks/M2-01/viewer.json` (container part)
 
 ## Proof (browser/attach)
 

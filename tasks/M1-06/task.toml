@@ -32,13 +32,8 @@ attempts = 3
 
 [verify]
 script = "verify.sh"
-has_container_part = true
-container = [
+has_container_part = false
+container = []
+host = [
   "test -s ~/.jackin/agent-browser-profile/state.json",
 ]
-host = []
-
-[[evidence]]
-path = "verify.container.out"
-part = "container"
-contains = "status: DONE"

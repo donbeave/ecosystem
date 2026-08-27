@@ -3,7 +3,5 @@
 # when a declared artefact is missing or does not contain its marker.
 task = "M1-05c"
 
-[[evidence]]
-path = "verify.container.out"
-part = "container"
-contains = "status: DONE"
+# This row declares no named artefact of its own; the filed verify
+# output of each part is the evidence.

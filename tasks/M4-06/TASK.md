@@ -8,7 +8,7 @@ roadmap row instead.
 | Field | Value |
 | --- | --- |
 | milestone | M4 |
-| depends on | M4-04, M4-05, M1-13 |
+| depends on | M4-04, M4-05, M1-13, M3-07 |
 | role | `donbeave/crew-operator` |
 | lane | L3 |
 | runtime | claude |
@@ -24,7 +24,7 @@ M4 proof run.
 
 ## Scope
 
-Assign a scratch issue (`repo:` from `tasks/M3-07/scratch-repo.txt`) whose prompt asks the agent to create a named file and print a token; attach and record the session; reply on the issue and watch it arrive; run `jackin daemon exec` for a check.
+First checklist item: open the Linear app settings page named in `tasks/M1-07/app-url.txt` and, if the Agent-session-events webhook shows Disabled, re-enable it and note that in the task folder (never a preflight defect). Assign a scratch issue (`repo:` from `tasks/M3-07/scratch-repo.txt`) whose prompt asks the agent to create a named file and print a token; attach and record the session; post the reply in the session panel — this is the run's only actor that can create a Linear `prompt` activity, so the M4-04 live round trip is proven here — and file `tasks/M4-06/reply-delta.json` holding the activity `createdAt` and the daemon's `prompted` log timestamp; run `jackin daemon exec` for a check and file its output as `tasks/M4-06/exec.out`; file the workspace listing that shows the named file as `tasks/M4-06/workspace-ls.txt`.
 
 ## References
 
@@ -48,8 +48,11 @@ container-relative (D-086).
 ## Checklist
 
 - [ ] The scope above is implemented in the listed repositories.
-- [ ] container check passes: `jackin daemon exec`
-- [ ] `verify.container.out` is filed in the task folder.
+- [ ] host check passes: `grep -q '<named file>' tasks/M4-06/workspace-ls.txt`
+- [ ] host check passes: `jq -e '.delta_seconds <= 5' tasks/M4-06/reply-delta.json`
+- [ ] `reply-delta.json` is filed in the task folder.
+- [ ] `exec.out` is filed in the task folder.
+- [ ] `workspace-ls.txt` is filed in the task folder.
 - [ ] Every touched repository is committed and pushed.
 - [ ] `sh verify.sh` prints `status: DONE` for each part.
 
@@ -57,19 +60,17 @@ container-relative (D-086).
 
 Container part (run inside the task container):
 
-> The file exists in the workspace; `jackin daemon exec` output captured
+> none
 
 Host part (run by the host Claude Code session, D-061):
 
-> none
-
-When a container part exists the host part first asserts that
-`tasks/M4-06/verify.container.out` ends with `status: DONE`, so a
-passing host part can never mask a failed container part (D-086).
+> `grep -q '<named file>' tasks/M4-06/workspace-ls.txt`, `tasks/M4-06/exec.out` is non-empty, and `jq -e '.delta_seconds <= 5' tasks/M4-06/reply-delta.json` exits 0 — all three read filed snapshots, never live daemon or workspace state
 
 ## Evidence expected (D-118)
 
-- `tasks/M4-06/verify.container.out` (container part, containing `status: DONE`)
+- `tasks/M4-06/reply-delta.json` (host part)
+- `tasks/M4-06/exec.out` (host part)
+- `tasks/M4-06/workspace-ls.txt` (host part)
 
 ## Proof (browser/attach)
 

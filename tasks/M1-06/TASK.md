@@ -48,8 +48,7 @@ container-relative (D-086).
 ## Checklist
 
 - [ ] The scope above is implemented in the listed repositories.
-- [ ] container check passes: `test -s ~/.jackin/agent-browser-profile/state.json`
-- [ ] `verify.container.out` is filed in the task folder.
+- [ ] host check passes: `test -s ~/.jackin/agent-browser-profile/state.json`
 - [ ] Every touched repository is committed and pushed.
 - [ ] `sh verify.sh` prints `status: DONE` for each part.
 
@@ -57,19 +56,15 @@ container-relative (D-086).
 
 Container part (run inside the task container):
 
-> Run by the host session (D-061): `test -s ~/.jackin/agent-browser-profile/state.json`; the directory is excluded by `.gitignore` in every repository the roles mount; no host process holds a profile; the in-container "get url" outputs (workspace URL, not a login page) are filed in `tasks/M1-06/`
+> none
 
 Host part (run by the host Claude Code session, D-061):
 
-> none
-
-When a container part exists the host part first asserts that
-`tasks/M1-06/verify.container.out` ends with `status: DONE`, so a
-passing host part can never mask a failed container part (D-086).
+> `test -s ~/.jackin/agent-browser-profile/state.json`; the directory is excluded by `.gitignore` in every repository the roles mount; no host process holds a profile; the in-container "get url" outputs (workspace URL, not a login page) are filed in `tasks/M1-06/`
 
 ## Evidence expected (D-118)
 
-- `tasks/M1-06/verify.container.out` (container part, containing `status: DONE`)
+- The verify output of each part, filed in the task folder.
 
 ## Proof (browser/attach)
 

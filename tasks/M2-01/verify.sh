@@ -55,8 +55,7 @@ part=${1:-}
 case "$part" in
   container)
     run_cmd 'cargo nextest run -p jackin-daemon linear::auth'
-    run_cmd 'op'
-    run_cmd 'op item edit'
+    need_evidence 'viewer.json' ''
     finish
     ;;
   host)
@@ -66,6 +65,8 @@ case "$part" in
       printf '%s\n' "status: PENDING"
       exit 1
     fi
+    run_cmd 'op'
+    run_cmd 'gitleaks detect --no-git --source tasks/M2-01'
     finish
     ;;
   *)

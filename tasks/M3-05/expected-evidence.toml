@@ -7,3 +7,13 @@ task = "M3-05"
 path = "verify.container.out"
 part = "container"
 contains = "status: DONE"
+
+[[evidence]]
+path = "session.json"
+part = "container"
+contains = ""
+
+[[evidence]]
+path = "status.json"
+part = "container"
+contains = ""

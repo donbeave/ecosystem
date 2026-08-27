@@ -7,3 +7,18 @@ task = "M3-06"
 path = "verify.container.out"
 part = "container"
 contains = "status: DONE"
+
+[[evidence]]
+path = "cancel.json"
+part = "container"
+contains = ""
+
+[[evidence]]
+path = "docker-ps-after.txt"
+part = "container"
+contains = ""
+
+[[evidence]]
+path = "workspace-after.txt"
+part = "container"
+contains = ""

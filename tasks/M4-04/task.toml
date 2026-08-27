@@ -28,6 +28,7 @@ decisions = [
   "D-023",
   "D-044",
   "D-061",
+  "D-065",
   "D-086",
   "D-091",
 ]
@@ -45,3 +46,8 @@ host = []
 path = "verify.container.out"
 part = "container"
 contains = "status: DONE"
+
+[[evidence]]
+path = "attach.txt"
+part = "container"
+contains = ""

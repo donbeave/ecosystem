@@ -24,7 +24,7 @@ Issue contract parser.
 
 ## Scope
 
-Parse role, runtime, model, effort, delivery, repository, branch, base branch, prompt, and checklist from an issue per M1-08; `RoleSelector::parse` for the role; reject unknown runtime for the role's `agents`; report defaulted model or effort (D-043). Pure function with fixture tests.
+Parse role, runtime, model, lane, effort, delivery, repository, branch, base branch, prompt, and checklist from an issue per M1-08; the `lane:L<n>` label names the account home and model the launch must use, so it is parsed like the others and an unknown lane value is a validation error; `RoleSelector::parse` for the role; reject unknown runtime for the role's `agents`; report defaulted model or effort (D-043). Pure function with fixture tests.
 
 ## References
 

@@ -4,16 +4,11 @@
 task = "M1-13"
 
 [[evidence]]
-path = "verify.container.out"
-part = "container"
-contains = "status: DONE"
-
-[[evidence]]
 path = "dind.out"
-part = "container"
+part = "host"
 contains = ""
 
 [[evidence]]
 path = "lanes.json"
-part = "container"
+part = "host"
 contains = ""

@@ -24,8 +24,10 @@ decisions = [
   "D-035",
   "D-055",
   "D-061",
+  "D-074",
   "D-079",
   "D-091",
+  "D-112",
 ]
 
 [limits]
@@ -36,25 +38,17 @@ script = "verify.sh"
 has_container_part = true
 container = [
   "gh pr review",
-  "gh api repos/<owner>/<repo>/pulls/<n>/reviews --jq '.[-1].commit_id'",
+  "gh api repos/jackin-project/jackin/pulls/<n>/reviews --jq '.[-1].commit_id'",
+  "gh api repos/donbeave/jackin-crew-<p>/commits/<sha>/comments --input -",
 ]
 host = [
-  "grep -q '^verdict:' tasks/M11-05/review.md",
-  "sed -n 2p tasks/M11-05/pr.txt",
+  "grep -q '^verdict:' tasks/M11-05/review.<repo>.md",
+  "sed -n 2p",
   "git merge-base --is-ancestor",
+  "gh api repos/donbeave/jackin-crew-<p>/commits/<sha>/comments --jq '[.[]|select(.body|startswith(\"verdict:\"))]|length >= 1'",
 ]
 
 [[evidence]]
 path = "verify.container.out"
 part = "container"
 contains = "status: DONE"
-
-[[evidence]]
-path = "review.md"
-part = "container"
-contains = ""
-
-[[evidence]]
-path = "pr.txt"
-part = "container"
-contains = ""

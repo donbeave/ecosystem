@@ -22,10 +22,12 @@ depends_on = [
   "M3-02",
 ]
 decisions = [
+  "D-061",
   "D-063",
   "D-074",
   "D-078",
   "D-089",
+  "D-091",
 ]
 
 [limits]
@@ -36,10 +38,12 @@ script = "verify.sh"
 has_container_part = true
 container = [
   "jackin role validate",
+]
+host = [
   "jackin load donbeave/crew-<p>",
   "jackin status --format json",
+  "jq -e '.agent == \"claude\"'",
 ]
-host = []
 
 [[evidence]]
 path = "verify.container.out"

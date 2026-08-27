@@ -21,6 +21,7 @@ depends_on = [
   "M1-10",
 ]
 decisions = [
+  "D-061",
   "D-087",
 ]
 
@@ -32,12 +33,18 @@ script = "verify.sh"
 has_container_part = true
 container = [
   "cargo nextest run -p jackin-daemon linear::auth",
-  "op",
-  "op item edit",
 ]
-host = []
+host = [
+  "op",
+  "gitleaks detect --no-git --source tasks/M2-01",
+]
 
 [[evidence]]
 path = "verify.container.out"
 part = "container"
 contains = "status: DONE"
+
+[[evidence]]
+path = "viewer.json"
+part = "container"
+contains = ""

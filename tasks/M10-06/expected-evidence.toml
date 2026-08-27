@@ -7,13 +7,3 @@ task = "M10-06"
 path = "verify.container.out"
 part = "container"
 contains = "status: DONE"
-
-[[evidence]]
-path = "review.md"
-part = "container"
-contains = ""
-
-[[evidence]]
-path = "pr.txt"
-part = "container"
-contains = ""

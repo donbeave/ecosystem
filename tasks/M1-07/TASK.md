@@ -24,7 +24,7 @@ Create the Linear OAuth agent app.
 
 ## Scope
 
-Through the browser profile: create the OAuth application with callback URL exactly `http://localhost:53682/callback` (loopback; nothing serves it; stored in the item's `redirect uri` field, D-080); enable webhooks with the "Agent session events" category on the fixed, intentionally unreachable URL `https://jackin-webhook.invalid/linear` (Linear auto-disables it after failed deliveries; polling is the correctness path, Q-015; if the form rejects the placeholder, use `https://github.com/donbeave/jackin`, deliveries are discarded either way); in the same step write client id, client secret, webhook signing secret, and `redirect uri` into `op://jackin/linear-agent-app` via `jackin-exec op item edit` (D-035). Workspace ownership per Q-019.
+Through the browser profile: create the OAuth application with callback URL exactly `http://localhost:53682/callback` (loopback, served only by M1-10's one-shot listener for the duration of the authorize step; stored in the item's `redirect uri` field, D-080); enable webhooks with the "Agent session events" category on the fixed, intentionally unreachable URL `https://jackin-webhook.invalid/linear` (Linear auto-disables it after failed deliveries; polling is the correctness path, Q-015; if the form rejects the placeholder, use `https://github.com/donbeave/jackin`, deliveries are discarded either way); in the same step write client id, client secret, webhook signing secret, and `redirect uri` into `op://jackin/linear-agent-app` via `jackin-exec op item edit` (D-035). Workspace ownership per Q-019. File the Linear app settings URL in `tasks/M1-07/app-url.txt`: Linear disables a webhook after three failed deliveries (1 min, 1 h, 6 h), so every later crew-operator task opens that page as its first checklist item and re-enables the webhook if it shows Disabled — a re-enable is never a preflight defect.
 
 ## References
 
@@ -48,8 +48,10 @@ container-relative (D-086).
 ## Checklist
 
 - [ ] The scope above is implemented in the listed repositories.
-- [ ] container check passes: `op item get linear-agent-app --vault jackin --fields label=<f> --format json | jq -e '(.value // "") | length > 0' >/dev/null`
-- [ ] `verify.container.out` is filed in the task folder.
+- [ ] host check passes: `op item get linear-agent-app --vault jackin --fields label=<f> --format json | jq -e '(.value // "") | length > 0' >/dev/null`
+- [ ] host check passes: `op`
+- [ ] host check passes: `test -s tasks/M1-07/app-url.txt`
+- [ ] `app-url.txt` is filed in the task folder.
 - [ ] Every touched repository is committed and pushed.
 - [ ] `sh verify.sh` prints `status: DONE` for each part.
 
@@ -57,19 +59,15 @@ container-relative (D-086).
 
 Container part (run inside the task container):
 
-> For each of the three secret fields `op item get linear-agent-app --vault jackin --fields label=<f> --format json | jq -e '(.value // "") | length > 0' >/dev/null` (value never printed, D-081); the "redirect uri" field equals the literal above
+> none
 
 Host part (run by the host Claude Code session, D-061):
 
-> none
-
-When a container part exists the host part first asserts that
-`tasks/M1-07/verify.container.out` ends with `status: DONE`, so a
-passing host part can never mask a failed container part (D-086).
+> for each of the three secret fields `op item get linear-agent-app --vault jackin --fields label=<f> --format json | jq -e '(.value // "") | length > 0' >/dev/null` (host `op`; the value is never printed, D-081); the "redirect uri" field equals the literal above; `test -s tasks/M1-07/app-url.txt`
 
 ## Evidence expected (D-118)
 
-- `tasks/M1-07/verify.container.out` (container part, containing `status: DONE`)
+- `tasks/M1-07/app-url.txt` (host part)
 
 ## Proof (browser/attach)
 

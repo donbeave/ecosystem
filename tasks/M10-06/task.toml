@@ -39,8 +39,8 @@ container = [
   "gh api repos/<owner>/<repo>/pulls/<n>/reviews --jq '.[-1].commit_id'",
 ]
 host = [
-  "grep -q '^verdict:' tasks/M10-06/review.md",
-  "sed -n 2p tasks/M10-06/pr.txt",
+  "grep -q '^verdict:' tasks/M10-06/review.<repo>.md",
+  "sed -n 2p",
   "git merge-base --is-ancestor",
 ]
 
@@ -48,13 +48,3 @@ host = [
 path = "verify.container.out"
 part = "container"
 contains = "status: DONE"
-
-[[evidence]]
-path = "review.md"
-part = "container"
-contains = ""
-
-[[evidence]]
-path = "pr.txt"
-part = "container"
-contains = ""

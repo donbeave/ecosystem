@@ -54,6 +54,9 @@ finish() {
 part=${1:-}
 case "$part" in
   container)
+    need_evidence 'cancel.json' ''
+    need_evidence 'docker-ps-after.txt' ''
+    need_evidence 'workspace-after.txt' ''
     finish
     ;;
   host)
@@ -63,7 +66,6 @@ case "$part" in
       printf '%s\n' "status: PENDING"
       exit 1
     fi
-    run_cmd 'op read'
     run_cmd 'docker ps --filter label=<issue label>'
     run_cmd 'test ! -d ~/.jackin/managed/<key>'
     finish

@@ -21,6 +21,7 @@ depends_on = [
 ]
 decisions = [
   "D-061",
+  "D-091",
 ]
 
 [limits]
@@ -31,10 +32,17 @@ script = "verify.sh"
 has_container_part = true
 container = []
 host = [
-  "jackin daemon exec <instance> -- sh -c 'echo status: DONE'",
+  "jackin load the-architect probe-M4-03 --agent claude",
+  "jackin daemon exec <that probe> -- sh -c 'echo status: DONE'",
+  "jq -e '.exit == 0 and (.stdout | test(\"status: DONE\"))' tasks/M4-03/exec.json",
 ]
 
 [[evidence]]
 path = "verify.container.out"
 part = "container"
 contains = "status: DONE"
+
+[[evidence]]
+path = "exec.json"
+part = "container"
+contains = ""

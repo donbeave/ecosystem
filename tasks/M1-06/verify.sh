@@ -54,16 +54,11 @@ finish() {
 part=${1:-}
 case "$part" in
   container)
-    run_cmd 'test -s ~/.jackin/agent-browser-profile/state.json'
+    printf '%s\n' "no container part for this task" # host row (D-061)
     finish
     ;;
   host)
-    need_evidence 'verify.container.out' 'status: DONE'
-    if [ "$fail" -ne 0 ]; then
-      printf '%s\n' "container part has not passed"
-      printf '%s\n' "status: PENDING"
-      exit 1
-    fi
+    run_cmd 'test -s ~/.jackin/agent-browser-profile/state.json'
     finish
     ;;
   *)

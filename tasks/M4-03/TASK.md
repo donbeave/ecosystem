@@ -49,8 +49,11 @@ container-relative (D-086).
 
 - [ ] The scope above is implemented in the listed repositories.
 - [ ] The container part of the verify contract below holds.
-- [ ] host check passes: `jackin daemon exec <instance> -- sh -c 'echo status: DONE'`
+- [ ] host check passes: `jackin load the-architect probe-M4-03 --agent claude`
+- [ ] host check passes: `jackin daemon exec <that probe> -- sh -c 'echo status: DONE'`
+- [ ] host check passes: `jq -e '.exit == 0 and (.stdout | test("status: DONE"))' tasks/M4-03/exec.json`
 - [ ] `verify.container.out` is filed in the task folder.
+- [ ] `exec.json` is filed in the task folder.
 - [ ] Every touched repository is committed and pushed.
 - [ ] `sh verify.sh` prints `status: DONE` for each part.
 
@@ -62,7 +65,7 @@ Container part (run inside the task container):
 
 Host part (run by the host Claude Code session, D-061):
 
-> `jackin daemon exec <instance> -- sh -c 'echo status: DONE'` returns exit 0 and the line
+> the task itself starts the host daemon from the branch build if it is not running (`goal/EXECUTION.md` §5 step 4a applies from the earlier of M2-03 and this task, since M4-03 may start as soon as M1-02 exists), loads one probe instance (`jackin load the-architect probe-M4-03 --agent claude`), runs `jackin daemon exec <that probe> -- sh -c 'echo status: DONE'`, files the result as `tasks/M4-03/exec.json` ("exit", "stdout", "stderr", "duration") and ejects the probe; the verify asserts only `jq -e '.exit == 0 and (.stdout | test("status: DONE"))' tasks/M4-03/exec.json`
 
 When a container part exists the host part first asserts that
 `tasks/M4-03/verify.container.out` ends with `status: DONE`, so a
@@ -71,6 +74,7 @@ passing host part can never mask a failed container part (D-086).
 ## Evidence expected (D-118)
 
 - `tasks/M4-03/verify.container.out` (container part, containing `status: DONE`)
+- `tasks/M4-03/exec.json` (container part)
 
 ## Proof (browser/attach)
 

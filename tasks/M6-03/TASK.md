@@ -8,7 +8,7 @@ roadmap row instead.
 | Field | Value |
 | --- | --- |
 | milestone | M6 |
-| depends on | M6-02, M1-13 |
+| depends on | M6-02, M1-13, M3-07 |
 | role | `donbeave/crew-operator` |
 | lane | L3 |
 | runtime | claude |
@@ -24,7 +24,7 @@ M6 proof run.
 
 ## Scope
 
-Full run on a scratch issue (`repo:` from `tasks/M3-07/scratch-repo.txt`) with three items; evidence in `tasks/M6-03/`, including the tagged daemon log and `tasks/M6-03/writes.txt` listing the expected transitions and heartbeats.
+First checklist item: open the Linear app settings page named in `tasks/M1-07/app-url.txt` and, if the Agent-session-events webhook shows Disabled, re-enable it and note that in the task folder (never a preflight defect). Full run on a scratch issue (`repo:` from `tasks/M3-07/scratch-repo.txt`) with three items; evidence in `tasks/M6-03/`, including the tagged daemon log and `tasks/M6-03/writes.txt` listing the expected transitions and heartbeats.
 
 ## References
 

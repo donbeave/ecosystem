@@ -32,9 +32,13 @@ script = "verify.sh"
 has_container_part = true
 container = [
   "mise run gate",
+  "cargo nextest run --workspace -E 'not test(goldens)'",
 ]
 host = [
   "mise run bless-previews",
+  "git -C ~/.jackin/managed/M10-03/termrock status --porcelain",
+  "git log origin/feat/managed-execution -1 --format=%s -- crates/termrock-lookbook/goldens",
+  "mise run preview-goldens",
 ]
 
 [[evidence]]

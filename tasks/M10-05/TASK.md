@@ -8,7 +8,7 @@ roadmap row instead.
 | Field | Value |
 | --- | --- |
 | milestone | M10 |
-| depends on | M10-04 |
+| depends on | M10-04, M3-07 |
 | role | `donbeave/crew-operator` |
 | lane | L3 |
 | runtime | claude |

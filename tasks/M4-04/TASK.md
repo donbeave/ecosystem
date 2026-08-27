@@ -24,7 +24,7 @@ Prompt rendering and delivery from the issue.
 
 ## Scope
 
-Pre-fetch issue content into `<workspace>/.jackin/task/TASK.md` and the checklist file — the same layout the host session stages by hand on the container path (D-086), so both paths share one prompt shape — plus, for roadmap issues, the task's `verify.sh` and reference files from the issue attachments or description; render per the issue's delivery mode (D-044): `goal` → `/goal Read this file: .jackin/task/TASK.md — implement it fully until sh .jackin/task/verify.sh container prints status: DONE` plus the issue prompt (frame from `.jackin/WORKFLOW.md`, D-018), `prompt` → `Read .jackin/task/TASK.md and follow it as your task prompt`; deliver via M4-01 at launch; forward Linear `prompted` replies (from the M2-02 activity read) via M4-02; on `stop` signal, stop the container. Linear token never enters the container (D-023).
+Pre-fetch issue content into `<workspace>/.jackin/task/TASK.md` and the checklist file — the same layout the host session stages by hand on the container path (D-086), so both paths share one prompt shape — plus, for roadmap issues, the task's `task.toml`, `verify.sh` and reference files from the issue attachments M1-12 created (titles `task.toml`, `verify.sh`, `refs/<name>`, raw URLs pinned to the sha of the description's first `task_source:` line), fetched by the daemon over HTTPS — never from inside the container, which needs no token because the repository is public (D-065) — into `<workspace>/.jackin/task/` and `<workspace>/.jackin/task/refs/`; a task whose issue carries no `verify.sh` attachment is refused with an `error` activity rather than launched; render per the issue's delivery mode (D-044): `goal` → `/goal Read this file: .jackin/task/TASK.md — implement it fully until sh .jackin/task/verify.sh container prints status: DONE` plus the issue prompt (frame from `.jackin/WORKFLOW.md`, D-018), `prompt` → `Read .jackin/task/TASK.md and follow it as your task prompt`; deliver via M4-01 at launch; forward Linear `prompted` replies (from the M2-02 activity read) via M4-02; on `stop` signal, stop the container. Linear token never enters the container (D-023).
 
 ## References
 
@@ -50,6 +50,7 @@ container-relative (D-086).
 - [ ] The scope above is implemented in the listed repositories.
 - [ ] The container part of the verify contract below holds.
 - [ ] `verify.container.out` is filed in the task folder.
+- [ ] `attach.txt` is filed in the task folder.
 - [ ] Every touched repository is committed and pushed.
 - [ ] `sh verify.sh` prints `status: DONE` for each part.
 
@@ -57,11 +58,11 @@ container-relative (D-086).
 
 Container part (run inside the task container):
 
-> rendering tests from a fixture issue; a "prompted" fixture reaches an in-process capsule PTY (no Docker)
+> rendering tests from a fixture issue; a "prompted" fixture reaches an in-process capsule PTY (no Docker). container: a fixture test also proves the attachment fetch stages `.jackin/task/verify.sh` and `refs/*` before launch
 
 Host part (run by the host Claude Code session, D-061):
 
-> launch from a scratch issue on the host daemon; attach capture contains the rendered prompt; a real reply on the live session reaches the PTY within one interval (log delta)
+> the task launches from a scratch issue on the host daemon and files `tasks/M4-04/attach.txt`, which contains the rendered prompt; the "prompted" round trip is proven in-process by the container fixture only, because Linear forbids an agent from creating a "prompt" activity and no actor on this run can post one at this point — the live reply is proven in M4-06, whose crew-operator posts it
 
 When a container part exists the host part first asserts that
 `tasks/M4-04/verify.container.out` ends with `status: DONE`, so a
@@ -70,6 +71,7 @@ passing host part can never mask a failed container part (D-086).
 ## Evidence expected (D-118)
 
 - `tasks/M4-04/verify.container.out` (container part, containing `status: DONE`)
+- `tasks/M4-04/attach.txt` (container part)
 
 ## Proof (browser/attach)
 

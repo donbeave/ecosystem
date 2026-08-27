@@ -54,21 +54,17 @@ finish() {
 part=${1:-}
 case "$part" in
   container)
+    printf '%s\n' "no container part for this task" # host row (D-061)
+    finish
+    ;;
+  host)
     run_cmd '! brew list --formula | grep -qx jackin-preview'
+    run_cmd 'grep -q '\''dco = true'\'' "${JACKIN_CONFIG_DIR:-$HOME/.config/jackin}/config.toml"'
     run_cmd 'jackin workspace create task-probe --workdir ~/.jackin/managed/probe --mount ~/.jackin/managed/probe'
     run_cmd 'jackin load the-architect task-probe --agent codex --dry-run --format json'
     run_cmd 'tmux'
     run_cmd 'script'
     run_cmd 'jackin workspace remove task-probe'
-    finish
-    ;;
-  host)
-    need_evidence 'verify.container.out' 'status: DONE'
-    if [ "$fail" -ne 0 ]; then
-      printf '%s\n' "container part has not passed"
-      printf '%s\n' "status: PENDING"
-      exit 1
-    fi
     finish
     ;;
   *)

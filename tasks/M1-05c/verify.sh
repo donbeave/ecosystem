@@ -54,20 +54,18 @@ finish() {
 part=${1:-}
 case "$part" in
   container)
-    run_cmd 'test -f /home/agent/.agents/skills/review-crucible/SKILL.md'
-    run_cmd 'git -C /opt/review-crucible rev-parse HEAD'
-    run_cmd 'cargo'
-    run_cmd 'op'
-    run_cmd 'agent-browser'
+    printf '%s\n' "no container part for this task" # host row (D-061)
     finish
     ;;
   host)
-    need_evidence 'verify.container.out' 'status: DONE'
-    if [ "$fail" -ne 0 ]; then
-      printf '%s\n' "container part has not passed"
-      printf '%s\n' "status: PENDING"
-      exit 1
-    fi
+    run_cmd 'jackin role validate'
+    run_cmd 'jackin load donbeave/crew-reviewer probe-M1-05c --agent claude'
+    run_cmd 'docker exec -u agent <name> sh -c '\''…'\'''
+    run_cmd 'test -f /home/agent/.agents/skills/review-crucible/SKILL.md'
+    run_cmd 'test -d "${CODEX_HOME:-$HOME/.codex}/agents"'
+    run_cmd '! command -v cargo'
+    run_cmd '! command -v op'
+    run_cmd '! command -v agent-browser'
     finish
     ;;
   *)

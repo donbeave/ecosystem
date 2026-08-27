@@ -20,6 +20,7 @@ depends_on = [
   "M3-02",
   "M3-03",
   "M3-04",
+  "M2-03",
   "M2-04",
   "M1-13",
 ]
@@ -39,10 +40,20 @@ script = "verify.sh"
 has_container_part = true
 container = []
 host = [
-  "jackin daemon status",
+  "jackin daemon status --format json",
 ]
 
 [[evidence]]
 path = "verify.container.out"
 part = "container"
 contains = "status: DONE"
+
+[[evidence]]
+path = "session.json"
+part = "container"
+contains = ""
+
+[[evidence]]
+path = "status.json"
+part = "container"
+contains = ""

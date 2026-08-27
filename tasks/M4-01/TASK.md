@@ -49,6 +49,7 @@ container-relative (D-086).
 
 - [ ] The scope above is implemented in the listed repositories.
 - [ ] The container part of the verify contract below holds.
+- [ ] host check passes: `jackin status --format json`
 - [ ] `verify.container.out` is filed in the task folder.
 - [ ] Every touched repository is committed and pushed.
 - [ ] `sh verify.sh` prints `status: DONE` for each part.
@@ -61,7 +62,7 @@ Container part (run inside the task container):
 
 Host part (run by the host Claude Code session, D-061):
 
-> launch with a prompt for `claude` and `codex`; capture shows the prompt as the first user turn; attach still works
+> the host session launches with a prompt once per runtime and files `tasks/M4-01/capture.<runtime>.txt` (the pane capture) and `tasks/M4-01/status.<runtime>.json` (the `jackin status --format json` row taken while it ran); the verify asserts that each capture's first user turn is the rendered prompt and that each status row names that runtime, then the instances are ejected by the session — `verify.sh` never launches or attaches
 
 When a container part exists the host part first asserts that
 `tasks/M4-01/verify.container.out` ends with `status: DONE`, so a

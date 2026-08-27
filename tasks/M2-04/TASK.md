@@ -24,7 +24,7 @@ Acknowledge, start, and report validation.
 
 ## Scope
 
-Post the `thought` acknowledgement before any further read, move the issue to the first `started` state, and on validation failure post an `error` activity naming the missing field; minimal keep-alive `thought` every 20 minutes while active (replaced by the M5-02 heartbeat). Write surface: `ack`, `error`, `set_state`, `heartbeat`.
+Post the `thought` acknowledgement before any further read, move the issue to the lowest-position `started`-type state that is neither the configured review state nor the configured merging state (M1-09 creates `Review` and `Merging` as `started` states positioned after `In Progress`, so the daemon's pick is never one of them), and on validation failure post an `error` activity naming the missing field; minimal keep-alive `thought` every 20 minutes while active (replaced by the M5-02 heartbeat). Write surface: `ack`, `error`, `set_state`, `heartbeat`.
 
 ## References
 

@@ -49,13 +49,13 @@ container-relative (D-086).
 
 - [ ] The scope above is implemented in the listed repositories.
 - [ ] container check passes: `gh pr review`
-- [ ] container check passes: `gh api repos/<owner>/<repo>/pulls/<n>/reviews --jq '.[-1].commit_id'`
-- [ ] host check passes: `grep -q '^verdict:' tasks/M11-05/review.md`
-- [ ] host check passes: `sed -n 2p tasks/M11-05/pr.txt`
+- [ ] container check passes: `gh api repos/jackin-project/jackin/pulls/<n>/reviews --jq '.[-1].commit_id'`
+- [ ] container check passes: `gh api repos/donbeave/jackin-crew-<p>/commits/<sha>/comments --input -`
+- [ ] host check passes: `grep -q '^verdict:' tasks/M11-05/review.<repo>.md`
+- [ ] host check passes: `sed -n 2p`
 - [ ] host check passes: `git merge-base --is-ancestor`
+- [ ] host check passes: `gh api repos/donbeave/jackin-crew-<p>/commits/<sha>/comments --jq '[.[]|select(.body|startswith("verdict:"))]|length >= 1'`
 - [ ] `verify.container.out` is filed in the task folder.
-- [ ] `review.md` is filed in the task folder.
-- [ ] `pr.txt` is filed in the task folder.
 - [ ] Every touched repository is committed and pushed.
 - [ ] `sh verify.sh` prints `status: DONE` for each part.
 
@@ -63,11 +63,11 @@ container-relative (D-086).
 
 Container part (run inside the task container):
 
-> one such review per reviewed repository is posted from the reviewer login with `gh pr review` and `gh api repos/<owner>/<repo>/pulls/<n>/reviews --jq '.[-1].commit_id'` equals line 2 of `.jackin/task/refs/pr.txt` (or a later head that has it as an ancestor, D-091); the body carries a `verdict:` line (D-079) and is filed as `tasks/M11-05/review.md`
+> one review record per reviewed repository, staged as `.jackin/task/refs/pr.txt` for jackin and `.jackin/task/refs/pr.<repo>.txt` for each role repository. jackin has the rolling PR, so its review is posted with `gh pr review` as in M2-08 and `gh api repos/jackin-project/jackin/pulls/<n>/reviews --jq '.[-1].commit_id'` equals line 2 of `pr.txt` (or a later head that has it as an ancestor, D-091). Role repositories commit straight to "main" and never have a PR (D-074, D-112), so line 1 of their record is the literal "commit" and the review is posted on the reviewed commit range with `gh api repos/donbeave/jackin-crew-<p>/commits/<sha>/comments --input -`, `<sha>` being line 2 of that record; every body carries a `verdict:` first line (D-079) and is filed as `tasks/M11-05/review.<repo>.md`
 
 Host part (run by the host Claude Code session, D-061):
 
-> `grep -q '^verdict:' tasks/M11-05/review.md` and `sed -n 2p tasks/M11-05/pr.txt` names a commit that `git merge-base --is-ancestor` confirms is in the reviewed head; checklist lines from the final message are appended to the issue by the host session (D-055)
+> for each reviewed repository `grep -q '^verdict:' tasks/M11-05/review.<repo>.md`, `sed -n 2p` of its record names a commit that `git merge-base --is-ancestor` confirms is in the reviewed head, and for the role repositories `gh api repos/donbeave/jackin-crew-<p>/commits/<sha>/comments --jq '[.[]|select(.body|startswith("verdict:"))]|length >= 1'` exits 0; checklist lines from the final message are appended to the issue by the host session (D-055)
 
 When a container part exists the host part first asserts that
 `tasks/M11-05/verify.container.out` ends with `status: DONE`, so a
@@ -76,8 +76,6 @@ passing host part can never mask a failed container part (D-086).
 ## Evidence expected (D-118)
 
 - `tasks/M11-05/verify.container.out` (container part, containing `status: DONE`)
-- `tasks/M11-05/review.md` (container part)
-- `tasks/M11-05/pr.txt` (container part)
 
 ## Proof (browser/attach)
 

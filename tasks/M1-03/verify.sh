@@ -54,7 +54,6 @@ finish() {
 part=${1:-}
 case "$part" in
   container)
-    run_cmd 'op item get linear-agent-app --vault jackin --format json | jq '\''.fields[].label'\'''
     finish
     ;;
   host)
@@ -64,6 +63,8 @@ case "$part" in
       printf '%s\n' "status: PENDING"
       exit 1
     fi
+    run_cmd 'op item get linear-agent-app --vault jackin --format json | jq -r '\''.fields[].label'\'''
+    run_cmd 'op'
     finish
     ;;
   *)

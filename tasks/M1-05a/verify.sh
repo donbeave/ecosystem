@@ -54,22 +54,23 @@ finish() {
 part=${1:-}
 case "$part" in
   container)
+    printf '%s\n' "no container part for this task" # host row (D-061)
+    finish
+    ;;
+  host)
     run_cmd 'jackin role validate'
-    run_cmd 'jackin load donbeave/crew-builder --agent claude'
+    run_cmd 'jackin load donbeave/crew-builder probe-M1-05a --agent claude'
+    run_cmd 'jackin status --format json'
+    run_cmd 'docker exec -u agent <name> sh -c '\''…'\'''
     run_cmd 'mise install'
+    run_cmd 'git clone'
+    run_cmd 'grep -cE '\''installing|downloading'\'' <that output>'
     run_cmd 'cargo nextest --version'
     run_cmd 'cargo public-api --version'
     run_cmd 'agent-browser'
     run_cmd 'op'
-    finish
-    ;;
-  host)
-    need_evidence 'verify.container.out' 'status: DONE'
-    if [ "$fail" -ne 0 ]; then
-      printf '%s\n' "container part has not passed"
-      printf '%s\n' "status: PENDING"
-      exit 1
-    fi
+    need_evidence 'throwaway/status.json' ''
+    need_evidence 'throwaway/inside.out' ''
     finish
     ;;
   *)

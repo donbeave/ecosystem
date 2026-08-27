@@ -54,16 +54,15 @@ finish() {
 part=${1:-}
 case "$part" in
   container)
-    run_cmd 'jackin daemon exec'
+    printf '%s\n' "no container part for this task" # host row (D-061)
     finish
     ;;
   host)
-    need_evidence 'verify.container.out' 'status: DONE'
-    if [ "$fail" -ne 0 ]; then
-      printf '%s\n' "container part has not passed"
-      printf '%s\n' "status: PENDING"
-      exit 1
-    fi
+    run_cmd 'grep -q '\''<named file>'\'' tasks/M4-06/workspace-ls.txt'
+    run_cmd 'jq -e '\''.delta_seconds <= 5'\'' tasks/M4-06/reply-delta.json'
+    need_evidence 'reply-delta.json' ''
+    need_evidence 'exec.out' ''
+    need_evidence 'workspace-ls.txt' ''
     finish
     ;;
   *)

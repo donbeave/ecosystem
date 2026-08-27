@@ -18,6 +18,7 @@ delivery = "prompt"
 size = "S"
 depends_on = [
   "M10-04",
+  "M3-07",
 ]
 decisions = [
   "D-061",

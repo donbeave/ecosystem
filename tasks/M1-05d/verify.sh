@@ -54,26 +54,22 @@ finish() {
 part=${1:-}
 case "$part" in
   container)
+    printf '%s\n' "no container part for this task" # host row (D-061)
+    finish
+    ;;
+  host)
+    run_cmd 'jackin config trust list'
+    run_cmd 'grep -A2 '\''^[roles."donbeave/crew-<p>"]'\'' "${JACKIN_CONFIG_DIR:-$HOME/.config/jackin}/config.toml" | grep -q '\''trusted = true'\'''
     run_cmd 'jackin config'
     run_cmd 'op vault list --format json | jq '\''[.[]|select(.name=="jackin")]|length'\'''
     run_cmd 'op read op://tailrocks/op-service-account-jackin-operator/credential | wc -c'
     run_cmd 'jackin config env list --role donbeave/crew-operator --format json'
     run_cmd 'grep -E '\''OP_SERVICE_ACCOUNT_TOKEN *= *{.*on_demand *= *true'\'' "${JACKIN_CONFIG_DIR:-$HOME/.config/jackin}/config.toml"'
     run_cmd 'test ! -e ~/.jackin/config.toml'
-    run_cmd 'jackin config trust list'
     run_cmd 'jackin load donbeave/crew-<p> --dry-run --format json | jq -r .data.role'
     run_cmd 'tmux'
     run_cmd 'script'
     run_cmd '! grep -qE '\''^[env.OP_SERVICE_ACCOUNT_TOKEN]'\'' ~/.jackin/roles/donbeave/crew-operator/default/jackin.role.toml'
-    finish
-    ;;
-  host)
-    need_evidence 'verify.container.out' 'status: DONE'
-    if [ "$fail" -ne 0 ]; then
-      printf '%s\n' "container part has not passed"
-      printf '%s\n' "status: PENDING"
-      exit 1
-    fi
     finish
     ;;
   *)

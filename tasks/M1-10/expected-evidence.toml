@@ -4,6 +4,16 @@
 task = "M1-10"
 
 [[evidence]]
-path = "verify.container.out"
-part = "container"
-contains = "status: DONE"
+path = "callback.log"
+part = "host"
+contains = ""
+
+[[evidence]]
+path = "app-user-id.txt"
+part = "host"
+contains = ""
+
+[[evidence]]
+path = "org.txt"
+part = "host"
+contains = ""

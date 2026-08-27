@@ -49,8 +49,10 @@ container-relative (D-086).
 
 - [ ] The scope above is implemented in the listed repositories.
 - [ ] container check passes: `cargo nextest run -p jackin-daemon remote::`
-- [ ] host check passes: `jackin daemon status --host <server>`
+- [ ] host check passes: `jackin daemon status --host <server> --format json`
+- [ ] host check passes: `jq -e '.host == "<server>"'`
 - [ ] `verify.container.out` is filed in the task folder.
+- [ ] `status.json` is filed in the task folder.
 - [ ] Every touched repository is committed and pushed.
 - [ ] `sh verify.sh` prints `status: DONE` for each part.
 
@@ -62,7 +64,7 @@ Container part (run inside the task container):
 
 Host part (run by the host Claude Code session, D-061):
 
-> `jackin daemon status --host <server>` from the laptop lists the remote daemon and its output is filed in `tasks/M12-01/`
+> the task runs `jackin daemon status --host <server> --format json` from the laptop while the remote daemon is up and files it as `tasks/M12-01/status.json`; the verify reads only that file (`jq -e '.host == "<server>"'`), never the live remote daemon
 
 When a container part exists the host part first asserts that
 `tasks/M12-01/verify.container.out` ends with `status: DONE`, so a
@@ -71,6 +73,7 @@ passing host part can never mask a failed container part (D-086).
 ## Evidence expected (D-118)
 
 - `tasks/M12-01/verify.container.out` (container part, containing `status: DONE`)
+- `tasks/M12-01/status.json` (container part)
 
 ## Proof (browser/attach)
 

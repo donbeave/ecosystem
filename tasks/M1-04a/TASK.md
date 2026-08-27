@@ -24,7 +24,7 @@ Create `donbeave/jackin-role-template`.
 
 ## Scope
 
-Template repository shared by the `crew` family (`concept/roles.md` §2): Dockerfile preamble on the digest-pinned construct `0.36-trixie`, per-tool RUN fragments, `AGENTS.md.d/00-common.md`, `hooks/source.sh`, pre-commit and marketplace-audit scripts, `renovate.json`, a `githooks/prepare-commit-msg` hook that appends `Signed-off-by: $(git config user.name) <$(git config user.email)>` when absent plus the Dockerfile fragment `git config --system core.hooksPath /opt/jackin-role/githooks` (D-089: `DCO` is a required check with no bypass), and exactly three workflows, all on `runs-on: ubuntu-latest`: `.github/workflows/ci.yml` (on `push` to `main` and `pull_request`; one step `uses: jackin-project/jackin-role-action@<sha>` with `jackin-version` pinned), `.github/workflows/precommit.yml` (`prek run --all-files`), `.github/workflows/publish-image.yml` (`on: workflow_dispatch` only until M11-02) — never the velnor `ci-code.yml` callers or the `ci-required` fleet job of `jackin-the-architect` (D-064); no `jackin.role.toml` so it can never be loaded.
+Template repository shared by the `crew` family (`concept/roles.md` §2): Dockerfile preamble on the digest-pinned construct `0.36-trixie`, per-tool RUN fragments, `AGENTS.md.d/00-common.md`, `hooks/source.sh`, pre-commit and marketplace-audit scripts, `renovate.json`, and exactly three workflows, all on `runs-on: ubuntu-latest`: `.github/workflows/ci.yml` (on `push` to `main` and `pull_request`; one step `uses: jackin-project/jackin-role-action@<sha>` with `jackin-version: latest-build` — the only value `scripts/download-jackin-role.sh` can resolve, because jackin publishes no versioned release and the `preview` assets are unversioned `jackin-<target>.tar.gz`; a pinned version is a `jackin-role-action` gap noted in the task folder and never worked around here), `.github/workflows/precommit.yml` (`prek run --all-files`), `.github/workflows/publish-image.yml` (`on: workflow_dispatch` only until M11-02) — never the velnor `ci-code.yml` callers or the `ci-required` fleet job of `jackin-the-architect` (D-064); no `jackin.role.toml` so it can never be loaded.
 
 ## References
 
@@ -48,6 +48,8 @@ container-relative (D-086).
 ## Checklist
 
 - [ ] The scope above is implemented in the listed repositories.
+- [ ] container check passes: `grep -q 'jackin-version: latest-build' .github/workflows/ci.yml`
+- [ ] container check passes: `! grep -q 'core.hooksPath' Dockerfile`
 - [ ] container check passes: `! grep -rqE 'velnor|self-hosted' .github/workflows`
 - [ ] container check passes: `gh workflow list -R donbeave/jackin-role-template`
 - [ ] `verify.container.out` is filed in the task folder.
@@ -58,7 +60,7 @@ container-relative (D-086).
 
 Container part (run inside the task container):
 
-> Repo is a GitHub template, has no `jackin.role.toml`, ships the listed files; hadolint clean; `! grep -rqE 'velnor|self-hosted' .github/workflows`; `gh workflow list -R donbeave/jackin-role-template` shows the three names
+> Repo is a GitHub template, has no `jackin.role.toml`, ships the listed files; `grep -q 'jackin-version: latest-build' .github/workflows/ci.yml` and `! grep -q 'core.hooksPath' Dockerfile` (DCO trailers come from jackin's `JACKIN_GIT_DCO` hook, D-089 (4) amended); hadolint clean; `! grep -rqE 'velnor|self-hosted' .github/workflows`; `gh workflow list -R donbeave/jackin-role-template` shows the three names
 
 Host part (run by the host Claude Code session, D-061):
 

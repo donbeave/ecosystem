@@ -63,6 +63,7 @@ case "$part" in
       printf '%s\n' "status: PENDING"
       exit 1
     fi
+    run_cmd 'jackin status --format json'
     finish
     ;;
   *)

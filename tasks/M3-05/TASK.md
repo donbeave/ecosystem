@@ -8,7 +8,7 @@ roadmap row instead.
 | Field | Value |
 | --- | --- |
 | milestone | M3 |
-| depends on | M3-02, M3-03, M3-04, M2-04, M1-13 |
+| depends on | M3-02, M3-03, M3-04, M2-03, M2-04, M1-13 |
 | role | `the-architect` |
 | lane | L2 |
 | runtime | claude |
@@ -24,7 +24,7 @@ Dispatch: issue → prepared workspace → launched instance.
 
 ## Scope
 
-On a dispatchable issue: prepare workspace (M3-03), resolve role and runtime (M3-02), choose the account home per launch and count running instances per account (D-022 account half, D-056, amended by D-071: cap 1 per Codex home, 2 for `~/.claude`), launch (M3-01), bind (M3-04), post `action` `launch` and the instance external URL; enforce a per-host cap (`max_concurrent_agents`, default 6 for the laptop, D-056) and a per-role cap of 1 for `donbeave/crew-operator` (Chrome `SingletonLock`).
+On a dispatchable issue: prepare workspace (M3-03), resolve role and runtime (M3-02), choose the account home per launch from the issue's `lane:L<n>` label against a `[lanes]` table in `~/.config/jackin/config.toml` (one entry per lane: runtime, model, effort, account home; seeded from `tasks/M1-13/lanes.json` by the host session in `goal/EXECUTION.md` §5 step 4a, so the daemon never guesses a home) and count running instances per account against `[daemon.accounts."<home>"] max`, which is configuration rather than a constant — this run sets 2 for `~/.claude` and 1 per Codex home (D-022 account half, D-056, amended by D-071), launch (M3-01), bind (M3-04), post `action` `launch` and the instance external URL; enforce a per-host cap (`max_concurrent_agents`, default 6 for the laptop, D-056) and a per-role cap of 1 for `donbeave/crew-operator` (Chrome `SingletonLock`).
 
 ## References
 
@@ -49,8 +49,10 @@ container-relative (D-086).
 
 - [ ] The scope above is implemented in the listed repositories.
 - [ ] The container part of the verify contract below holds.
-- [ ] host check passes: `jackin daemon status`
+- [ ] host check passes: `jackin daemon status --format json`
 - [ ] `verify.container.out` is filed in the task folder.
+- [ ] `session.json` is filed in the task folder.
+- [ ] `status.json` is filed in the task folder.
 - [ ] Every touched repository is committed and pushed.
 - [ ] `sh verify.sh` prints `status: DONE` for each part.
 
@@ -62,7 +64,7 @@ Container part (run inside the task container):
 
 Host part (run by the host Claude Code session, D-061):
 
-> a live smoke on one scratch issue only, which also delegates it from the host by `issueUpdate(delegateId)` and asserts a "pending" session appears within one interval (JSON filed); `jackin daemon status` lists zero issues whose `tasks/README.md` row is "done"
+> a live smoke on one scratch issue only, delegated from the host by `issueUpdate(delegateId)`; within one interval the session poll filed as `tasks/M3-05/session.json` shows exactly one session of the app user on that issue whose first activity is a "thought" by the app user — the session status is never asserted as "pending" or "active", because the daemon acknowledges inside the same tick that creates it; `jackin daemon status --format json`, filed as `tasks/M3-05/status.json`, lists zero issues whose `tasks/README.md` row is "done"
 
 When a container part exists the host part first asserts that
 `tasks/M3-05/verify.container.out` ends with `status: DONE`, so a
@@ -71,6 +73,8 @@ passing host part can never mask a failed container part (D-086).
 ## Evidence expected (D-118)
 
 - `tasks/M3-05/verify.container.out` (container part, containing `status: DONE`)
+- `tasks/M3-05/session.json` (container part)
+- `tasks/M3-05/status.json` (container part)
 
 ## Proof (browser/attach)
 

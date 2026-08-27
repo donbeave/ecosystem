@@ -54,16 +54,15 @@ finish() {
 part=${1:-}
 case "$part" in
   container)
-    run_cmd 'jq -r '\''.[].label'\'' tasks/M1-13/lanes.json'
+    printf '%s\n' "no container part for this task" # host row (D-061)
     finish
     ;;
   host)
-    need_evidence 'verify.container.out' 'status: DONE'
-    if [ "$fail" -ne 0 ]; then
-      printf '%s\n' "container part has not passed"
-      printf '%s\n' "status: PENDING"
-      exit 1
-    fi
+    run_cmd 'op read'
+    run_cmd 'curl --config -'
+    run_cmd 'jq -r '\''.[].label'\'' tasks/M1-13/lanes.json'
+    run_cmd 'jq -e '\''.[0].name != "Review" and .[0].name != "Merging"'\'''
+    need_evidence 'states.json' ''
     finish
     ;;
   *)

@@ -8,7 +8,7 @@ roadmap row instead.
 | Field | Value |
 | --- | --- |
 | milestone | M5 |
-| depends on | M5-02, M5-03, M5-04, M5-05, M4-05 |
+| depends on | M5-02, M5-03, M5-04, M5-05, M4-05, M3-07 |
 | role | `donbeave/crew-operator` |
 | lane | L3 |
 | runtime | claude |
@@ -24,7 +24,7 @@ M5 proof run.
 
 ## Scope
 
-Create a saved project view filtered on the `run:*` labels; assign one issue that works normally, one whose prompt makes the agent sleep past the stall window, one that asks a question, and one whose prompt makes the harness stop on a permission prompt the daemon did not cause (D-051); leave the first idle 40 minutes; while all three states are live, capture the session panels, `externalUrls`, the project view through its GraphQL filter (`tasks/M5-06/view-during.json`) and the daemon log; then answer the permission prompt through `hardline`, watch the state clear, and capture `view-after.json` (D-091: a verify never asserts on a transient live state, only on the snapshot the task filed while it held).
+First checklist item: open the Linear app settings page named in `tasks/M1-07/app-url.txt` and, if the Agent-session-events webhook shows Disabled, re-enable it and note that in the task folder (never a preflight defect). Create a saved project view filtered on the `run:*` labels; assign one issue that works normally, one whose prompt makes the agent sleep past the stall window, one that asks a question, and one whose prompt makes the harness stop on a permission prompt the daemon did not cause (D-051); leave the first idle 40 minutes; while all three states are live, capture the session panels, `externalUrls`, the project view through its GraphQL filter (`tasks/M5-06/view-during.json`) and the daemon log; then answer the permission prompt through `hardline`, watch the state clear, and capture `view-after.json` (D-091: a verify never asserts on a transient live state, only on the snapshot the task filed while it held).
 
 ## References
 

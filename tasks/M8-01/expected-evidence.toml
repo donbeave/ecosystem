@@ -4,11 +4,6 @@
 task = "M8-01"
 
 [[evidence]]
-path = "verify.container.out"
-part = "container"
-contains = "status: DONE"
-
-[[evidence]]
 path = "app.md"
-part = "container"
+part = "host"
 contains = ""

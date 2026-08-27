@@ -24,7 +24,7 @@ Authorize the app into the workspace.
 
 ## Scope
 
-Run the `actor=app` authorize flow (D-080): read `client id` and `redirect uri` from `op://jackin/linear-agent-app` via `jackin-exec op read`; `agent-browser open` `https://linear.app/oauth/authorize?client_id=…&redirect_uri=http://localhost:53682/callback&response_type=code&actor=app&scope=read,write,issues:create,comments:create,app:assignable,app:mentionable&state=<random>` (comma-separated scopes), grant access to all teams on the consent screen, click Authorize; the browser lands on a connection-refused page — expected; `agent-browser url` and extract `code`, check `state`; exchange at `https://api.linear.app/oauth/token` with `grant_type=authorization_code` using `curl --config -` fed from stdin so the client secret never appears in argv or in the task folder (this exchange installs the app into the workspace; its refresh token is stored as `installation seed` and never used afterwards); then mint the token every consumer uses: `grant_type=client_credentials` with the same scope list (an `actor=app` token valid 30 days, D-087, `analysis/linear-agents.md`), stored as `access token` and `expires at`; query `viewer { id organization { id urlKey } }`; store access token, expires at, installation seed, app user id, organization id, and that `urlKey` as `url key` in the single item `op://jackin/linear-workspace` via `jackin-exec op item create` (the item name carries no organization slug, so every later consumer can name it without knowing the workspace, D-108). Every later host-side call follows the Linear-token rule of `goal/EXECUTION.md` §4 (re-mint when fewer than 48 hours remain; the refresh grant is never used).
+Run the `actor=app` authorize flow (D-080): read `client id` and `redirect uri` from `op://jackin/linear-agent-app` via `jackin-exec op read`; `agent-browser open` `https://linear.app/oauth/authorize?client_id=…&redirect_uri=http://localhost:53682/callback&response_type=code&actor=app&scope=read,write,issues:create,comments:create,app:assignable,app:mentionable&state=<random>` (comma-separated scopes), before clicking Authorize, start a one-shot loopback listener inside the operator container so the redirect is actually served — `python3 -m http.server 53682 --bind 127.0.0.1 >tasks/M1-10/callback.log 2>&1 &` — because Chromium replaces the main-frame URL with `chrome-error://chromewebdata/` on `ERR_CONNECTION_REFUSED` and `agent-browser url` would lose the query string; grant access to all teams on the consent screen, click Authorize, then read `code` and `state` from the `GET /callback?code=…&state=…` request line in `callback.log`, check `state`, and delete `callback.log` before any commit (it holds a one-time code, D-081); exchange at `https://api.linear.app/oauth/token` with `grant_type=authorization_code` using `curl --config -` fed from stdin so the client secret never appears in argv or in the task folder (this exchange installs the app into the workspace; its refresh token is stored as `installation seed` and never used afterwards); then mint the token every consumer uses: `grant_type=client_credentials` with the same scope list (an `actor=app` token valid 30 days, D-087, `analysis/linear-agents.md`), stored as `access token` and `expires at`; query `viewer { id organization { id urlKey } }`; store access token, expires at, installation seed, app user id, organization id, and that `urlKey` as `url key` in the single item `op://jackin/linear-workspace` via `jackin-exec op item create` (the item name carries no organization slug, so every later consumer can name it without knowing the workspace, D-108). Every later host-side call follows the Linear-token rule of `goal/EXECUTION.md` §4 (re-mint when fewer than 48 hours remain; the refresh grant is never used).
 
 ## References
 
@@ -48,8 +48,13 @@ container-relative (D-086).
 ## Checklist
 
 - [ ] The scope above is implemented in the listed repositories.
-- [ ] container check passes: `op read … | curl`
-- [ ] `verify.container.out` is filed in the task folder.
+- [ ] host check passes: `op read "op://jackin/linear-workspace/access token"`
+- [ ] host check passes: `curl --config -`
+- [ ] host check passes: `gitleaks detect --no-git --source tasks/M1-10`
+- [ ] host check passes: `test ! -e tasks/M1-10/callback.log`
+- [ ] `callback.log` is filed in the task folder.
+- [ ] `app-user-id.txt` is filed in the task folder.
+- [ ] `org.txt` is filed in the task folder.
 - [ ] Every touched repository is committed and pushed.
 - [ ] `sh verify.sh` prints `status: DONE` for each part.
 
@@ -57,19 +62,17 @@ container-relative (D-086).
 
 Container part (run inside the task container):
 
-> "query Me { viewer { id } }" with the stored token (read through jackin-exec `op read … | curl`) returns the app user id recorded in the item; "expires at" is more than 20 days out
+> none
 
 Host part (run by the host Claude Code session, D-061):
 
-> none
-
-When a container part exists the host part first asserts that
-`tasks/M1-10/verify.container.out` ends with `status: DONE`, so a
-passing host part can never mask a failed container part (D-086).
+> under the Linear-token rule of `goal/EXECUTION.md` §4, `op read "op://jackin/linear-workspace/access token"` fed into `curl --config -` (never in argv, never through "jackin-exec") makes "query Me { viewer { id } }" return the app user id recorded in the item, which is also filed as `tasks/M1-10/app-user-id.txt` for later consumers; the organization `urlKey` is filed as `tasks/M1-10/org.txt`; "expires at" is more than 20 days out; `gitleaks detect --no-git --source tasks/M1-10` is clean and `test ! -e tasks/M1-10/callback.log`
 
 ## Evidence expected (D-118)
 
-- `tasks/M1-10/verify.container.out` (container part, containing `status: DONE`)
+- `tasks/M1-10/callback.log` (host part)
+- `tasks/M1-10/app-user-id.txt` (host part)
+- `tasks/M1-10/org.txt` (host part)
 
 ## Proof (browser/attach)
 

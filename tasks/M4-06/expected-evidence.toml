@@ -4,6 +4,16 @@
 task = "M4-06"
 
 [[evidence]]
-path = "verify.container.out"
-part = "container"
-contains = "status: DONE"
+path = "reply-delta.json"
+part = "host"
+contains = ""
+
+[[evidence]]
+path = "exec.out"
+part = "host"
+contains = ""
+
+[[evidence]]
+path = "workspace-ls.txt"
+part = "host"
+contains = ""

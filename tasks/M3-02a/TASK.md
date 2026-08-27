@@ -49,8 +49,9 @@ container-relative (D-086).
 
 - [ ] The scope above is implemented in the listed repositories.
 - [ ] container check passes: `jackin role validate`
-- [ ] container check passes: `jackin load donbeave/crew-<p>`
-- [ ] container check passes: `jackin status --format json`
+- [ ] host check passes: `jackin load donbeave/crew-<p>`
+- [ ] host check passes: `jackin status --format json`
+- [ ] host check passes: `jq -e '.agent == "claude"'`
 - [ ] `verify.container.out` is filed in the task folder.
 - [ ] Every touched repository is committed and pushed.
 - [ ] `sh verify.sh` prints `status: DONE` for each part.
@@ -59,11 +60,11 @@ container-relative (D-086).
 
 Container part (run inside the task container):
 
-> `jackin role validate` passes for all three on the cached checkouts (HEAD equals the pushed "main" commit); a real `jackin load donbeave/crew-<p>` without `--agent` starts a `claude` session (`jackin status --format json` agent field), never dry-run (D-078)
+> `jackin role validate` passes for all three on the cached checkouts (HEAD equals the pushed "main" commit)
 
 Host part (run by the host Claude Code session, D-061):
 
-> none
+> for each role the host session performs a real `jackin load donbeave/crew-<p>` without `--agent` (never dry-run, D-078) and files the instance's `jackin status --format json` row as `tasks/M3-02a/status.<p>.json`; the verify asserts `jq -e '.agent == "claude"'` on each of the three files and the instances are ejected by the session before it runs
 
 When a container part exists the host part first asserts that
 `tasks/M3-02a/verify.container.out` ends with `status: DONE`, so a

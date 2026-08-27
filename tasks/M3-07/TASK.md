@@ -24,7 +24,7 @@ M3 proof run.
 
 ## Scope
 
-The operator role creates the scratch repository `gh repo create jackin-project/jackin-managed-scratch --public` (skip when present; no branch protection; D-089) and records `jackin-project/jackin-managed-scratch` in `tasks/M3-07/scratch-repo.txt`; creates and delegates a scratch issue with `role:the-architect`, `agent:claude`, and `repo:jackin-project/jackin-managed-scratch`; captures `docker ps` labels, `hardline` session, workspace branch, and screenshots of the `launch` action and external URL; while that container runs it performs a `jackin daemon restart` and files `tasks/M3-07/status-before.json` and `status-after.json`, the binding proof M3-04 cannot run itself (K-11).
+First checklist item: open the Linear app settings page named in `tasks/M1-07/app-url.txt` and, if the Agent-session-events webhook shows Disabled, re-enable it and note that in the task folder (never a preflight defect). The operator role creates the scratch repository `gh repo create jackin-project/jackin-managed-scratch --public` (skip when present; no branch protection; D-089) and records `jackin-project/jackin-managed-scratch` in `tasks/M3-07/scratch-repo.txt`; creates and delegates a scratch issue with `role:the-architect`, `agent:claude`, and `repo:jackin-project/jackin-managed-scratch`; captures `docker ps` labels, `hardline` session, workspace branch, and screenshots of the `launch` action and external URL; while that container runs it performs a `jackin daemon restart` and files `tasks/M3-07/status-before.json` and `status-after.json`, the binding proof M3-04 cannot run itself (K-11).
 
 ## References
 

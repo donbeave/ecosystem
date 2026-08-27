@@ -24,7 +24,7 @@ Create `donbeave/crew-reviewer`.
 
 ## Scope
 
-Per `concept/roles.md` §3: construct base, node only, `code-review` and `pr-review-toolkit` plugins, `tailrocks-skills` (marketplace `source = "tailrocks/tailrocks-skills"`, skills clone pinned by commit), `review-crucible` pinned by commit (`ARG REVIEW_CRUCIBLE_SHA=5936f0e069946db0ee4408e72122b134800336e4`, the repository has no tags and its default branch is `port/cross-agent-dry`; `git init /opt/review-crucible && git -C /opt/review-crucible fetch --depth 1 https://github.com/tailrocks/review-crucible $REVIEW_CRUCIBLE_SHA && git -C /opt/review-crucible checkout FETCH_HEAD`, then `/opt/review-crucible/skills/review-crucible` linked to `/home/agent/.agents/skills/review-crucible`), `hooks/source.sh` staging Codex agents and the lane's `config.toml` keys (D-078); workspace read-only; Reviews API verdict flow of D-079 (`COMMENT` event with a `verdict:` first line while the `gh` login equals the PR author — always before M8-01; never retry a 422 with the same event; never `APPROVE`). `AGENTS.md` encodes the identity check. Commits directly to `main` (D-074). No compiler, no `op`, no `agent-browser`.
+Per `concept/roles.md` §3: construct base, node only, `code-review` and `pr-review-toolkit` plugins, `tailrocks-skills` (marketplace `source = "tailrocks/tailrocks-skills"`, skills clone pinned by commit), `review-crucible` pinned by commit (`ARG REVIEW_CRUCIBLE_SHA=5936f0e069946db0ee4408e72122b134800336e4`, the repository has no tags and its default branch is `port/cross-agent-dry`; under `USER root` `install -d -o agent -g agent /opt/review-crucible`, then under `USER agent` `git init /opt/review-crucible && git -C /opt/review-crucible fetch --depth 1 https://github.com/tailrocks/review-crucible "$REVIEW_CRUCIBLE_SHA" && git -C /opt/review-crucible checkout --detach FETCH_HEAD && git -C /opt/review-crucible rev-parse HEAD > /opt/review-crucible/.jackin-pin` — the checkout is owned by `agent`, so git never refuses it as "dubious ownership" and no `safe.directory` entry is needed — then `ln -s /opt/review-crucible/skills/review-crucible /home/agent/.agents/skills/review-crucible`), `hooks/source.sh` staging Codex agents and the lane's `config.toml` keys (D-078; sourced, not executed: it opens with `CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"`, never sets `-e` and never calls `exit`, and is a no-op when `JACKIN_LANE_CODEX_MODEL` is unset); workspace read-only; Reviews API verdict flow of D-079 (`COMMENT` event with a `verdict:` first line while the `gh` login equals the PR author — always before M8-01; never retry a 422 with the same event; never `APPROVE`). `AGENTS.md` encodes the identity check. Commits directly to `main` (D-074). No compiler, no `op`, no `agent-browser`.
 
 ## References
 
@@ -48,12 +48,14 @@ container-relative (D-086).
 ## Checklist
 
 - [ ] The scope above is implemented in the listed repositories.
-- [ ] container check passes: `test -f /home/agent/.agents/skills/review-crucible/SKILL.md`
-- [ ] container check passes: `git -C /opt/review-crucible rev-parse HEAD`
-- [ ] container check passes: `cargo`
-- [ ] container check passes: `op`
-- [ ] container check passes: `agent-browser`
-- [ ] `verify.container.out` is filed in the task folder.
+- [ ] host check passes: `jackin role validate`
+- [ ] host check passes: `jackin load donbeave/crew-reviewer probe-M1-05c --agent claude`
+- [ ] host check passes: `docker exec -u agent <name> sh -c '…'`
+- [ ] host check passes: `test -f /home/agent/.agents/skills/review-crucible/SKILL.md`
+- [ ] host check passes: `test -d "${CODEX_HOME:-$HOME/.codex}/agents"`
+- [ ] host check passes: `! command -v cargo`
+- [ ] host check passes: `! command -v op`
+- [ ] host check passes: `! command -v agent-browser`
 - [ ] Every touched repository is committed and pushed.
 - [ ] `sh verify.sh` prints `status: DONE` for each part.
 
@@ -61,19 +63,15 @@ container-relative (D-086).
 
 Container part (run inside the task container):
 
-> Validate passes; loads on both runtimes; `test -f /home/agent/.agents/skills/review-crucible/SKILL.md` and `git -C /opt/review-crucible rev-parse HEAD` equals the `REVIEW_CRUCIBLE_SHA` recorded in `tasks/M1-05c/`; `$CODEX_HOME/agents/` populated after `source.sh`; no `cargo`, `op`, or `agent-browser`
+> none
 
 Host part (run by the host Claude Code session, D-061):
 
-> none
-
-When a container part exists the host part first asserts that
-`tasks/M1-05c/verify.container.out` ends with `status: DONE`, so a
-passing host part can never mask a failed container part (D-086).
+> `jackin role validate` passes on the cached checkout; the host session performs one throwaway load per runtime of `goal/EXECUTION.md` §5 step 4b (`jackin load donbeave/crew-reviewer probe-M1-05c --agent claude`, then the same with `--agent codex`) and files `tasks/M1-05c/throwaway/status.<runtime>.json` showing role `donbeave/crew-reviewer` and that agent; `tasks/M1-05c/throwaway/inside.<runtime>.out`, the output of `docker exec -u agent <name> sh -c '…'` running `test -f /home/agent/.agents/skills/review-crucible/SKILL.md`, `[ "$(cat /opt/review-crucible/.jackin-pin)" = "$(cat .jackin/task/refs/review-crucible-sha.txt)" ]` as user `agent` (the pin file is written at build time, so the check needs no git read of a foreign-owned directory), `test -d "${CODEX_HOME:-$HOME/.codex}/agents"` after `source.sh`, and `! command -v cargo`, `! command -v op`, `! command -v agent-browser`, ends with the line `inside: ok`; both probes are ejected by the session before the verify runs
 
 ## Evidence expected (D-118)
 
-- `tasks/M1-05c/verify.container.out` (container part, containing `status: DONE`)
+- The verify output of each part, filed in the task folder.
 
 ## Proof (browser/attach)
 

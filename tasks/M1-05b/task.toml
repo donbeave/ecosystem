@@ -20,10 +20,12 @@ depends_on = [
   "M1-04a",
 ]
 decisions = [
+  "D-061",
   "D-074",
   "D-077",
   "D-078",
   "D-090",
+  "D-091",
 ]
 
 [limits]
@@ -34,17 +36,36 @@ script = "verify.sh"
 has_container_part = true
 container = [
   "jackin role validate && ! grep -qE '^[env.OP_SERVICE_ACCOUNT_TOKEN]' jackin.role.toml && ! grep -qE '^model *=' jackin.role.toml && grep -q AGENT_BROWSER_EXECUTABLE_PATH jackin.role.toml",
-  "jackin load donbeave/crew-operator --agent claude",
+]
+host = [
+  "jackin load donbeave/crew-operator probe-M1-05b --agent claude --mount ~/.jackin/agent-browser-profile:/home/agent/.agent-browser-profile",
+  "docker logs <name>",
+  "docker exec -u agent <name> sh -c '…'",
   "gh --version",
   "agent-browser --version",
+  "python3 --version",
   "test -x /usr/bin/chromium",
   "agent-browser doctor --json",
   "agent-browser open about:blank",
-  "cargo",
+  "! command -v cargo",
 ]
-host = []
 
 [[evidence]]
 path = "verify.container.out"
 part = "container"
 contains = "status: DONE"
+
+[[evidence]]
+path = "throwaway/status.json"
+part = "container"
+contains = ""
+
+[[evidence]]
+path = "throwaway/preflight.out"
+part = "container"
+contains = ""
+
+[[evidence]]
+path = "throwaway/inside.out"
+part = "container"
+contains = ""

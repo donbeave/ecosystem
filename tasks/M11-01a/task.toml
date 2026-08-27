@@ -25,6 +25,7 @@ decisions = [
   "D-064",
   "D-074",
   "D-089",
+  "D-090",
 ]
 
 [limits]
@@ -42,5 +43,6 @@ host = [
   "jackin-role",
   "gh release download preview --pattern 'jackin-<host target>.tar.gz'",
   "jackin-role validate .",
-  "gh run list -R donbeave/jackin-crew-<p> --workflow ci.yml --branch main --limit 1 --json conclusion | jq -e '.[0].conclusion==\"success\"'",
+  "gh run watch \"$(cat tasks/M11-01a/run-<p>.txt)\" -R donbeave/jackin-crew-<p> --exit-status",
+  "gh run view \"$(cat tasks/M11-01a/run-<p>.txt)\" -R donbeave/jackin-crew-<p> --json status,conclusion | jq -e '.status==\"completed\" and .conclusion==\"success\"'",
 ]

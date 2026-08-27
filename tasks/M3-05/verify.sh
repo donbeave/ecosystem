@@ -54,6 +54,8 @@ finish() {
 part=${1:-}
 case "$part" in
   container)
+    need_evidence 'session.json' ''
+    need_evidence 'status.json' ''
     finish
     ;;
   host)
@@ -63,7 +65,7 @@ case "$part" in
       printf '%s\n' "status: PENDING"
       exit 1
     fi
-    run_cmd 'jackin daemon status'
+    run_cmd 'jackin daemon status --format json'
     finish
     ;;
   *)

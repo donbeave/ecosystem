@@ -49,10 +49,12 @@ container-relative (D-086).
 
 - [ ] The scope above is implemented in the listed repositories.
 - [ ] The container part of the verify contract below holds.
-- [ ] host check passes: `op read`
 - [ ] host check passes: `docker ps --filter label=<issue label>`
 - [ ] host check passes: `test ! -d ~/.jackin/managed/<key>`
 - [ ] `verify.container.out` is filed in the task folder.
+- [ ] `cancel.json` is filed in the task folder.
+- [ ] `docker-ps-after.txt` is filed in the task folder.
+- [ ] `workspace-after.txt` is filed in the task folder.
 - [ ] Every touched repository is committed and pushed.
 - [ ] `sh verify.sh` prints `status: DONE` for each part.
 
@@ -64,7 +66,7 @@ Container part (run inside the task container):
 
 Host part (run by the host Claude Code session, D-061):
 
-> cancel the scratch issue by GraphQL `issueUpdate` via host `op read`; `docker ps --filter label=<issue label>` empty within one tick; `test ! -d ~/.jackin/managed/<key>` for the terminal case only
+> the task performs the cancel of the scratch issue by GraphQL `issueUpdate` under the §4 Linear-token rule and files three artifacts — `tasks/M3-06/cancel.json` (the mutation response), `tasks/M3-06/docker-ps-after.txt` (the `docker ps --filter label=<issue label>` output taken one tick later, empty), and `tasks/M3-06/workspace-after.txt` (the `test ! -d ~/.jackin/managed/<key>` result, terminal case only); the verify reads only those three files, so a retry after the issue is closed can neither fail spuriously nor pass vacuously
 
 When a container part exists the host part first asserts that
 `tasks/M3-06/verify.container.out` ends with `status: DONE`, so a
@@ -73,6 +75,9 @@ passing host part can never mask a failed container part (D-086).
 ## Evidence expected (D-118)
 
 - `tasks/M3-06/verify.container.out` (container part, containing `status: DONE`)
+- `tasks/M3-06/cancel.json` (container part)
+- `tasks/M3-06/docker-ps-after.txt` (container part)
+- `tasks/M3-06/workspace-after.txt` (container part)
 
 ## Proof (browser/attach)
 

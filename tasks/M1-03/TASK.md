@@ -48,7 +48,9 @@ container-relative (D-086).
 ## Checklist
 
 - [ ] The scope above is implemented in the listed repositories.
-- [ ] container check passes: `op item get linear-agent-app --vault jackin --format json | jq '.fields[].label'`
+- [ ] The container part of the verify contract below holds.
+- [ ] host check passes: `op item get linear-agent-app --vault jackin --format json | jq -r '.fields[].label'`
+- [ ] host check passes: `op`
 - [ ] `verify.container.out` is filed in the task folder.
 - [ ] Every touched repository is committed and pushed.
 - [ ] `sh verify.sh` prints `status: DONE` for each part.
@@ -57,11 +59,11 @@ container-relative (D-086).
 
 Container part (run inside the task container):
 
-> `op item get linear-agent-app --vault jackin --format json | jq '.fields[].label'` lists the expected field names; `printenv` inside the session never shows the token
+> `! printenv | grep -q '^OP_SERVICE_ACCOUNT_TOKEN='` (the on-demand binding never leaves the token in the environment)
 
 Host part (run by the host Claude Code session, D-061):
 
-> none
+> `op item get linear-agent-app --vault jackin --format json | jq -r '.fields[].label'` lists the expected field names (host `op`, desktop-app authorised; the container has no `op` token by design)
 
 When a container part exists the host part first asserts that
 `tasks/M1-03/verify.container.out` ends with `status: DONE`, so a

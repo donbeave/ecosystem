@@ -4,6 +4,6 @@
 task = "M1-09"
 
 [[evidence]]
-path = "verify.container.out"
-part = "container"
-contains = "status: DONE"
+path = "states.json"
+part = "host"
+contains = ""

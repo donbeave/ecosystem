@@ -24,7 +24,7 @@ Create Linear team, labels, workflow states, and issue template.
 
 ## Scope
 
-Create team `JACKIN` through the browser profile (the app token has no `admin` scope, D-060); on the app details page grant the app user access to the new team (analysis/linear-agents.md A8); create the label groups the convention needs (`role`, `agent`, `model` with values from `tasks/M1-13/` (D-058), `effort`, `delivery`, `repo`, `auto-dispatch`, and the `run` group for M5), a review state and a merging state per team, and an issue template with a checklist skeleton (no delegate pre-set, D-073).
+Create team `JACKIN` through the browser profile (the app token has no `admin` scope, D-060); on the app details page grant the app user access to the new team (analysis/linear-agents.md A8); create the label groups the convention needs (`role`, `agent`, `model` with values from `tasks/M1-13/` (D-058), `lane` with one value `lane:L<n>` per lane of `tasks/M1-13/lanes.json`, `effort`, `delivery`, `repo`, `auto-dispatch`, and the `run` group for M5), per team a `Review` and a `Merging` workflow state, both of type `started` and both positioned after `In Progress` and after every other pre-existing `started` state, with their ids recorded in `tasks/M1-09/states.json` (the daemon picks up the lowest-position `started` state, and a Review state ahead of it would make every acknowledged issue non-dispatchable, SPEC §6.1), and an issue template with a checklist skeleton (no delegate pre-set, D-073).
 
 ## References
 
@@ -48,8 +48,11 @@ container-relative (D-086).
 ## Checklist
 
 - [ ] The scope above is implemented in the listed repositories.
-- [ ] container check passes: `jq -r '.[].label' tasks/M1-13/lanes.json`
-- [ ] `verify.container.out` is filed in the task folder.
+- [ ] host check passes: `op read`
+- [ ] host check passes: `curl --config -`
+- [ ] host check passes: `jq -r '.[].label' tasks/M1-13/lanes.json`
+- [ ] host check passes: `jq -e '.[0].name != "Review" and .[0].name != "Merging"'`
+- [ ] `states.json` is filed in the task folder.
 - [ ] Every touched repository is committed and pushed.
 - [ ] `sh verify.sh` prints `status: DONE` for each part.
 
@@ -57,19 +60,15 @@ container-relative (D-086).
 
 Container part (run inside the task container):
 
-> GraphQL with the workspace token from M1-10 lists the team `JACKIN`, the labels (the set of `model:*` values equals `jq -r '.[].label' tasks/M1-13/lanes.json`, D-091), and the states by name, and `team(id){members}` contains the app user id from `op://jackin/linear-workspace`
+> none
 
 Host part (run by the host Claude Code session, D-061):
 
-> none
-
-When a container part exists the host part first asserts that
-`tasks/M1-09/verify.container.out` ends with `status: DONE`, so a
-passing host part can never mask a failed container part (D-086).
+> GraphQL under the Linear-token rule of `goal/EXECUTION.md` §4 (host `op read` piped into `curl --config -`, never inside a container) lists the team `JACKIN`, the labels (the set of `model:*` values equals `jq -r '.[].label' tasks/M1-13/lanes.json`, D-091), and the states by name; `team(id){members}` contains the app user id from `op://jackin/linear-workspace`; the response of `workflowStates(filter:{team:{key:{eq:$key}}, type:{eq:"started"}})` sorted by "position" is filed as `tasks/M1-09/states.json` and `jq -e '.[0].name != "Review" and .[0].name != "Merging"'` on it exits 0
 
 ## Evidence expected (D-118)
 
-- `tasks/M1-09/verify.container.out` (container part, containing `status: DONE`)
+- `tasks/M1-09/states.json` (host part)
 
 ## Proof (browser/attach)
 

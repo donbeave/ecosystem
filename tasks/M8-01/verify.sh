@@ -54,21 +54,16 @@ finish() {
 part=${1:-}
 case "$part" in
   container)
-    run_cmd 'op read'
-    run_cmd 'openssl'
-    run_cmd 'gh api /installation/repositories'
-    need_evidence 'app.md' ''
+    printf '%s\n' "no container part for this task" # host row (D-061)
     finish
     ;;
   host)
-    need_evidence 'verify.container.out' 'status: DONE'
-    if [ "$fail" -ne 0 ]; then
-      printf '%s\n' "container part has not passed"
-      printf '%s\n' "status: PENDING"
-      exit 1
-    fi
+    run_cmd 'op read'
+    run_cmd 'openssl dgst -sha256 -sign /dev/stdin'
+    run_cmd 'gh api /installation/repositories'
     run_cmd 'gitleaks detect --no-git --source tasks/M8-01'
     run_cmd 'grep -c repository_selection tasks/M8-01/app.md'
+    need_evidence 'app.md' ''
     finish
     ;;
   *)

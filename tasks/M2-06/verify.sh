@@ -58,7 +58,9 @@ case "$part" in
     finish
     ;;
   host)
-    run_cmd 'jackin daemon status --format json | jq -e --arg id "$SCRATCH" '\''[.issues[]|select(.identifier==$id)]|length==1'\'''
+    run_cmd 'jackin daemon status --format json'
+    run_cmd 'jq -e --arg id "$SCRATCH" '\''[.issues[]|select(.identifier==$id)]|length==1'\'' tasks/M2-06/status.json'
+    need_evidence 'status.json' ''
     need_evidence 'scratch-issue.txt' ''
     finish
     ;;

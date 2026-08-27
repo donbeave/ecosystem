@@ -4,6 +4,11 @@
 task = "M1-05a"
 
 [[evidence]]
-path = "verify.container.out"
-part = "container"
-contains = "status: DONE"
+path = "throwaway/status.json"
+part = "host"
+contains = ""
+
+[[evidence]]
+path = "throwaway/inside.out"
+part = "host"
+contains = ""

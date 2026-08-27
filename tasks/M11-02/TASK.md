@@ -50,7 +50,8 @@ container-relative (D-086).
 - [ ] The scope above is implemented in the listed repositories.
 - [ ] container check passes: `jackin role published-image .`
 - [ ] container check passes: `! grep -rqE 'velnor|self-hosted' .github/workflows`
-- [ ] host check passes: `gh run list -R donbeave/jackin-crew-<p> --workflow publish-image.yml --branch main --limit 1 --json conclusion | jq -e '.[0].conclusion=="success"'`
+- [ ] host check passes: `gh run watch "$(cat tasks/M11-02/run-<p>.txt)" -R donbeave/jackin-crew-<p> --exit-status`
+- [ ] host check passes: `gh run view "$(cat tasks/M11-02/run-<p>.txt)" -R donbeave/jackin-crew-<p> --json status,conclusion | jq -e '.status=="completed" and .conclusion=="success"'`
 - [ ] host check passes: `docker image inspect <image> --format '{{index .Config.Labels "jackin.role.git.sha"}}'`
 - [ ] host check passes: `git rev-parse HEAD`
 - [ ] `verify.container.out` is filed in the task folder.
@@ -65,7 +66,7 @@ Container part (run inside the task container):
 
 Host part (run by the host Claude Code session, D-061):
 
-> `gh run list -R donbeave/jackin-crew-<p> --workflow publish-image.yml --branch main --limit 1 --json conclusion | jq -e '.[0].conclusion=="success"'` for all three, and `docker image inspect <image> --format '{{index .Config.Labels "jackin.role.git.sha"}}'` of the pulled image equals `git rev-parse HEAD` of the role's default branch (D-074, D-078)
+> the task records the `publish-image.yml` run id it triggered per role in `tasks/M11-02/run-<p>.txt` and waits with `gh run watch "$(cat tasks/M11-02/run-<p>.txt)" -R donbeave/jackin-crew-<p> --exit-status` (a cold multi-arch cosign build takes tens of minutes); the verify asserts `gh run view "$(cat tasks/M11-02/run-<p>.txt)" -R donbeave/jackin-crew-<p> --json status,conclusion | jq -e '.status=="completed" and .conclusion=="success"'` for all three, and `docker image inspect <image> --format '{{index .Config.Labels "jackin.role.git.sha"}}'` of the pulled image equals `git rev-parse HEAD` of the role's default branch (D-074, D-078)
 
 When a container part exists the host part first asserts that
 `tasks/M11-02/verify.container.out` ends with `status: DONE`, so a

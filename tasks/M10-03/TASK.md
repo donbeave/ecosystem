@@ -49,7 +49,11 @@ container-relative (D-086).
 
 - [ ] The scope above is implemented in the listed repositories.
 - [ ] container check passes: `mise run gate`
+- [ ] container check passes: `cargo nextest run --workspace -E 'not test(goldens)'`
 - [ ] host check passes: `mise run bless-previews`
+- [ ] host check passes: `git -C ~/.jackin/managed/M10-03/termrock status --porcelain`
+- [ ] host check passes: `git log origin/feat/managed-execution -1 --format=%s -- crates/termrock-lookbook/goldens`
+- [ ] host check passes: `mise run preview-goldens`
 - [ ] `verify.container.out` is filed in the task folder.
 - [ ] Every touched repository is committed and pushed.
 - [ ] `sh verify.sh` prints `status: DONE` for each part.
@@ -58,11 +62,11 @@ container-relative (D-086).
 
 Container part (run inside the task container):
 
-> the story is added and the flagship set extended; `mise run gate` is green on the branch; the golden frames are recorded by the agent and their frame text is filed in `tasks/M10-03/`
+> the story is added and the flagship set extended; everything in `mise run gate` except the golden comparison is green (`cargo nextest run --workspace -E 'not test(goldens)'` plus the remaining gate steps), because the goldens the new story needs do not exist until the host blesses them; the new story renders to `tasks/M10-03/frames/*.txt`
 
 Host part (run by the host Claude Code session, D-061):
 
-> `mise run bless-previews` is run by the host session under D-075, never by the container, and the blessed frames are committed and pushed
+> after the session's bless of `goal/EXECUTION.md` §5 step 4c — `mise run bless-previews` in `~/.jackin/managed/M10-03/termrock`, run by the host session under D-075 and never by the container, then commit and push — `git -C ~/.jackin/managed/M10-03/termrock status --porcelain` is empty, `git log origin/feat/managed-execution -1 --format=%s -- crates/termrock-lookbook/goldens` names the bless commit, and `mise run preview-goldens` passes in that checkout
 
 When a container part exists the host part first asserts that
 `tasks/M10-03/verify.container.out` ends with `status: DONE`, so a

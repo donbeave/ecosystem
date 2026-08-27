@@ -54,6 +54,7 @@ finish() {
 part=${1:-}
 case "$part" in
   container)
+    need_evidence 'attach.txt' ''
     finish
     ;;
   host)

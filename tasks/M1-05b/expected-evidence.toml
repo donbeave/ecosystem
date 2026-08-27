@@ -7,3 +7,18 @@ task = "M1-05b"
 path = "verify.container.out"
 part = "container"
 contains = "status: DONE"
+
+[[evidence]]
+path = "throwaway/status.json"
+part = "container"
+contains = ""
+
+[[evidence]]
+path = "throwaway/preflight.out"
+part = "container"
+contains = ""
+
+[[evidence]]
+path = "throwaway/inside.out"
+part = "container"
+contains = ""

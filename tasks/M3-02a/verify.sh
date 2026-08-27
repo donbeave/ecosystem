@@ -55,8 +55,6 @@ part=${1:-}
 case "$part" in
   container)
     run_cmd 'jackin role validate'
-    run_cmd 'jackin load donbeave/crew-<p>'
-    run_cmd 'jackin status --format json'
     finish
     ;;
   host)
@@ -66,6 +64,9 @@ case "$part" in
       printf '%s\n' "status: PENDING"
       exit 1
     fi
+    run_cmd 'jackin load donbeave/crew-<p>'
+    run_cmd 'jackin status --format json'
+    run_cmd 'jq -e '\''.agent == "claude"'\'''
     finish
     ;;
   *)

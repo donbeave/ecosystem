@@ -4,6 +4,6 @@
 task = "M1-07"
 
 [[evidence]]
-path = "verify.container.out"
-part = "container"
-contains = "status: DONE"
+path = "app-url.txt"
+part = "host"
+contains = ""

@@ -21,6 +21,7 @@ depends_on = [
 ]
 decisions = [
   "D-061",
+  "D-091",
 ]
 
 [limits]
@@ -31,7 +32,6 @@ script = "verify.sh"
 has_container_part = true
 container = []
 host = [
-  "op read",
   "docker ps --filter label=<issue label>",
   "test ! -d ~/.jackin/managed/<key>",
 ]
@@ -40,3 +40,18 @@ host = [
 path = "verify.container.out"
 part = "container"
 contains = "status: DONE"
+
+[[evidence]]
+path = "cancel.json"
+part = "container"
+contains = ""
+
+[[evidence]]
+path = "docker-ps-after.txt"
+part = "container"
+contains = ""
+
+[[evidence]]
+path = "workspace-after.txt"
+part = "container"
+contains = ""

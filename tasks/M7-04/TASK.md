@@ -8,7 +8,7 @@ roadmap row instead.
 | Field | Value |
 | --- | --- |
 | milestone | M7 |
-| depends on | M7-03 |
+| depends on | M7-03, M3-07 |
 | role | `donbeave/crew-operator` |
 | lane | L3 |
 | runtime | claude |
@@ -24,7 +24,7 @@ M7 proof run.
 
 ## Scope
 
-Deliberately failing verify, exhaustion, escalation, and a passing run; evidence in `tasks/M7-04/`.
+First checklist item: open the Linear app settings page named in `tasks/M1-07/app-url.txt` and, if the Agent-session-events webhook shows Disabled, re-enable it and note that in the task folder (never a preflight defect). Deliberately failing verify, exhaustion, escalation, and a passing run; evidence in `tasks/M7-04/`.
 
 ## References
 
@@ -76,7 +76,7 @@ Host part (run by the host Claude Code session, D-061):
 
 ## Proof (browser/attach)
 
-Issue moves to the review state on success; elicitation with the blocker brief on exhaustion; reply resumes the session.
+Issue moves to the review state on success; elicitation with the blocker brief on exhaustion; the reply that resumes the session is posted by this task's own crew-operator (no other actor on this run can create a Linear `prompt` activity) and is filed as a snapshot in `tasks/M7-04/`.
 
 ## Definition of done
 

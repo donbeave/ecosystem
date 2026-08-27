@@ -22,6 +22,7 @@ depends_on = [
 decisions = [
   "D-024",
   "D-061",
+  "D-091",
 ]
 
 [limits]
@@ -31,7 +32,9 @@ attempts = 3
 script = "verify.sh"
 has_container_part = true
 container = []
-host = []
+host = [
+  "jackin status --format json",
+]
 
 [[evidence]]
 path = "verify.container.out"

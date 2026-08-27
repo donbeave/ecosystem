@@ -54,6 +54,8 @@ finish() {
 part=${1:-}
 case "$part" in
   container)
+    run_cmd 'grep -q '\''jackin-version: latest-build'\'' .github/workflows/ci.yml'
+    run_cmd '! grep -q '\''core.hooksPath'\'' Dockerfile'
     run_cmd '! grep -rqE '\''velnor|self-hosted'\'' .github/workflows'
     run_cmd 'gh workflow list -R donbeave/jackin-role-template'
     finish

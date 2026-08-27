@@ -21,6 +21,7 @@ depends_on = [
 ]
 decisions = [
   "D-061",
+  "D-091",
 ]
 
 [limits]
@@ -33,10 +34,16 @@ container = [
   "cargo nextest run -p jackin-daemon remote::",
 ]
 host = [
-  "jackin daemon status --host <server>",
+  "jackin daemon status --host <server> --format json",
+  "jq -e '.host == \"<server>\"'",
 ]
 
 [[evidence]]
 path = "verify.container.out"
 part = "container"
 contains = "status: DONE"
+
+[[evidence]]
+path = "status.json"
+part = "container"
+contains = ""

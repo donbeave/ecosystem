@@ -24,6 +24,7 @@ decisions = [
   "D-025",
   "D-061",
   "D-073",
+  "D-091",
 ]
 
 [limits]
@@ -34,8 +35,14 @@ script = "verify.sh"
 has_container_part = false
 container = []
 host = [
-  "jackin daemon status --format json | jq -e --arg id \"$SCRATCH\" '[.issues[]|select(.identifier==$id)]|length==1'",
+  "jackin daemon status --format json",
+  "jq -e --arg id \"$SCRATCH\" '[.issues[]|select(.identifier==$id)]|length==1' tasks/M2-06/status.json",
 ]
+
+[[evidence]]
+path = "status.json"
+part = "host"
+contains = ""
 
 [[evidence]]
 path = "scratch-issue.txt"

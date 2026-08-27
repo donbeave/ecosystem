@@ -31,6 +31,8 @@ attempts = 3
 script = "verify.sh"
 has_container_part = true
 container = [
+  "grep -q 'jackin-version: latest-build' .github/workflows/ci.yml",
+  "! grep -q 'core.hooksPath' Dockerfile",
   "! grep -rqE 'velnor|self-hosted' .github/workflows",
   "gh workflow list -R donbeave/jackin-role-template",
 ]

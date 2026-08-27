@@ -54,16 +54,14 @@ finish() {
 part=${1:-}
 case "$part" in
   container)
-    run_cmd 'op item get linear-agent-app --vault jackin --fields label=<f> --format json | jq -e '\''(.value // "") | length > 0'\'' >/dev/null'
+    printf '%s\n' "no container part for this task" # host row (D-061)
     finish
     ;;
   host)
-    need_evidence 'verify.container.out' 'status: DONE'
-    if [ "$fail" -ne 0 ]; then
-      printf '%s\n' "container part has not passed"
-      printf '%s\n' "status: PENDING"
-      exit 1
-    fi
+    run_cmd 'op item get linear-agent-app --vault jackin --fields label=<f> --format json | jq -e '\''(.value // "") | length > 0'\'' >/dev/null'
+    run_cmd 'op'
+    run_cmd 'test -s tasks/M1-07/app-url.txt'
+    need_evidence 'app-url.txt' ''
     finish
     ;;
   *)

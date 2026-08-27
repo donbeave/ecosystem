@@ -54,6 +54,7 @@ finish() {
 part=${1:-}
 case "$part" in
   container)
+    need_evidence 'exec.json' ''
     finish
     ;;
   host)
@@ -63,7 +64,9 @@ case "$part" in
       printf '%s\n' "status: PENDING"
       exit 1
     fi
-    run_cmd 'jackin daemon exec <instance> -- sh -c '\''echo status: DONE'\'''
+    run_cmd 'jackin load the-architect probe-M4-03 --agent claude'
+    run_cmd 'jackin daemon exec <that probe> -- sh -c '\''echo status: DONE'\'''
+    run_cmd 'jq -e '\''.exit == 0 and (.stdout | test("status: DONE"))'\'' tasks/M4-03/exec.json'
     finish
     ;;
   *)

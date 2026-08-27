@@ -54,6 +54,10 @@ finish() {
 part=${1:-}
 case "$part" in
   container)
+    printf '%s\n' "no container part for this task" # host row (D-061)
+    finish
+    ;;
+  host)
     run_cmd 'jackin load <role> probe-L<n> --dry-run --format json'
     run_cmd 'jackin usage cache accounts --format json'
     run_cmd 'docker info'
@@ -64,15 +68,6 @@ case "$part" in
     run_cmd 'gh api repos/jackin-project/jackin-the-architect/branches/feat/managed-execution'
     need_evidence 'dind.out' ''
     need_evidence 'lanes.json' ''
-    finish
-    ;;
-  host)
-    need_evidence 'verify.container.out' 'status: DONE'
-    if [ "$fail" -ne 0 ]; then
-      printf '%s\n' "container part has not passed"
-      printf '%s\n' "status: PENDING"
-      exit 1
-    fi
     finish
     ;;
   *)

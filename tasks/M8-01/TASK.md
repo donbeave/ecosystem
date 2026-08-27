@@ -48,12 +48,11 @@ container-relative (D-086).
 ## Checklist
 
 - [ ] The scope above is implemented in the listed repositories.
-- [ ] container check passes: `op read`
-- [ ] container check passes: `openssl`
-- [ ] container check passes: `gh api /installation/repositories`
+- [ ] host check passes: `op read`
+- [ ] host check passes: `openssl dgst -sha256 -sign /dev/stdin`
+- [ ] host check passes: `gh api /installation/repositories`
 - [ ] host check passes: `gitleaks detect --no-git --source tasks/M8-01`
 - [ ] host check passes: `grep -c repository_selection tasks/M8-01/app.md`
-- [ ] `verify.container.out` is filed in the task folder.
 - [ ] `app.md` is filed in the task folder.
 - [ ] Every touched repository is committed and pushed.
 - [ ] `sh verify.sh` prints `status: DONE` for each part.
@@ -62,20 +61,15 @@ container-relative (D-086).
 
 Container part (run inside the task container):
 
-> for both organizations `op read` on stdin supplies app id, installation id and PEM, `openssl` mints the JWT, and the installation token makes `gh api /installation/repositories` list the repositories; `tasks/M8-01/app.md` records "repository_selection" = "all" per organization
+> none (host row, D-061; the GitHub App private key is readable by host `op` only, and a `docker exec` shell can raise no capsule secret picker)
 
 Host part (run by the host Claude Code session, D-061):
 
-> `gitleaks detect --no-git --source tasks/M8-01` is clean and `grep -c repository_selection tasks/M8-01/app.md` is 2 (D-081)
-
-When a container part exists the host part first asserts that
-`tasks/M8-01/verify.container.out` ends with `status: DONE`, so a
-passing host part can never mask a failed container part (D-086).
+> for both organizations host `op read` on stdin supplies app id, installation id and PEM, `openssl dgst -sha256 -sign /dev/stdin` mints the JWT, and the installation token makes `gh api /installation/repositories` list the repositories; `tasks/M8-01/app.md` records "repository_selection" = "all" per organization; `gitleaks detect --no-git --source tasks/M8-01` is clean and `grep -c repository_selection tasks/M8-01/app.md` is 2 (D-081)
 
 ## Evidence expected (D-118)
 
-- `tasks/M8-01/verify.container.out` (container part, containing `status: DONE`)
-- `tasks/M8-01/app.md` (container part)
+- `tasks/M8-01/app.md` (host part)
 
 ## Proof (browser/attach)
 

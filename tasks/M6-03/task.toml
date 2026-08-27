@@ -20,6 +20,7 @@ size = "S"
 depends_on = [
   "M6-02",
   "M1-13",
+  "M3-07",
 ]
 decisions = [
   "D-061",

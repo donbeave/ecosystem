@@ -25,6 +25,7 @@ depends_on = [
 decisions = [
   "D-058",
   "D-060",
+  "D-061",
   "D-073",
   "D-091",
 ]
@@ -34,13 +35,16 @@ attempts = 3
 
 [verify]
 script = "verify.sh"
-has_container_part = true
-container = [
+has_container_part = false
+container = []
+host = [
+  "op read",
+  "curl --config -",
   "jq -r '.[].label' tasks/M1-13/lanes.json",
+  "jq -e '.[0].name != \"Review\" and .[0].name != \"Merging\"'",
 ]
-host = []
 
 [[evidence]]
-path = "verify.container.out"
-part = "container"
-contains = "status: DONE"
+path = "states.json"
+part = "host"
+contains = ""

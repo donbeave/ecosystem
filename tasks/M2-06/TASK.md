@@ -48,7 +48,9 @@ container-relative (D-086).
 ## Checklist
 
 - [ ] The scope above is implemented in the listed repositories.
-- [ ] host check passes: `jackin daemon status --format json | jq -e --arg id "$SCRATCH" '[.issues[]|select(.identifier==$id)]|length==1'`
+- [ ] host check passes: `jackin daemon status --format json`
+- [ ] host check passes: `jq -e --arg id "$SCRATCH" '[.issues[]|select(.identifier==$id)]|length==1' tasks/M2-06/status.json`
+- [ ] `status.json` is filed in the task folder.
 - [ ] `scratch-issue.txt` is filed in the task folder.
 - [ ] Every touched repository is committed and pushed.
 - [ ] `sh verify.sh` prints `status: DONE` for each part.
@@ -61,10 +63,11 @@ Container part (run inside the task container):
 
 Host part (run by the host Claude Code session, D-061):
 
-> `jackin daemon status --format json | jq -e --arg id "$SCRATCH" '[.issues[]|select(.identifier==$id)]|length==1'` with `$SCRATCH` read from `tasks/M2-06/scratch-issue.txt` (the scratch issue is created and delegated by this task's operator step; roadmap issues carry no delegate, D-073)
+> while the scratch issue is delegated the task files `jackin daemon status --format json` as `tasks/M2-06/status.json`, and the verify reads only that snapshot — `jq -e --arg id "$SCRATCH" '[.issues[]|select(.identifier==$id)]|length==1' tasks/M2-06/status.json` with `$SCRATCH` read from `tasks/M2-06/scratch-issue.txt` (the scratch issue is created and delegated by this task's operator step; roadmap issues carry no delegate, D-073)
 
 ## Evidence expected (D-118)
 
+- `tasks/M2-06/status.json` (host part)
 - `tasks/M2-06/scratch-issue.txt` (host part)
 
 ## Proof (browser/attach)

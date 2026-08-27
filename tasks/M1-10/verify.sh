@@ -54,16 +54,17 @@ finish() {
 part=${1:-}
 case "$part" in
   container)
-    run_cmd 'op read … | curl'
+    printf '%s\n' "no container part for this task" # host row (D-061)
     finish
     ;;
   host)
-    need_evidence 'verify.container.out' 'status: DONE'
-    if [ "$fail" -ne 0 ]; then
-      printf '%s\n' "container part has not passed"
-      printf '%s\n' "status: PENDING"
-      exit 1
-    fi
+    run_cmd 'op read "op://jackin/linear-workspace/access token"'
+    run_cmd 'curl --config -'
+    run_cmd 'gitleaks detect --no-git --source tasks/M1-10'
+    run_cmd 'test ! -e tasks/M1-10/callback.log'
+    need_evidence 'callback.log' ''
+    need_evidence 'app-user-id.txt' ''
+    need_evidence 'org.txt' ''
     finish
     ;;
   *)

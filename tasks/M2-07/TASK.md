@@ -24,7 +24,7 @@ M2 proof run.
 
 ## Scope
 
-The operator role creates two scratch issues (one valid, one missing `agent:*`) and delegates them to jackin in the UI, and the host session delegates a third valid scratch issue by `issueUpdate(delegateId)` with the workspace token (the M2-02 session-creation path must serve it, D-087); capture daemon logs, screenshots of both sessions, and the JSON status; assert by GraphQL that no roadmap issue changed state; record in `tasks/M2-07/`.
+First checklist item: open the Linear app settings page named in `tasks/M1-07/app-url.txt` and, if the Agent-session-events webhook shows Disabled, re-enable it and note that in the task folder (never a preflight defect). The operator role creates two scratch issues (one valid, one missing `agent:*`) and delegates them to jackin in the UI, and the host session delegates a third valid scratch issue by `issueUpdate(delegateId)` with the workspace token (the M2-02 session-creation path must serve it, D-087); capture daemon logs, screenshots of both sessions, and the JSON status; assert by GraphQL that no roadmap issue changed state; record in `tasks/M2-07/`.
 
 ## References
 
@@ -73,7 +73,7 @@ passing host part can never mask a failed container part (D-086).
 
 ## Proof (browser/attach)
 
-Valid issue: the `thought` within 10 s of assignment, session `active`, issue in the `started` state. Invalid issue: the `error` activity naming the missing field.
+Valid issue: the `thought` within 10 s of assignment by the app user, one session of the app user on that issue (its status is never asserted as `pending` or `active` separately, D-091), issue in the `started` state. Invalid issue: the `error` activity naming the missing field.
 
 ## Definition of done
 

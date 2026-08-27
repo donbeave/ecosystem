@@ -24,7 +24,7 @@ Remove `jackin-preview`; branch build on `PATH`; lane templates (D-042, D-085).
 
 ## Scope
 
-`brew uninstall jackin-preview`, keep `jackin-dev`; `which jackin` and `jackin --version` show the branch build. Write the six lane templates `tasks/M1-02a/lanes/L<n>.toml`, each holding only the account selector — `[claude]` `sync_source_dir = "/Users/donbeave/.claude"` for L1..L3, `[codex]` `sync_source_dir = "/Users/donbeave/.codex"` (L4), `…/.codex-chainargos` (L5), `…/.codex-chainargos2` (L6) — which the host session merges into every per-task workspace `~/.config/jackin/workspaces/task-<id>.toml` until M1-13 replaces them (host `CODEX_HOME`/`CLAUDE_CONFIG_DIR` on the launching process select nothing in `jackin load`). Confirm `jackin-the-architect`'s `agents` list includes `codex` (note below).
+`brew uninstall jackin-preview`, keep `jackin-dev`; `which jackin` and `jackin --version` show the branch build. Write the six lane templates `tasks/M1-02a/lanes/L<n>.toml`, each holding only the account selector — `[claude]` `sync_source_dir = "/Users/donbeave/.claude"` for L1..L3, `[codex]` `sync_source_dir = "/Users/donbeave/.codex"` (L4), `…/.codex-chainargos` (L5), `…/.codex-chainargos2` (L6) — which the host session merges into every per-task workspace `~/.config/jackin/workspaces/task-<id>.toml` until M1-13 replaces them (host `CODEX_HOME`/`CLAUDE_CONFIG_DIR` on the launching process select nothing in `jackin load`). Enable jackin's own DCO trailer injection once for the host, `jackin config git dco enable`, so every container launched here carries `JACKIN_GIT_DCO=1` and the capsule's `prepare-commit-msg` hook signs off (D-089 (4) amended: the role image ships no sign-off hook of its own, because jackin's `--global core.hooksPath` would shadow it). `jackin-preview` stays uninstalled for the rest of the run even though M11-01a's merge refreshes the rolling `preview` release and the `jackin-preview` tap formula automatically. Confirm `jackin-the-architect`'s `agents` list includes `codex` (note below).
 
 ## References
 
@@ -48,13 +48,13 @@ container-relative (D-086).
 ## Checklist
 
 - [ ] The scope above is implemented in the listed repositories.
-- [ ] container check passes: `! brew list --formula | grep -qx jackin-preview`
-- [ ] container check passes: `jackin workspace create task-probe --workdir ~/.jackin/managed/probe --mount ~/.jackin/managed/probe`
-- [ ] container check passes: `jackin load the-architect task-probe --agent codex --dry-run --format json`
-- [ ] container check passes: `tmux`
-- [ ] container check passes: `script`
-- [ ] container check passes: `jackin workspace remove task-probe`
-- [ ] `verify.container.out` is filed in the task folder.
+- [ ] host check passes: `! brew list --formula | grep -qx jackin-preview`
+- [ ] host check passes: `grep -q 'dco = true' "${JACKIN_CONFIG_DIR:-$HOME/.config/jackin}/config.toml"`
+- [ ] host check passes: `jackin workspace create task-probe --workdir ~/.jackin/managed/probe --mount ~/.jackin/managed/probe`
+- [ ] host check passes: `jackin load the-architect task-probe --agent codex --dry-run --format json`
+- [ ] host check passes: `tmux`
+- [ ] host check passes: `script`
+- [ ] host check passes: `jackin workspace remove task-probe`
 - [ ] Every touched repository is committed and pushed.
 - [ ] `sh verify.sh` prints `status: DONE` for each part.
 
@@ -62,19 +62,15 @@ container-relative (D-086).
 
 Container part (run inside the task container):
 
-> Run by the host session (D-061): the same sha check as M1-02; `! brew list --formula | grep -qx jackin-preview`; six template files exist; a throwaway workspace "task-probe" created from the L5 template (`jackin workspace create task-probe --workdir ~/.jackin/managed/probe --mount ~/.jackin/managed/probe`, template merged) makes `jackin load the-architect task-probe --agent codex --dry-run --format json` (under `tmux` or `script`) print `.data.workspace` = "task-probe"; the workspace is removed afterwards with `jackin workspace remove task-probe`
+> none
 
 Host part (run by the host Claude Code session, D-061):
 
-> none
-
-When a container part exists the host part first asserts that
-`tasks/M1-02a/verify.container.out` ends with `status: DONE`, so a
-passing host part can never mask a failed container part (D-086).
+> the same sha check as M1-02; `! brew list --formula | grep -qx jackin-preview`; `grep -q 'dco = true' "${JACKIN_CONFIG_DIR:-$HOME/.config/jackin}/config.toml"`; six template files exist; a throwaway workspace "task-probe" created from the L5 template (`jackin workspace create task-probe --workdir ~/.jackin/managed/probe --mount ~/.jackin/managed/probe`, template merged) makes `jackin load the-architect task-probe --agent codex --dry-run --format json` (under `tmux` or `script`) print `.data.workspace` = "task-probe"; the workspace is removed afterwards with `jackin workspace remove task-probe`
 
 ## Evidence expected (D-118)
 
-- `tasks/M1-02a/verify.container.out` (container part, containing `status: DONE`)
+- The verify output of each part, filed in the task folder.
 
 ## Proof (browser/attach)
 

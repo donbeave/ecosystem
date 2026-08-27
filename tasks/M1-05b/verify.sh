@@ -55,13 +55,9 @@ part=${1:-}
 case "$part" in
   container)
     run_cmd 'jackin role validate && ! grep -qE '\''^[env.OP_SERVICE_ACCOUNT_TOKEN]'\'' jackin.role.toml && ! grep -qE '\''^model *='\'' jackin.role.toml && grep -q AGENT_BROWSER_EXECUTABLE_PATH jackin.role.toml'
-    run_cmd 'jackin load donbeave/crew-operator --agent claude'
-    run_cmd 'gh --version'
-    run_cmd 'agent-browser --version'
-    run_cmd 'test -x /usr/bin/chromium'
-    run_cmd 'agent-browser doctor --json'
-    run_cmd 'agent-browser open about:blank'
-    run_cmd 'cargo'
+    need_evidence 'throwaway/status.json' ''
+    need_evidence 'throwaway/preflight.out' ''
+    need_evidence 'throwaway/inside.out' ''
     finish
     ;;
   host)
@@ -71,6 +67,16 @@ case "$part" in
       printf '%s\n' "status: PENDING"
       exit 1
     fi
+    run_cmd 'jackin load donbeave/crew-operator probe-M1-05b --agent claude --mount ~/.jackin/agent-browser-profile:/home/agent/.agent-browser-profile'
+    run_cmd 'docker logs <name>'
+    run_cmd 'docker exec -u agent <name> sh -c '\''…'\'''
+    run_cmd 'gh --version'
+    run_cmd 'agent-browser --version'
+    run_cmd 'python3 --version'
+    run_cmd 'test -x /usr/bin/chromium'
+    run_cmd 'agent-browser doctor --json'
+    run_cmd 'agent-browser open about:blank'
+    run_cmd '! command -v cargo'
     finish
     ;;
   *)
