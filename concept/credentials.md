@@ -153,8 +153,13 @@ Derived from `SPEC.md` §5, §6, §9a, §10; D-032, D-035; `concept/workflow.md`
 
 Counts: **EXISTS 6** (#4, #6, #11, #12, #14, #19; #14 counts three
 provider keys as one row), **PARTIAL 7** (#5, #7, #8, #9, #10, #13, #15),
-**CREATE 5** (#1, #2, #3, #17, #18); #16 is conditional (CREATE only if
-key-based signing is chosen).
+**DEFER 1** (#18, no relay in the prototype), **n/a 1** (#20).
+
+**CREATE set** (the name other documents cite): **#1, #2, #3, #17, #21,
+#22** — six items that must exist in 1Password by name before M1 closes.
+Row #18 is DEFER and is not a member; #16 is conditional and joins the set
+only if key-based signing is chosen. Any change to a row's status changes
+this set in the same edit.
 
 ## 5. Gaps and recommendations
 
