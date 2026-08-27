@@ -1,0 +1,16 @@
+run: python3 tools/roadmap_compile.py --bundles 2>&1 | grep -q '81/81 bundles valid'
+ok: python3 tools/roadmap_compile.py --bundles 2>&1 | grep -q '81/81 bundles valid'
+run: python3 tools/bundle.py verify --all
+81/81 bundles match ROADMAP.md
+ok: python3 tools/bundle.py verify --all
+run: dash -n tasks/M1-01/verify.sh
+ok: dash -n tasks/M1-01/verify.sh
+run: shellcheck -s sh -S warning tasks/M1-01/verify.sh
+ok: shellcheck -s sh -S warning tasks/M1-01/verify.sh
+run: grep -q 'status: DONE' tasks/M1-01/verify.sh
+ok: grep -q 'status: DONE' tasks/M1-01/verify.sh
+run: grep -q 'status: PENDING' tasks/M1-01/verify.sh
+ok: grep -q 'status: PENDING' tasks/M1-01/verify.sh
+run: grep -q 'case "$1"' tasks/M1-01/verify.sh
+ok: grep -q 'case "$1"' tasks/M1-01/verify.sh
+status: DONE

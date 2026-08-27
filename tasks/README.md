@@ -24,8 +24,8 @@ these two must stay.
 
 | Task | Milestone | Depends on | Status |
 | --- | --- | --- | --- |
-| M1-01 | M1 | — | in-progress |
-| M1-02 | M1 | — | planned |
+| M1-01 | M1 | — | done |
+| M1-02 | M1 | — | ready |
 | M1-02a | M1 | M1-02 | planned |
 | M1-03 | M1 | M1-05d | planned |
 | M1-04a | M1 | M1-02 | planned |

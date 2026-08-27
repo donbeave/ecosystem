@@ -15,3 +15,4 @@ separate rows; the lane cell names where the work actually ran
 
 | Task | Lane | Path | Result | Evidence | When (UTC) |
 | --- | --- | --- | --- | --- | --- |
+| M1-01 | L3 | host | done — attempts 1/3 | tasks/M1-01/verify.out | 2026-08-27T22:23:06Z |
