@@ -332,6 +332,11 @@ CI for every repository this roadmap changes runs on GitHub-hosted
 runners; velnor runners are not used for this work (D-064). Local
 verification remains the default; CI is confirmation (D-034).
 
+## 9d-pub. Repositories are public
+
+Every repository created for this effort is public from creation (D-065);
+nothing sensitive is ever committed (D-035, D-059).
+
 ## 9e. Unattended execution and operator preflight
 
 The whole implementation runs without asking the operator for anything

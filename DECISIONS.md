@@ -1042,9 +1042,10 @@ step.
 
 ## D-064 — 2026-08-27 — CI for this roadmap runs on GitHub-hosted runners, not velnor
 
-**Decision.** For every repository this roadmap changes (jackin, termrock,
-the `donbeave` role repositories, this repository), continuous integration
-runs on GitHub-hosted runners. velnor self-hosted runners are not used for
+**Decision.** For every involved repository — all repositories under
+github.com/jackin-project and github.com/tailrocks that this effort
+touches, the `donbeave` role repositories, and this repository —
+continuous integration runs on GitHub-hosted runners. velnor self-hosted runners are not used for
 this work. Where a repository's workflows currently target velnor runners
 (for example termrock's CI delegating to velnor `ci-code.yml`), the
 workflows are switched to GitHub-hosted runners on `feat/managed-execution`
@@ -1064,3 +1065,20 @@ default (D-034); CI is confirmation.
   GitHub-hosted runners as it does today.
 - `analysis/roles/termrock-and-docs-needs.md` item on velnor CI is
   superseded for this effort.
+
+## D-065 — 2026-08-27 — Every repository we create is public
+
+**Decision.** Every repository created for this effort is public from
+creation: the `donbeave/jackin-crew-*` role repositories, the
+`donbeave/jackin-role-template` repository, and this repository
+(`donbeave/ecosystem`, created private on 2026-08-27 and switched to public
+under this decision). No private repositories are created for this work.
+
+**Rationale.** Tailrocks builds in the open (vision, Apache-2.0 from day
+one); a public repository also lets `jackin load donbeave/<name>` resolve
+without credentials and lets role images build in public CI.
+
+**Consequences.** Nothing sensitive may be committed — already required by
+D-035 (credentials in 1Password only) and D-059 (text-only evidence).
+Repository creation tasks (M1-04a, M1-05a..c) specify `--public`. The
+browser profile, tokens, and service-account secrets stay outside git.

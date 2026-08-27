@@ -555,6 +555,7 @@ Claude lanes, which share one quota):
 ## 6. Process each task follows
 
 CI in every touched repository runs on GitHub-hosted runners (D-064).
+Every repository created for this effort is public (D-065).
 
 1. Read `tasks/README.md`, then only the task's own folder (D-038). Work on
    that task alone.
