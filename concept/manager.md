@@ -1,6 +1,6 @@
 # The manager
 
-Working name: "the manager" (see Q-002). This document describes how it is
+Working name: "the manager" (Q-002, closed by D-066). This document describes how it is
 meant to work. Everything here elaborates decisions in `DECISIONS.md`; the
 Symphony-derived rules D-018..D-031 are adopted (D-053) and cited by number.
 The manager logic ships inside the jackin daemon binary for the prototype

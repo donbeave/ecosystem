@@ -2118,7 +2118,7 @@ prefixes are dropped from the container command and remain only for the
 `codex exec` interim (argv) and the host-side login probes. M1-13's verify
 proves one throwaway per-task-style workspace per lane (account, model,
 and, for builder lanes, the DinD grant in the plan) instead of `jackin
-workspace show <lane>`. The workspace is deleted after the `PROGRESS.md`
+workspace show <lane>`. The workspace is removed (`jackin workspace remove`) after the `PROGRESS.md`
 row.
 
 **Rationale.** Without this, waves 2–3 ran three tasks on one Codex
