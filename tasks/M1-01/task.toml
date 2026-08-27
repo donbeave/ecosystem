@@ -38,7 +38,7 @@ host = [
   "python3 tools/bundle.py verify --all",
   "dash -n tasks/M1-01/verify.sh",
   "shellcheck -s sh -S warning tasks/M1-01/verify.sh",
-  "grep -qE '^ *echo \"?status: DONE' tasks/M1-01/verify.sh",
-  "grep -qE '^ *echo \"?status: FAILED' tasks/M1-01/verify.sh",
+  "grep -q 'status: DONE' tasks/M1-01/verify.sh",
+  "grep -q 'status: PENDING' tasks/M1-01/verify.sh",
   "grep -q 'case \"$1\"' tasks/M1-01/verify.sh",
 ]

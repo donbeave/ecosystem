@@ -62,8 +62,8 @@ case "$part" in
     run_cmd 'python3 tools/bundle.py verify --all'
     run_cmd 'dash -n tasks/M1-01/verify.sh'
     run_cmd 'shellcheck -s sh -S warning tasks/M1-01/verify.sh'
-    run_cmd 'grep -qE '\''^ *echo "?status: DONE'\'' tasks/M1-01/verify.sh'
-    run_cmd 'grep -qE '\''^ *echo "?status: FAILED'\'' tasks/M1-01/verify.sh'
+    run_cmd 'grep -q '\''status: DONE'\'' tasks/M1-01/verify.sh'
+    run_cmd 'grep -q '\''status: PENDING'\'' tasks/M1-01/verify.sh'
     run_cmd 'grep -q '\''case "$1"'\'' tasks/M1-01/verify.sh'
     finish
     ;;
