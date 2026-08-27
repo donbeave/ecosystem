@@ -101,9 +101,19 @@ it become runnable.
   from the working branch; roles are rebuilt locally; CI confirms later
   (D-034). Every milestone is also verified visually in Linear and GitHub
   with `agent-browser` (D-032).
-- Changes to jackin, termrock, and this repository each go on one working
-  branch where possible; pull requests to `main` and jackin releases happen
-  when a milestone needs them (D-034).
+- Changes to an involved project are made per task in that task's own git
+  worktree on its own branch `managed/<run-id>/<task-id>`, created from the
+  base SHA locked in `run/LOCK.toml`. A worker pushes only that branch and
+  never pushes an integration branch. The holder of the repository's single
+  integrator lease (`python3 tools/state.py lease --owner
+  integrator:<repo>`) fast-forwards or merges the task branch into the
+  integration target — `feat/managed-execution`, or `main` in a role
+  repository — one task at a time; verification then runs against the
+  resulting integrated SHA, recorded in `tasks/<id>/evidence.json` as
+  `integrated_sha` (D-112). Pull requests to a protected `main` and jackin
+  releases happen when a milestone needs them (D-034); such a `main` is
+  reached only by a pull request the agent merges once its required checks
+  pass, never by a push and never by a bypass (`goal/EXECUTION.md` §4).
 
 ## Today, for contrast
 

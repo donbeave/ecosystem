@@ -75,15 +75,20 @@ before anything else. Binds the host session and every container agent. After
 - Fix involved projects, never work around them: any repository under
   github.com/jackin-project, github.com/tailrocks, or donbeave/jackin-* may be changed
   (D-046).
-- Branches: involved projects on `feat/managed-execution`; role repositories on `main`
-  (jackin loads the default branch, D-074); this repository on `main`, never a feature
-  branch (D-047).
-- One worktree and branch per task, `managed/<run-id>/<task-id>` from the base SHA locked
-  in `run/LOCK.toml`. Workers push only their own task branch and never push
-  `feat/managed-execution`; one integrator lease per repository merges task branches, and
-  verification runs on the integrated SHA (D-112). Every external mutation carries the
-  idempotency key `hash(run, task, attempt, operation)` and is refused when its fencing
-  token is stale (D-113).
+- Branches (D-047, D-074, amended by D-112): every task works in its own git worktree on
+  its own branch `managed/<run-id>/<task-id>`, created from the base SHA locked in
+  `run/LOCK.toml`. A worker checks out only that branch and pushes only that branch. In an
+  involved project `feat/managed-execution` is the integration target and nothing else — no
+  worker ever checks it out, rebases it, or pushes it; in a role repository the integration
+  target is `main` (jackin loads the default branch, D-074). This repository is written
+  only by the host session, on `main`, never a feature branch.
+- Integration: one integrator lease per repository, taken with `python3 tools/state.py
+  lease --owner integrator:<repo>`. Only the lease holder fast-forwards or merges a task
+  branch into that repository's integration target, one task at a time. Verification runs
+  against the resulting integrated SHA, never against a worker branch tip, and that SHA is
+  recorded in `tasks/<id>/evidence.json` as `integrated_sha` (D-112). Every external
+  mutation carries the idempotency key `hash(run, task, attempt, operation)` and is refused
+  when its fencing token is stale (D-113).
 - `git commit -s` always (DCO); `git fetch && git rebase` before every push; never
   `--force` (one sanctioned exception, `goal/EXECUTION.md` §4 DCO rule); push at once,
   nothing stays local. Commit and push this repository after every task transition
