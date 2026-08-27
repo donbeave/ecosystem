@@ -293,3 +293,32 @@ Dashboards summarize; attach shows the truth.
 attach; headless runs that only capture stdout are not acceptable. The
 manager's TUI lists running containers and offers attach as a first-class
 action (Q-011).
+
+## D-017 — 2026-08-27 — First prototype runs everything locally
+
+**Decision.** The first prototype runs entirely on the developer's own
+computer: the jackin daemon listens to Linear, spawns roles in local Docker,
+and the human watches through the local TUI and capsule attach. No server,
+no remote hosts, no multi-host coordination until the local loop is fully
+workable end to end. Afterwards the same daemon moves unchanged in concept
+to a server host where Docker is available.
+
+**Rationale.** jackin was designed from the start to run on any host with a
+container backend, so the local machine is a valid first host and the
+cheapest place to iterate. Multi-host adds failure modes that would slow
+down validating the core loop.
+
+**Consequences.**
+
+- Q-010 is narrowed: for the prototype, resource limits are per local
+  machine only (concurrent containers, provider accounts).
+- Q-015 is constrained: the local machine is typically behind NAT, so the
+  prototype's Linear event path must work without a public endpoint
+  (polling, a tunnel, or a relay) — the choice stays open but "webhook to
+  the laptop directly" is excluded for the prototype.
+- Design decisions must not bake in "single host" assumptions that would
+  block the later server move (for example, workspace paths, credential
+  lookup, and the ledger must be host-relative, not hard-coded to a laptop
+  layout).
+- Milestone ordering: local end-to-end loop first; server host second;
+  multi-host third.

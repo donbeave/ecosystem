@@ -106,8 +106,9 @@ human ── jackin CLI ──┐ │
 ## Daemon behavior
 
 - Runs continuously alongside the jackin daemon on a host (same binary or
-  separate, Q-001); on multi-host setups it connects to each host's jackin
-  daemon.
+  separate, Q-001). Prototype: the developer's own computer with local
+  Docker (D-017); later a server host; later several hosts, each with its
+  own daemon.
 - Watches the tracker for assignments (D-011), by webhook or polling
   (Q-015).
 - Holds no authoritative task state (D-010). It keeps a local run ledger

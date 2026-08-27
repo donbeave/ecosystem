@@ -59,10 +59,12 @@ The vision says the human answers only genuine decisions. Which events
 qualify, how the inbox is presented (TUI, desktop, phone), and how an answer
 flows back to a paused agent.
 
-## Q-010 — Where do agents run and how are resources bounded?
+## Q-010 — How are resources bounded?
 
-Local machine only at first, or remote hosts via jackin from the start?
-Limits on concurrent agents per host, per provider account, and per plan.
+Narrowed by D-017: local machine only for the prototype. Remaining: limits
+on concurrent agent containers per host, per provider account, and per
+Linear project or team; whether limits live in a repository-level policy
+file, a daemon config, or Linear.
 
 ## Q-011 — What does the manager's terminal interface show?
 
@@ -97,6 +99,7 @@ webhooks only to a public HTTPS endpoint (HMAC-signed, 3 retries), requires
 HTTP 200 within 5 s and a first activity within 10 s, and marks sessions
 `stale` after 30 min idle; no long-poll or websocket exists; polling
 `issues(filter:{delegate})` works but `agentSessions` has no filter.
-Options: a small relay service that receives webhooks and lets daemons
-pull; a tunnel per host; polling only. Awaiting decision.
+D-017 excludes direct webhooks to the laptop for the prototype. Options: a
+small relay service that receives webhooks and lets daemons pull; a tunnel
+per host; polling only. Awaiting decision.
 
