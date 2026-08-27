@@ -564,34 +564,10 @@ proposals in the walk above and were adopted by D-053.
 
 ### Closures and narrowings for Q-004..Q-015 (adopted, D-053)
 
-- **Q-004 (dependencies): CLOSE with D-020.** Blocking relations gate dispatch; the daemon refuses
-  to start a blocked issue, comments once, and re-evaluates every tick; running issues are not
-  stopped by reopened blockers. Within an issue, checklist order is the dependency order.
-- **Q-005 (who decomposes): NARROW with D-028.** The issue author writes the checklist; planner
-  roles may create follow-up issues that wait for human assignment.
-- **Q-006 (verification trust): NARROW with D-030.** The verification command is repository-owned
-  on the base branch and run by the daemon; who reviews it when it is authored by an agent during
-  planning remains open.
-- **Q-007 (merging): NARROW with D-031.** Human triggers, agent executes, daemon confirms; cap of
-  one merge per repository; integration branches and merge queues deferred.
-- **Q-008 (failure and retry): CLOSE with D-021 and D-027.**
-- **Q-009 (escalation): NARROW with D-029.** Format and channel decided (blocker brief, Linear
-  elicitation, reply into the PTY); desktop and phone delivery beyond Linear's own apps stays open.
-- **Q-010 (resources): NARROW with D-022 and D-026.** Slot caps at host, repository, state, and
-  provider level; placement across hosts; per-container cgroup limits deferred to jackin's grants.
-- **Q-011 (TUI): NARROW with D-025.** The daemon snapshot is the contract; product scope open.
-- **Q-013 (issue convention): unchanged by Symphony;** the label-group proposal in
-  `analysis/linear-agents.md` C1 plus D-018 defaults (`[defaults] role`, `runtime`) is the
-  complete answer awaiting decision.
-- **Q-014 (checklist vs verification): CLOSE with D-030.**
-- **Q-015 (webhook or polling): CLOSE.** Proposed text: "Polling is the correctness path. The
-  daemon polls Linear every tick (default 5 s for pending agent sessions and delegated issues,
-  30 s for reconciliation refresh) and never depends on a webhook to be correct. A webhook relay is
-  an optional latency accelerator that only requests an immediate tick (Symphony §13.7
-  `/refresh`). The acknowledgement `thought` is posted within the 10 s window from the poll that
-  first sees a pending session." Rationale: Symphony §8.1 and §14.2 (candidate-fetch failure skips
-  the tick, nothing is lost) show a poll-only loop is sufficient, and it removes the public HTTPS
-  endpoint from the requirements for a daemon behind NAT.
+Q-004..Q-015 are closed or narrowed by D-053 through D-020..D-031. The full
+text of each question and the decision that closed it is in `QUESTIONS.md`;
+the decisions themselves are in `DECISIONS.md`. No normative closure text is
+kept here (D-103).
 
 ### What Symphony has that jackin lacks
 
