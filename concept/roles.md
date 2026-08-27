@@ -1,3 +1,10 @@
+> **Amended by D-048 (2026-08-27):** jackin development always uses the
+> existing `jackin-the-architect` role. In this document, `crew-builder`'s
+> scope is therefore termrock, ecosystem authoring, and the role
+> repositories — not jackin. Read "builder serves jackin tasks" below as
+> "the-architect serves jackin tasks". The role-set proposal number is
+> D-049 (D-046..D-048 were taken while this was drafted).
+
 # Roles that build this product (Q-016, D-045)
 
 Status: **PROPOSAL, 2026-08-27**. Consolidates the four analyses under

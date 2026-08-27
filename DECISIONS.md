@@ -712,3 +712,30 @@ or is not.
 - Role repositories created for this effort start on `main` and use
   `feat/managed-execution` for subsequent changes like every other
   involved repository.
+
+## D-048 — 2026-08-27 — jackin development always uses `jackin-the-architect`
+
+**Decision.** Every task that changes the jackin repository (and its
+sibling repositories in jackin-project that `the-architect` already
+covers) runs in the existing `jackin-the-architect` role, always. The role
+is used as it is; it is not extended with project-specific tooling
+(D-045). The new `donbeave` roles cover the rest: termrock and ecosystem
+authoring (builder), Linear/GitHub/1Password/browser work (operator), and
+reviews (reviewer).
+
+**Rationale.** `the-architect` is jackin's own development environment,
+maintained with jackin and already carrying its toolchain, rule files, and
+skills; a second Rust role for jackin would drift from it.
+
+**Consequences.**
+
+- `concept/roles.md`: `crew-builder` scope is termrock, ecosystem, and the
+  role repositories — not jackin. Its toolchain shrinks to termrock's.
+- ROADMAP tasks with repository `jackin` keep role `the-architect`;
+  the-architect's `agents` list must include `codex` for Codex lanes (it
+  already lists six runtimes, `analysis/roles/jackin-dev-needs.md`).
+- Browser proofs for jackin tasks stay with the operator (D-032 amendment
+  pending the roles decision).
+- Fixes the-architect needs for this effort (for example `default_agent`
+  after M3-02) are made in `jackin-project/jackin-the-architect` on
+  `feat/managed-execution` (D-046, D-047).

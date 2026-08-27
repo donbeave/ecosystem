@@ -40,7 +40,7 @@ container, and answers only when asked. (D-002, D-005, D-010..D-014)
 | jackin CLI | Interactive sessions; unchanged. | exists |
 | jackin daemon | Long-running per host. Monitors every agent container on the host (CLI- or daemon-started); listens to Linear for issues assigned to jackin; prepares workspaces; spawns roles through the same container mechanism as the CLI; pushes progress; runs verification; manages pull requests. | to build (D-008, D-009) |
 | jackin capsule | In-container PID 1; the attach point for live visibility. | exists (D-016) |
-| jackin agent roles | Dockerfile + `jackin.role.toml`: environment, skills, plugins. Selected per issue. | exists (D-012) |
+| jackin agent roles | Dockerfile + `jackin.role.toml`: environment, skills, plugins. Selected per issue. jackin development itself always uses `jackin-the-architect` (D-048); other work uses new `donbeave` roles (D-045, set pending). | exists (D-012) |
 | termrock TUI | Fleet, issue, log, and attach surface for the daemon. | to build (D-006) |
 
 Placement of the manager logic (in the daemon binary or beside it) is
