@@ -80,6 +80,38 @@ anything. The whole state of the run is re-derived from `tasks/README.md`,
 memory, and never by re-reading `ROADMAP.md`, `SPEC.md`, or `DECISIONS.md`
 in this session (§8, D-092, D-093).
 
+### Supervisor (K-29)
+
+Re-reading state survives a compaction but not the death of the process
+that holds it: a `StopFailure`, a stop hook, a non-zero exit, a killed
+tmux session, or a host restart ends the session and with it the run.
+`tools/supervisor.sh` is the process outside the session that outlives
+all of those. `tools/supervisor.sh start` (or `resume`, which is the same
+thing when nothing is live) reconciles the durable state store before it
+launches anything — an expired lease is released with an audit event, and
+a leased task whose container (`docker ps`) and tmux session are both
+gone loses its lease too — then starts the coordinator inside the tmux
+session `ecosystem-coordinator` as `claude
+--dangerously-skip-permissions --settings
+'{"skipDangerousModePermissionPrompt":true}' --model claude-fable-5 -p
+"$(cat GOAL.md)"` (D-095 amended by D-120: the flags are spelled out so
+the script does not depend on the operator's `claude-yolo` shell
+function). It then watches that process. On any exit whose log carries
+neither `GOAL COMPLETE` nor `GOAL BLOCKED` — a `StopFailure` line
+included — it reconciles again and re-invokes the coordinator with
+exponential backoff; the coordinator re-derives the run from the state
+store, so nothing `done` is ever re-run. Two invariants are asserted
+across every restart: the number of `done` tasks never decreases, and no
+`done` task takes a new lease. A violation is refused and logged
+`failed-system` instead of restarting. `--dry-run` performs the whole
+reconciliation and prints the exact launch command without starting a
+session; `--coordinator-cmd` replaces the coordinator for tests
+(`sh tests/supervisor/test_resume.sh` kills a simulated coordinator and
+proves the resume). `tools/supervisor.sh status` prints the session and
+the run state, `stop` ends the session. Logs are host artifacts, not
+repository content: they live in `${TMPDIR:-/tmp}/ecosystem-run/` until
+`run/logs/` is added to `.gitignore` (D-059).
+
 ## 2. What "one task" means
 
 - Input: `tasks/<id>/TASK.md`, `task.toml`, `verify.sh`, and the task's
