@@ -2136,3 +2136,85 @@ M3-05, M4-02, M4-04, M5-06, all eleven review rows; `goal/EXECUTION.md`
 §4 subagents row, §5 steps 5 and 6a; `concept/task-format.md` model row
 and `verify.sh` contract; `concept/roles.md` §3.2 verdict flow; `SPEC.md`
 §4 model row; `analysis/roles/jackin-dev-needs.md` §3; `GOAL.md` prompt.
+
+## D-092 — 2026-08-27 — The host session is Fable at medium effort; every subagent is Opus
+
+Adopted under D-053. Amends the last sentence of D-071 ("research and
+verification subagents on Claude use the cheapest model") and D-036.
+
+**Decision.** The `/goal` run is driven by one Claude Code session on the
+host Mac running Fable 5 at medium effort. Fable capacity is the scarce
+resource of the run, so the session spends it on coordination only:
+every subagent it spawns is launched with `model: "opus"`, whatever the
+subagent does — reading a large file, researching, implementing,
+verifying, or producing proof. The cheapest-model clause of D-071 is
+replaced by this rule; the D-071 reserve rule and the three-in-flight cap
+on host subagents are unchanged, because both count `~/.claude` draw, not
+model price. The session's own reading is capped: `GOAL.md`, `AGENTS.md`,
+`goal/EXECUTION.md`, `goal/PREFLIGHT.md`, `tasks/README.md`,
+`PROGRESS.md`, `PREFLIGHT-DEFECTS.md`, and the current `tasks/<id>/`
+folder. It never `Read`s `ROADMAP.md`, `SPEC.md`, `DECISIONS.md`,
+`concept/*`, or `analysis/*`; it may `grep` one literal out of them, and
+anything larger is a subagent's job. Every subagent returns at most 15
+lines: verdict, evidence paths, next action.
+
+**Rationale.** A session that reads `ROADMAP.md` (117 KB) and
+`DECISIONS.md` (118 KB) once per wave exhausts the account before M3, and
+a compaction then destroys exactly the state the run depends on. Opus
+subagents carry that cost on a budget that is not the bottleneck, and a
+15-line contract keeps their output from re-importing what was delegated
+away.
+
+**Consequences.** `AGENTS.md` "Delegation law" and "Token economy",
+`GOAL.md` prompt, `SPEC.md` §6, and `goal/EXECUTION.md` §2 delegation
+bullet plus the new §8 host-session budget carry this wording; D-071's
+cheapest-model sentence is struck.
+
+## D-093 — 2026-08-27 — Exhausted rows are closed by the human; fixed final-message shape; task-folder files are not "implementation"
+
+Adopted under D-053; applies the `/goal`-semantics findings of
+`analysis/bulletproof-round3-findings.md` (R3-38, R3-62 documentation
+part, R3-63, R3-66, R3-67). Amends D-084, D-083, D-069, D-038.
+
+**Decision.** (1) Resume: an `exhausted: <id>` row in
+`PREFLIGHT-DEFECTS.md` is closed only when the human has filled its
+`Resolved` cell. The session never fills it and never opens a new attempt
+epoch on its own; at a session start a still-open `exhausted:` row keeps
+its task `blocked`, and a re-prompt with nothing else runnable reprints
+the same `GOAL BLOCKED` block. A row whose `Resolved` cell is filled
+re-opens the task as `ready` in a new epoch (`epoch 2: 0/3`). This
+replaces the auto-close clause of D-084; the missing-input half of D-084
+is unchanged — those rows still have a proof command the session re-runs
+and fills itself. (2) The attempt counter of a task lives in
+`tasks/<id>/attempts.log` (append-only, one line per attempt: epoch,
+attempt, lane, verify.out path, UTC), never in session context, so a
+resume after a compaction or a crash re-derives it from the file.
+(3) Final message shape, both outcomes: line 1 is `GOAL COMPLETE` or
+`GOAL BLOCKED`; then the report of `goal/EXECUTION.md` §7; then the open
+`PREFLIGHT-DEFECTS.md` rows (BLOCKED only); then the literal output of
+`sh verify.sh` as the last lines, with nothing after it. (4) Files under
+`tasks/<id>/` — `verify.sh`, `task.toml`, and text evidence (`.out`,
+`.log`, `.json`, `.toml`, `.txt`, `.cast`) — and the root `verify.sh` are
+the complete set of non-Markdown files this repository may hold; the
+"no implementation" rule of D-038/D-045 excepts them all, not only
+`verify.sh`. (5) Run mode: any `tasks/README.md` row that is not
+`planned` means a run is under way and this session is the host session;
+after a compaction or a re-prompt it re-reads `GOAL.md` and
+`goal/EXECUTION.md` §1 and §5 and re-derives state from
+`tasks/README.md`, `PROGRESS.md`, `tasks/<id>/attempts.log`, and
+`git log` only.
+
+**Rationale.** Auto-closing an `exhausted:` row makes BLOCKED
+non-terminal: a runner that re-prompts gets a fresh epoch on a task
+nothing has changed, and the run spins on the same failure until the
+account is empty. An attempt count held in context is lost by the
+compaction that a long run guarantees. A fixed final-message shape is the
+only thing a judge can check without reading prose.
+
+**Consequences.** `AGENTS.md` two-modes table, run-mode item, stuck rule;
+`GOAL.md` prompt clause (b) and both terminal clauses; `goal/EXECUTION.md`
+§1 step 2, §5 steps 3 and 5, §6, §7 and the new §8;
+`PREFLIGHT-DEFECTS.md` and `tasks/README.md` header prose; `SPEC.md` §6
+step 8; `README.md` working rules. The remaining findings of
+`analysis/bulletproof-round3-findings.md` stay unapplied and keep their
+archive status.

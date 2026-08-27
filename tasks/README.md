@@ -11,7 +11,9 @@ ready to execute.
 Statuses: `planned`, `ready`, `in-progress`, `waiting` (every lane of the
 chain throttled, D-071), `blocked` (missing operator input or exhausted,
 D-070; only a row with its own open `PREFLIGHT-DEFECTS.md` row is ever
-`blocked` — dependents stay `ready` and are simply not runnable, D-084),
+`blocked` — dependents stay `ready` and are simply not runnable, D-084; an
+`exhausted:` row stays `blocked` until the human fills its `Resolved`
+cell, D-093),
 `done` — lowercase, exactly these. The root `verify.sh` (D-069) parses this table by the
 `Task` and `Status` header names, reads the task id from the `Task` cell
 (a link is fine), and requires `done` plus an existing

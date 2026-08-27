@@ -7,9 +7,9 @@ under which the run ends BLOCKED rather than COMPLETE, and only once no
 other task is runnable (`goal/EXECUTION.md` §6). The host session appends
 rows; the human clears the item (the `Resolved` cell may stay empty: the
 session re-runs each missing-input proof command at the next start and
-fills it; an `exhausted:` row has `re-run` in its proof cell and is closed
-by the next session start itself, which re-opens the task in a new attempt
-epoch, D-084) and re-runs the `/goal` invocation line of `GOAL.md`. Lane fallbacks, quota waits, and capsule
+fills it; an `exhausted:` row has `re-run` in its proof cell and
+is closed only by the human filling `Resolved`; until then its task stays
+`blocked` and is never re-attempted, D-084, D-093) and re-runs the `/goal` invocation line of `GOAL.md`. Lane fallbacks, quota waits, and capsule
 dialogs are never rows here (D-071, D-082). Never a secret value: item names, `op://`
 references, commands, and UI paths only (D-035).
 

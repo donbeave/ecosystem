@@ -175,7 +175,10 @@ sees a pending session.
    by M6-05; before that the host session re-lanes by hand and records the
    hop in the task's `PROGRESS.md` result cell — never a preflight defect
    (D-071). A task whose verify still fails after `limits.attempts` in the
-   host-driven run is `exhausted` and filed as such (D-070).
+   host-driven run is `exhausted` and filed as such; the attempt count for
+   the current epoch lives in `tasks/<id>/attempts.log`, and an
+   `exhausted:` row re-opens the task only after the human fills its
+   `Resolved` cell (D-070, D-093).
 9. **Escalation.** A blocker brief (what is missing, why it blocks, the
    exact human action) is posted as a Linear `elicitation`; the human's
    reply arrives as a `prompted` event and is sent into the same PTY; a
@@ -375,7 +378,11 @@ agents start; task folders carry a `preflight` section
 input mid-task records it as a preflight defect, completes everything not
 depending on it, and marks the task blocked with the exact missing item;
 a task whose verify still fails after the attempt cap is `exhausted` and
-filed the same way, and the run ends COMPLETE or BLOCKED (D-070).
+filed the same way, and the run ends COMPLETE or BLOCKED (D-070). The host
+session is Fable and spends its context on coordination only: every
+subagent it spawns runs on Opus (`model: "opus"`) and returns at most 15
+lines, and the session never reads `ROADMAP.md`, `SPEC.md`, `DECISIONS.md`,
+`concept/`, or `analysis/` itself (D-092).
 Open design questions never stop work: recommended answers are adopted by
 default and may be overridden later. (D-050, D-053)
 

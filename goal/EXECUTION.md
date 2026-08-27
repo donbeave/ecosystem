@@ -28,15 +28,18 @@ the decision wins and this file is corrected in the same commit.
    as a new attempt counted in the result cell (D-070). A README row not
    `done` whose id has a `done` `PROGRESS.md` row is restored to `done`,
    never re-run.
-   Open `PREFLIGHT-DEFECTS.md` rows (D-084): a missing-input row has a
-   proof command — run it; when it passes, fill `Resolved` and set that
-   row's task back to `ready`. An `exhausted: <id>` row has no proof
-   command (its proof cell reads `re-run`): if its task row is still
-   `blocked` and `Resolved` is empty, fill `Resolved` with this session's
-   start timestamp, set the task to `ready`, and open a new attempt epoch
-   (`epoch 2: 0/3` in the result cell; `limits.attempts` applies per
-   epoch); if `sh tasks/<id>/verify.sh host` already passes because the
-   human finished the task by hand, close it through §5 steps 6–7 instead.
+   Open `PREFLIGHT-DEFECTS.md` rows (D-084, D-093): a missing-input row
+   has a proof command — run it; when it passes, fill `Resolved` and set
+   that row's task back to `ready`. An `exhausted: <id>` row has no proof
+   command (its proof cell reads `re-run`) and is closed by the human
+   alone: while its `Resolved` cell is empty the task stays `blocked` and
+   is never re-attempted — never fill that cell, never open an epoch on
+   your own. When the human has filled it, set the task to `ready` and
+   open a new attempt epoch (`epoch 2: 0/3` in the result cell and a new
+   `epoch` line in `tasks/<id>/attempts.log`; `limits.attempts` applies
+   per epoch); if `sh tasks/<id>/verify.sh host` already passes because
+   the human finished the task by hand, close it through §5 steps 6–7
+   instead.
    Invariant: a `blocked` row whose id appears in no open
    `PREFLIGHT-DEFECTS.md` row is set to `ready`. When the daemon path is
    active, reconcile Linear per D-073 (every `done` row's issue completed;
@@ -59,8 +62,12 @@ the decision wins and this file is corrected in the same commit.
    re-prompt that follows a BLOCKED end: if steps 2–4 made nothing
    runnable, print the same `GOAL BLOCKED` block (§7) and end the turn.
 
-After any context compaction, repeat steps 2 and 3 before dispatching
-anything: the wave state lives in the files, not in memory.
+After any context compaction, and after any re-prompt, re-read `GOAL.md`
+and this file's §1 and §5, then repeat steps 2 and 3 before dispatching
+anything. The whole state of the run is re-derived from `tasks/README.md`,
+`PROGRESS.md`, `tasks/<id>/attempts.log`, and `git log` — never from
+memory, and never by re-reading `ROADMAP.md`, `SPEC.md`, or `DECISIONS.md`
+in this session (§8, D-092, D-093).
 
 ## 2. What "one task" means
 
@@ -89,12 +96,13 @@ anything: the wave state lives in the files, not in memory.
   ~/.jackin/managed/<id>/ecosystem diff origin/main | git apply`, or a copy
   of `tasks/<id>/`), scans them (§5 step 6b), and commits them in §5
   step 7.
-- Every task is delegated (D-036): one subagent researches the touched
-  code, one subagent per checklist item implements, one subagent verifies
-  against `verify.sh` and the references; the session integrates. Host
-  subagents: at most three in flight (fewer under the §4 reserve rule);
-  research and verification subagents on Claude use the cheapest model
-  (D-071). Reviews are `crew-reviewer` tasks and never gate the next task
+- Every task is delegated (D-036, D-092): one subagent researches the
+  touched code, one subagent per checklist item implements, one subagent
+  verifies against `verify.sh` and the references; the session integrates.
+  Every host subagent is launched with `model: "opus"`, whatever it does,
+  and returns at most 15 lines (verdict, evidence paths, next action).
+  Host subagents: at most three in flight (fewer under the §4 reserve
+  rule). Reviews are `crew-reviewer` tasks and never gate the next task
   (D-055).
 - Stuck rule (D-063): a task that has produced no new evidence for 30
   minutes, or whose verify has failed three times in a row, gets an
@@ -181,7 +189,17 @@ for rows whose folder does not exist.
 ## 4. Execution paths
 
 Exactly one path per task, chosen by this table. Record the path in the
-`PROGRESS.md` row.
+`PROGRESS.md` row. Decide in this order, first match wins:
+
+1. `role` is `host`, or the task's `repos` are only `ecosystem` → `host`.
+2. The daemon can serve it (row conditions below) → `daemon`.
+3. The task's lane is a Codex lane (L4, L5, L6) → `container`, always; a
+   Codex lane is never run as a Claude subagent (D-082).
+4. The task's scope or verify names a role container, `agent-browser`,
+   `jackin-exec`, DinD, or the profile mount → `container`.
+5. Otherwise the lane is a Claude lane (L1, L2, L3) → `subagents`,
+   except a verify that launches or attaches a jackin instance, which is a
+   host part and runs here (D-091).
 
 | Path | When | How |
 | --- | --- | --- |
@@ -308,6 +326,10 @@ Rules that hold on every path:
 
 ## 5. Per-task procedure
 
+A strict checklist. Run every step, in this order, for every task; skip a
+step only where its own text says it does not apply. A subagent handed this
+section follows it verbatim.
+
 0. `git fetch origin && git rebase origin/main` in this repository before
    every edit of `tasks/README.md`, `PROGRESS.md`, or
    `PREFLIGHT-DEFECTS.md` (never `--force`; on a conflict keep both sides'
@@ -323,7 +345,10 @@ Rules that hold on every path:
 2. Read `TASK.md` and its `preflight` section; check every item with its
    stated command. Missing item → §6, then continue with what does not
    depend on it.
-3. Dispatch on the path of §4 with the lane's runtime, model, and account.
+3. Append the attempt to `tasks/<id>/attempts.log` (one line: `epoch <n>
+   attempt <k>/<limit> lane <L> path <path> <UTC>`), then dispatch on the
+   path of §4 with the lane's runtime, model, and account. The attempt
+   count is read from this file, never from context (D-093).
 4. Wait for evidence; apply the stuck rule (§2) on stall.
 4a. Host build refresh, for every task whose `repos` include `jackin`
    (and at session start when the standing check fails): `git -C "$(cat
@@ -354,9 +379,9 @@ Rules that hold on every path:
    task is verified only when its last line is `status: DONE`. Otherwise
    fix and repeat: after the D-063 analysis, the next attempt runs on the
    next lane of the D-057 chain; after `limits.attempts` attempts (default
-   3, `task.toml`; `SPEC.md` §6 step 8) in the current epoch without
-   wrapping past the starting lane, the task is exhausted (§6, D-070,
-   D-084). `verify.sh` is POSIX `sh` (`dash -n` and `shellcheck -s sh`
+   3, `task.toml`; `SPEC.md` §6 step 8) counted in
+   `tasks/<id>/attempts.log` for the current epoch, without wrapping past
+   the starting lane, the task is exhausted (§6, D-070, D-084, D-093). `verify.sh` is POSIX `sh` (`dash -n` and `shellcheck -s sh`
    clean), runs with `set +x`, never `curl -v`/`--trace`, secrets only via
    `-H @-`/`--config -` from stdin, and never asserts on its own
    `tasks/README.md` row or on the root `verify.sh` remaining count.
@@ -426,10 +451,11 @@ epoch, each on the next lane of the D-057 chain and each preceded by the
 D-063 analysis with fresh subagents. It is filed in `PREFLIGHT-DEFECTS.md`
 as `exhausted: <id>` with the last `tasks/<id>/verify.out` path and the
 analysis summary in the "Missing item" cell and `re-run` in the proof
-cell: it has no proof command. The human fixes the cause or edits the task
-and re-runs the invocation; at the next session start the row is closed
-and the task re-opens in a new attempt epoch (§1 step 2); a second
-exhaustion files a new row. On the daemon path, a blocker elicitation
+cell: it has no proof command. The human fixes the cause or edits the task,
+fills the row's `Resolved` cell, and re-runs the invocation; only then does
+the next session start re-open the task in a new attempt epoch (§1 step 2).
+While `Resolved` is empty the task stays `blocked` and a re-prompt reprints
+the same `GOAL BLOCKED` block (D-093). A second exhaustion files a new row. On the daemon path, a blocker elicitation
 (M7-03) the session cannot answer is filed the same way instead of waiting.
 
 Handling: append the row (task, exact item, the command or UI path that
@@ -443,8 +469,9 @@ row is `blocked` on an open `PREFLIGHT-DEFECTS.md` row: commit, push,
 print the `GOAL BLOCKED` block (§7), and end. The human clears the items
 (leaving the `Resolved` cell empty is fine for missing-input rows — the
 session re-runs each proof command at the next start and fills it; an
-`exhausted:` row is closed by the next start itself) and re-runs the
-invocation; the session sets those rows back to `ready` and resumes.
+`exhausted:` row is closed only by the human filling `Resolved`, D-093)
+and re-runs the invocation; the session sets those rows back to `ready`
+and resumes.
 
 ## 7. Done
 
@@ -452,11 +479,42 @@ The run ends in exactly one of two outcomes (D-070, D-083). COMPLETE: `sh
 verify.sh` at the repository root prints `status: DONE` as its last line
 in the current turn after the final commit and push, the tree is clean,
 and `PROGRESS.md` has one row per roadmap task. BLOCKED: as §6, and the
-final message is the `GOAL BLOCKED` block: first line `GOAL BLOCKED`, then
-the open rows of `PREFLIGHT-DEFECTS.md` verbatim, then the literal output
-of `sh verify.sh` run in the current turn (last line `status: PENDING <n>
-remaining`). In both cases the message also lists: tasks done, preflight
-defects open and resolved, fallbacks and waits taken, repositories touched
-with their `feat/managed-execution` (or `main`, D-074) head commits, and
-the Linear project URL. Any other turn end — a summary, a mid-wait pause,
-a partial report — is not the goal (D-083).
+last line of `sh verify.sh` is `status: PENDING <n> remaining`.
+
+The final message has one fixed shape in both cases (D-093), and nothing
+follows it:
+
+1. Line 1, alone: `GOAL COMPLETE` or `GOAL BLOCKED`.
+2. The report, at most eight lines: tasks done out of total, preflight
+   defects open and resolved, fallbacks and waits taken, repositories
+   touched with their `feat/managed-execution` (or `main`, D-074) head
+   commits, and the Linear project URL.
+3. BLOCKED only: the open rows of `PREFLIGHT-DEFECTS.md` verbatim.
+4. Last: the literal output of `sh verify.sh` run in the current turn.
+
+Any other turn end — a summary, a mid-wait pause, a partial report — is
+not the goal (D-083).
+
+## 8. Host session budget (D-092)
+
+What this session may do itself, and nothing more:
+
+- Read: `GOAL.md`, `AGENTS.md`, this file, `goal/PREFLIGHT.md`,
+  `tasks/README.md`, `PROGRESS.md`, `PREFLIGHT-DEFECTS.md`, and the
+  current `tasks/<id>/` folder (its `TASK.md`, `task.toml`, `verify.*.out`,
+  `attempts.log`, `container.txt`, `pr*.txt`).
+- Never read in this session: `ROADMAP.md`, `SPEC.md`, `DECISIONS.md`,
+  `concept/*`, `analysis/*`, or any file in an involved repository. A
+  single literal may be `grep`ed out of them (`grep -n '^| M3-05 ' ROADMAP.md`);
+  anything larger is a subagent's job, and the subagent returns at most 15
+  lines.
+- Run: git on this repository, `sh verify.sh`, `sh tasks/<id>/verify.sh
+  host`, `docker`/`tmux`/`jackin`/`gh`/`op` host commands of §4, the
+  standing checks of §1 step 4, and `caffeinate`.
+- Write: `tasks/README.md`, `PROGRESS.md`, `PREFLIGHT-DEFECTS.md`,
+  `tasks/<id>/` files, `DECISIONS.md` and `SPEC.md` when D-053 applies —
+  in this repository only, then commit and push at once (D-086).
+- Delegate: everything else, with `model: "opus"` (D-092), in parallel up
+  to three host subagents in flight and the §4 reserve rule.
+- Never: answer from memory what a file states, re-read a large file after
+  a compaction instead of delegating it, or ask the human anything.

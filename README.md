@@ -27,9 +27,9 @@ reaches agreement on a point updates the relevant file.
 | [analysis/termrock.md](analysis/termrock.md) | What termrock is today, with citations, and its gaps for this goal. |
 | [analysis/symphony.md](analysis/symphony.md) | openai/symphony: the closest existing execution concept, and what to adopt or reject. |
 | [analysis/linear-agents.md](analysis/linear-agents.md) | Linear Agents platform facts, jackin role contract facts, and a proposed issue convention. |
-| [AGENTS.md](AGENTS.md) | Rules for agents (and humans) editing this repository. `CLAUDE.md` is a symlink to it. |
-| [GOAL.md](GOAL.md) | The `/goal` prompt that executes the whole roadmap unattended (invoked with the one-line `/goal Follow GOAL.md. Goal reached only when …` argument printed in the file, which carries the two terminal facts the runner checks, D-083), under 4000 characters; the run ends COMPLETE or BLOCKED (D-069, D-070). |
-| [goal/EXECUTION.md](goal/EXECUTION.md) | How the host session runs it: session start, per-task procedure, wave order, execution paths, resume, STOP. |
+| [AGENTS.md](AGENTS.md) | Rules for agents (and humans) working in this repository: the two modes, the delegation law, the status contract, the token economy. `CLAUDE.md` is a symlink to it. |
+| [GOAL.md](GOAL.md) | The `/goal` prompt that executes the whole roadmap unattended: objective, done condition (`./verify.sh` last line `status: DONE`), the one-line invocation to copy verbatim (D-083), resume, reporting, and the prompt block itself, under 4000 characters. The run ends COMPLETE or BLOCKED (D-069, D-070). |
+| [goal/EXECUTION.md](goal/EXECUTION.md) | How the host session runs it: session start, per-task procedure, wave order, execution paths, resume, STOP, host session budget. |
 | [goal/PREFLIGHT.md](goal/PREFLIGHT.md) | Everything the human provides once before the run (D-050), consolidated from `ROADMAP.md`. |
 | [verify.sh](verify.sh) | Roadmap-level gate: `status: DONE` only when every task in `tasks/README.md` is `done` with its `verify.sh` (D-069). |
 | [PROGRESS.md](PROGRESS.md) | Append-only ledger of the run: one row per task with lane, path, result, evidence. |
@@ -37,6 +37,6 @@ reaches agreement on a point updates the relevant file.
 
 ## Working rules
 
-- Planning only. No source code, no prototypes, no scaffolding in this repository; the only runnable files are `tasks/<id>/verify.sh` and the root `verify.sh` (D-038, D-069).
+- Planning only. No source code, no prototypes, no scaffolding in this repository; the only non-Markdown files are the root `verify.sh` and everything under `tasks/<id>/` — `verify.sh`, `task.toml`, and text evidence (D-038, D-069, D-093).
 - Decisions are explicit. If it is not in `DECISIONS.md`, it is not decided.
 - Analyses cite files and lines in the real repositories; opinions are labeled as such.
