@@ -1844,7 +1844,9 @@ secret through `curl --config -` fed from `jackin-exec op read` on stdin,
 never as an argument. The item is the single
 `linear-workspace`, whose `url key` field holds the `organization.urlKey`
 from `viewer` (D-108). The whole procedure lives in the M1-10
-row so M1-01 copies it into `tasks/M1-10/TASK.md`.
+row, from which the generator stages it into the pre-materialised
+`tasks/M1-10/TASK.md` bundle; M1-01 verifies that bundle rather than
+authoring it (D-114).
 
 **Rationale.** Without a redirect URI and a capture procedure the agent
 would invent a public URL or stop; two documents disagreed on whether the
@@ -2725,12 +2727,21 @@ human prerequisite and is filed in `goal/PREFLIGHT.md`.
 
 ## D-118 — 2026-08-28 — The Execution mode permits machine files at exactly these paths
 
+*Amended 2026-08-28: the test path widens from `tests/fixtures/` to
+`tests/` — POSIX `sh` or Python 3 stdlib fixtures and harnesses, including
+`tests/chaos/`, `tests/state/`, and `tests/supervisor/` (which
+`goal/EXECUTION.md` mandates through `tests/supervisor/test_resume.sh`).
+The narrower path made every tracked harness outside `tests/fixtures/` a
+defect.*
+
 **Decision.** The `AGENTS.md` "Two modes" Execution row is amended: machine
 files are permitted at exactly these paths and nowhere else —
 
 - `tools/` — the DAG compiler, the state store, the supervisor, and the
   fixture runner, written in POSIX `sh` or Python 3 standard library only;
-- `tests/fixtures/` — the fixtures the fixture runner accepts and rejects;
+- `tests/` — the fixtures the fixture runner accepts and rejects and the
+  test harnesses that drive the tooling, in POSIX `sh` or Python 3 standard
+  library only;
 - `run/LOCK.toml` — the lock the readiness gates of D-109 share;
 - `run/state.db` or `run/events.jsonl` — the state store of D-111, text
   preferred;
