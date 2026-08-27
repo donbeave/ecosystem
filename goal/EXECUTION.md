@@ -272,27 +272,16 @@ per task:
 | 9 | M1-09 | `crew-operator` container; needs M1-10's token and app user and `tasks/M1-13/lanes.json` |
 | 10 | M1-11, M1-12 | `crew-operator` container, sequential; M1-11 verify runs here (D-061) |
 
-M6..M12 folders: no authoring and no M6..M12 task begins before the M1-12
-row is `done`. When the first task of a milestone would otherwise be
-runnable and `tasks/<id>/` does not exist, run an authoring task first, in
-two sequential steps: (1) same procedure as M1-01, lane L3, subagents,
-writes every folder of that milestone (idempotent: existing folders are
-kept) and sets its rows `ready`, checked with the M1-01 verify shape for
-that milestone; (2) re-run the M1-12 procedure from `tasks/M1-12/`
-(idempotent, `crew-operator`, L5, cap 1) so every new row has its Linear
-URL, labels, and relations (no delegate, D-073), checked with the M1-12
-verify. Record both in one `PROGRESS.md` row `<milestone>-00 authoring`
-(the result cell lists the folder count and the issue count). It is not a
-roadmap task and gets no `tasks/README.md` row, but it has a terminal
-state: a step that fails its check three times is filed `exhausted:
-<milestone>-00` in `PREFLIGHT-DEFECTS.md` and the milestone's rows stay
-`planned`. A milestone's first task starts only after its row carries a
-Linear URL; the four early-start tasks named above may run before M1-12
-exists, and M1-12 creates their issues afterwards. Several milestones may
-be authored together when their scopes are stable, but each milestone's
-issues exist before its first task starts. M1-01 writes M2..M5 rows as
-`ready`; authoring writes M6..M12 rows as `ready`; `planned` is reserved
-for rows whose folder does not exist.
+M6..M12 folders: there is no authoring step. All 81 task bundles, M1..M12,
+are materialised by `tools/bundle.py` and hash-locked in `run/LOCK.toml`
+before the run starts (D-114); no task authors another task's bundle while
+the run is under way. M1-01 authors nothing: it seeds the run-state store
+and verifies that every bundle is present and matches its lock hash.
+No M6..M12 task begins before the M1-12 row is `done`. A milestone's first
+task starts only after its row carries a Linear URL; the four early-start
+tasks named above may run before M1-12 exists, and M1-12 creates their
+issues afterwards. Rows are `ready` once M1-01 has seeded the store;
+`planned` is reserved for rows the store has not armed yet.
 
 ## 4. Execution paths
 

@@ -61,7 +61,7 @@ dependencies are runnable concurrently, each with its own isolated agent.
 exploit it.
 
 **Consequences.** The manager needs a dependency graph, a scheduler, and a
-strategy for merging parallel results (open question).
+strategy for merging parallel results.
 
 ## D-005 — 2026-08-27 — The manager watches the roadmap and acts on changes
 
@@ -2192,9 +2192,9 @@ M3-03, M4-02, M4-03 is runnable only when the M1-12 row is `done` (an
 implicit dependency, so no `depends_on` cell changes); those four may run
 before their issues exist, on the `subagents` or `container` path only,
 and M1-12 creates their issues afterwards in the state matching the row
-(its scope covers every non-`planned` M2+ row). No M6..M12 authoring
-begins before M1-12 is `done`; an authoring step that fails its check
-three times is filed `exhausted: <milestone>-00`. A runnable task of the
+(its scope covers every non-`planned` M2+ row). Under D-114 there is no
+M6..M12 authoring step left to gate: all 81 bundles are materialised by
+`tools/bundle.py` before the run starts. A runnable task of the
 lowest unfinished milestone always takes a free slot before an early-start
 task. (4) M11-01 is not an early-start task: it starts with M11 after
 M10-05, and its scope records the per-role `op://` mapping without

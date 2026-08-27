@@ -38,7 +38,7 @@ title = """DCO pre-push gate counts merge commits, so merge-backs break the shar
 disposition = "fixed"
 evidence = """Fixed: the DCO pre-push gate now counts with `--no-merges` on both sides, so the mandated merge-backs no longer break the shared branch."""
 file = "goal/EXECUTION.md"
-line = 499
+line = 488
 quote = """git log --no-merges origin/main..HEAD"""
 
 [[finding]]
@@ -65,7 +65,7 @@ title = """Rolling PR and squash merge ignore jackin .github/AGENTS.md PR contra
 disposition = "fixed"
 evidence = """Fixed: the rolling PR body is built from the repository pull request template and the squash body comes from `jackin-pr-trailers`, so jackin's PR contract is met."""
 file = "goal/EXECUTION.md"
-line = 622
+line = 619
 quote = """PULL_REQUEST_TEMPLATE"""
 
 [[finding]]
@@ -137,7 +137,7 @@ title = """M2-08 review anchor ambiguous; pr.txt head fixed by a non-jackin task
 disposition = "fixed"
 evidence = """Fixed: the review record pins tasks/<id>/pr.txt to three lines and never rewrites the reviewed head sha, so the review anchor cannot drift."""
 file = "goal/EXECUTION.md"
-line = 642
+line = 631
 quote = """never rewritten"""
 
 [[finding]]
@@ -329,7 +329,7 @@ title = """Daemon ~/.claude cap: D-056/SPEC/M3-05 say 3, D-071/EXECUTION say 2, 
 disposition = "fixed"
 evidence = """Fixed: the procedure now writes the daemon account caps into the daemon config before the first start, so `~/.claude` is 2 everywhere and each Codex home is 1."""
 file = "goal/EXECUTION.md"
-line = 556
+line = 545
 quote = """max = 2"""
 
 [[finding]]
@@ -416,7 +416,7 @@ title = """Stale Chromium SingletonLock in the shared operator profile kills lat
 disposition = "fixed"
 evidence = """Fixed: teardown closes the browser before ejecting, and every crew-operator launch removes stale Singleton files once no operator container is running."""
 file = "goal/EXECUTION.md"
-line = 316
+line = 305
 quote = """Singleton"""
 
 [[finding]]
@@ -434,7 +434,7 @@ title = """Hop target lanes share ~/.claude; 'next lane busy' undefined so hops 
 disposition = "fixed"
 evidence = """Fixed: the fallback rule now defines a busy lane and sends the row back to `ready` at the head of its wave, consuming no attempt, instead of stalling as `waiting`."""
 file = "goal/EXECUTION.md"
-line = 377
+line = 369
 quote = """busy"""
 
 [[finding]]
@@ -491,7 +491,7 @@ title = """Per-task saved workspace has no /workspace: workdir and mount mirror 
 disposition = "fixed"
 evidence = """Fixed: the workspace mount always names `/workspace` as its target, so the per-task saved workspace no longer mirrors the host path."""
 file = "goal/EXECUTION.md"
-line = 590
+line = 579
 quote = """/workspace"""
 
 [[finding]]
@@ -506,7 +506,7 @@ title = """Container-name lookup grep -- "-task-<id slug>-" can never match the 
 disposition = "fixed"
 evidence = """Fixed: the container lookup computes the compacted lowercase slug before grepping, so it matches the workspace component jackin actually writes."""
 file = "goal/EXECUTION.md"
-line = 316
+line = 305
 quote = """tr -cd"""
 
 [[finding]]
@@ -527,7 +527,7 @@ title = """jackin workspace delete task-<id> is not a command; the subcommand is
 disposition = "fixed"
 evidence = """Fixed by Phase 0 row 0.13: `grep -rn 'workspace delete' --include='*.md' .` returns nothing, and goal/EXECUTION.md now ends the task lifecycle with `jackin workspace remove`."""
 file = "goal/EXECUTION.md"
-line = 316
+line = 305
 quote = """workspace remove"""
 
 [[finding]]
@@ -554,7 +554,7 @@ title = """Outcome (B) and half of (A) are prose the evaluator cannot check"""
 disposition = "fixed"
 evidence = """Fixed: the outcomes are now the exact strings verify.sh prints, with the prose conditions moved inside the script's checks."""
 file = "goal/EXECUTION.md"
-line = 742
+line = 731
 quote = """sh verify.sh` at the repository root derives the outcome"""
 
 [[finding]]
@@ -563,7 +563,7 @@ title = """Attempt counter of an in-progress task lives only in the model's cont
 disposition = "fixed"
 evidence = """`tasks/<id>/attempts.log` is the authority at HEAD (goal/EXECUTION.md:362, AGENTS.md:24, GOAL.md, SPEC.md, D-093)."""
 file = "goal/EXECUTION.md"
-line = 537
+line = 526
 quote = """attempts.log"""
 
 [[finding]]
@@ -581,7 +581,7 @@ title = """Final-message shape contradicts the evaluator; (A) has no first-line 
 disposition = "fixed"
 evidence = """Fixed: the final-message shape names the exact first-line markers the evaluator reads, so outcome (A) carries a marker too."""
 file = "goal/EXECUTION.md"
-line = 758
+line = 747
 quote = """Line 1"""
 
 [[finding]]
@@ -617,7 +617,7 @@ title = """M1-05a..c 'inside the role' checks and jackin role validate have no r
 disposition = "fixed"
 evidence = """Fixed: the procedure defines the throwaway-load home for the M1-05a..c checks, and the roadmap cells split the host role validation from the container checks."""
 file = "goal/EXECUTION.md"
-line = 319
+line = 308
 quote = """Throwaway load"""
 
 [[finding]]
