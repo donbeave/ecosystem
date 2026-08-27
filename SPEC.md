@@ -159,6 +159,13 @@ support. Models: Fable 5, Opus 5, Sonnet 5, GPT-5.6 Sol, GPT-5.6 Terra,
 GPT-5.6 Luna, all at medium reasoning. Tasks are assigned across agents,
 models, and account lanes. (D-039)
 
+## 9d. Involved projects and branches
+
+Any repository under github.com/jackin-project or github.com/tailrocks is
+changed when this effort needs it; defects are bugs to fix there, gaps are
+extensions (D-046). All such changes land on `feat/managed-execution` in
+each repository; this repository commits directly to `main` (D-047).
+
 ## 10. How the product is built
 
 The product is built with its own workflow: Linear issues, jackin roles,

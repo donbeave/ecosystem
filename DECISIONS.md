@@ -660,3 +660,55 @@ this effort, so they deserve their own identity and repositories.
 roles, their names, and their contents are decided from the analysis in
 `analysis/roles/` and recorded in `concept/roles.md`. ROADMAP §4 and tasks
 M1-04/M1-05 are replaced accordingly once the set is decided.
+
+## D-046 — 2026-08-27 — Any jackin-project or tailrocks repository may be changed to make this work
+
+**Decision.** Whenever this effort needs something from an involved
+project, the project is changed to provide it. This applies to every
+repository under https://github.com/jackin-project and every repository
+under https://github.com/tailrocks. Anything in those projects that does
+not work as needed (for example `jackin-exec` not working out of the box)
+is treated as a bug and fixed in the project where the fix belongs;
+anything missing is added as an extension there. Work is never routed
+around a defect in an involved project.
+
+**Rationale.** These are our projects; the point of dogfooding (D-033) is
+that the product forces its dependencies to become correct. A workaround
+in the manager would hide a bug that every other user of the project
+would hit.
+
+**Consequences.**
+
+- Task authors and agents are free to open changes in any involved
+  repository; the task records which repositories it touched.
+- `analysis/*.md` findings marked "absent" or "partial" become extension
+  tasks; findings that contradict documentation become bug tasks.
+- Q-020 is closed by D-047 for branch naming.
+
+## D-047 — 2026-08-27 — One branch everywhere: `feat/managed-execution`; ecosystem on `main`
+
+**Decision.** In every involved repository that receives changes for this
+effort (jackin-project and tailrocks organizations, and the new role
+repositories under `donbeave`), all work lands on one branch named
+`feat/managed-execution`, always. Pull requests from that branch to `main`
+are made when a milestone needs a merge or release (D-034); the branch is
+never renamed or split. The exception is this repository
+(https://github.com/donbeave/ecosystem): every change goes directly to
+`main`, always; no feature branches. This is a rule in `AGENTS.md`.
+
+**Rationale.** One known branch name removes coordination cost across a
+dozen repositories and lets local installs, role builds, and daemon
+launches pin the same ref (D-042). The planning repository has no reason
+for branches: its content is decisions, and a decision either is recorded
+or is not.
+
+**Consequences.**
+
+- Q-020 is closed; the earlier "roles use `feat/agent-browser`" wording is
+  withdrawn.
+- termrock's trunk-only `CONTRIBUTING.md` conflicts with the branch rule;
+  it is amended on `feat/managed-execution` in termrock to allow this
+  branch and pull requests for agent-authored changes (D-046).
+- Role repositories created for this effort start on `main` and use
+  `feat/managed-execution` for subsequent changes like every other
+  involved repository.

@@ -109,4 +109,3 @@ Narrowed by D-045: new roles under the `donbeave` GitHub account,
 existing roles untouched. Remaining: the exact set (one per project type,
 one operator, one reviewer?), names, and contents. Pending
 `analysis/roles/` and `concept/roles.md`.
-

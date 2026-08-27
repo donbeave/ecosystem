@@ -34,8 +34,15 @@ decisions, and concept of the project before implementation starts.
 8. **Credentials go to 1Password.** Any credential created while working on
    this project is stored in 1Password at creation and referenced as
    `op://`; never in files, images, documents, or chat (D-035).
-9. **Commit and push every change.** Use `git commit -s`, then push to
-   `origin` immediately. Nothing stays local.
+9. **Commit and push every change, on `main`.** Use `git commit -s`, then
+   push to `origin main` immediately. This repository never uses feature
+   branches; every change goes directly to `main` (D-047). Nothing stays
+   local.
+10. **Fix involved projects, do not work around them.** Any repository under
+    github.com/jackin-project or github.com/tailrocks may be changed when
+    this effort needs it; defects there are bugs to fix, gaps are
+    extensions to add (D-046). All such changes land on the branch
+    `feat/managed-execution` in that repository (D-047).
 
 ## Where things go
 
