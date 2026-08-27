@@ -283,7 +283,7 @@ for that invocation; the desktop-app socket integration cannot work from a
 container at all (op §4). Two service accounts, two rotation units: the
 operator's write token (before M1-03) and the daemon's read token (M10-01).
 `jackin-exec` has had no live smoke pass and lacks the `SO_PEERCRED` check on
-Docker Desktop; M1-03 is the proof, and a fallback to a launch-time token
+macOS Docker hosts (OrbStack here, D-056); M1-03 is the proof, and a fallback to a launch-time token
 for one session must be logged as a deviation (op §9).
 
 ## 6. Conflicts to resolve

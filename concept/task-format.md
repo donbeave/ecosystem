@@ -47,9 +47,16 @@ into an issue with the convention above. It contains:
   issue's checklist.
 - `task.toml` — machine-readable fields mirroring the issue: `repo`,
   `branch`, `base`, `role`, `runtime`, `model`, `effort`, `delivery`,
-  `depends_on`, `lane`.
+  `depends_on`, `lane`, `fallback_lane` (the lane the daemon re-launches
+  on after quota exhaustion or a stuck run, from the `fallback` column of
+  `ROADMAP.md` §5, D-057).
 - `verify.sh` — the task's verification (D-003); for repositories with
-  `.jackin/workflow.toml`, `[verify] command` points at it.
+  `.jackin/workflow.toml`, `[verify] command` points at it. For `host`
+  rows it is run by the host Claude Code session and its output is filed
+  in the folder (D-061).
+- "When stuck" section in `TASK.md` — the stuck rule (D-063), present in
+  every task: when the task stalls or takes too long, spawn subagents to
+  analyze why and to find a solution before escalating anything.
 - `preflight` section in `TASK.md` — the operator inputs this task needs
   before it starts (D-050): every credential or login as an `op://`
   reference (never a value), every trust grant (`jackin config trust grant
@@ -72,7 +79,7 @@ Example `preflight` block:
 - Trust: `jackin config trust grant donbeave/crew-operator` on this host.
 - Browser profile `~/.jackin/agent-browser-profile` logged in to Linear and
   GitHub (M1-06); verify: `agent-browser open linear.app` shows the account.
-- Host: Docker Desktop running; laptop set not to sleep for the proof run.
+- Host: OrbStack running (`docker context orbstack`, D-056); laptop set not to sleep for the proof run.
 ```
 
 ## Local working copy
@@ -116,7 +123,30 @@ system and this layout is only the local mirror the daemon creates.
 Written for the agent. Contains: the objective in one paragraph; the exact
 scope (what is in, what is out); the references to satisfy, by path; the
 steps the author expects; the definition of done in plain language, matching
-what `verify.sh` checks; constraints (do not touch other tasks' areas).
+what `verify.sh` checks; constraints (do not touch other tasks' areas); the
+preflight (D-050); and a "When stuck" section (D-063).
+
+Template:
+
+```markdown
+# <id> <title>
+
+## Objective
+## Scope
+## References
+## Steps
+## Checklist
+- [ ] ...
+## Definition of done
+## Constraints
+## Preflight (D-050)
+## When stuck (D-063)
+
+If this task stalls or takes longer than expected, do not escalate first.
+Spawn subagents to analyze why (wrong assumption, missing input, failing
+check, environment) and to propose a solution; apply it; only then, if it
+is a genuine operator input, mark the task blocked with the exact item.
+```
 
 ### `task.toml`
 
@@ -127,6 +157,8 @@ id = "020-api-contract"
 depends_on = ["010-schema-migration"]
 role = "the-architect"          # jackin role
 runtime = "claude"              # optional hint; manager may override
+lane = "L1"                     # ROADMAP §5
+fallback_lane = "L2"            # D-057: next lane on quota exhaustion or stuck
 limits = { attempts = 3, minutes = 90 }
 ```
 

@@ -1,6 +1,6 @@
 # Open questions
 
-**Nothing here blocks execution (D-050, D-053).**
+**Nothing here blocks execution (D-050, D-053, D-054).**
 
 Undecided points that affect the design. Each entry names the question, why
 it matters, and known options. Closing a question means recording a decision

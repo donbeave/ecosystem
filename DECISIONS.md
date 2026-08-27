@@ -876,3 +876,166 @@ per-item confirmation is exactly the blocking D-050 forbids.
 items; `ROADMAP.md` §7 is reduced accordingly; `SPEC.md` is updated to
 state the adopted answers; `concept/borrowed-from-symphony.md` proposals
 are marked adopted.
+
+## D-054 — 2026-08-27 — The roadmap is finalized
+
+**Decision.** `ROADMAP.md` is final. Task ids and the dependency graph are
+frozen; the scope text of a task may still be edited. Any change to a task
+id, the addition or removal of a task, or a change to `depends_on` requires
+a new entry in this file. The roadmap status line reads FINAL.
+
+**Rationale.** D-038 makes task folders and Linear issues depend on a
+finalized roadmap; a frozen id space and graph are what M1-01 and M1-12 key
+on. Scope text stays editable because tasks are refined while they are
+executed.
+
+**Consequences.** Task folders may be authored (D-062); ids are stable
+references in Linear, task folders, and evidence; the status line of
+`ROADMAP.md` names this decision.
+
+## D-055 — 2026-08-27 — Agents merge; reviews never block; no releases before M11
+
+**Decision.** Agents merge pull requests to `main` themselves whenever the
+roadmap needs a merge, using the forwarded `gh` identity. Work that does not
+block the roadmap stays unmerged on `feat/managed-execution`. No jackin
+release and no Homebrew tap publish happens before M11; only branch builds
+run. There is no human review gate anywhere: `crew-reviewer` tasks run in
+parallel with the following work and never block the next task; their
+findings become follow-up checklist items on the issue they reviewed.
+
+**Rationale.** D-050 forbids waiting on the human mid-way; a review gate or
+a human merge is exactly such a wait. Branch builds are sufficient until the
+server milestone needs published artifacts.
+
+**Consequences.** Review tasks are marked `non-blocking` in `ROADMAP.md` and
+appear in no `depends_on`; `SPEC.md` §9d and §6 step 12 drop the human
+merge; the termrock `CONTRIBUTING.md` clause (D-047, D-053) reads "agent
+merges after `crew-reviewer` review has been requested", not "human
+merges"; `AGENTS.md` rule 9 is unchanged for this repository.
+
+## D-056 — 2026-08-27 — The host is OrbStack; laptop caps are 6/3/1/1
+
+**Decision.** The developer machine runs OrbStack 2.2.3 (18 CPU, about
+122 GiB available to Docker, 1.6 TiB free disk; Docker context `orbstack`;
+no Docker Desktop). jackin treats it as a plain Docker daemon
+(`crates/jackin/src/preflight.rs:217`). Laptop caps: `max_concurrent_agents
+= 6`, `~/.claude` 3, each Codex home 1, `donbeave/crew-operator` 1.
+
+**Rationale.** The earlier caps of 2 assumed Docker Desktop's resource
+limits; OrbStack on this machine has room for six role containers plus
+DinD, and one Claude account can carry three concurrent sessions.
+
+**Consequences.** Every "Docker Desktop" mention in the preflights is
+replaced by the OrbStack facts; M3-05 and `SPEC.md` §6 carry the new caps;
+wave planning in `ROADMAP.md` §3 may schedule up to three `~/.claude` tasks
+at once.
+
+## D-057 — 2026-08-27 — Automatic lane fallback on quota exhaustion or stuck
+
+**Decision.** The daemon detects provider quota exhaustion and stuck runs
+(D-021, D-049) and re-launches the task on a fallback lane automatically.
+Fallback chains cover the account, the agent runtime, and the model: L1 →
+L2 → L3 → L4 → L5 → L6 → L1 (Claude lanes fall through the Claude account
+first, then to Codex), and L4 → L5 → L6 → L1 → L2 → L3 → L4 (Codex lanes
+fall through the other Codex homes first, then to Claude). `ROADMAP.md` §5
+gains a `fallback` column per lane and task folders carry `fallback_lane`.
+A new M6 task implements the daemon-side fallback; until it exists the host
+session re-lanes a task by hand and records it as a preflight defect.
+
+**Rationale.** Quota exhaustion and stalls are the two ways an unattended
+run stops without a human; a defined next lane turns both into a retry
+instead of a wait.
+
+**Consequences.** M6 gains task M6-05 (depends on M3-05 and M7-02);
+`SPEC.md` §6 step 8 and `concept/manager.md` describe the fallback; the
+retry ledger (D-019) records the lane of every attempt.
+
+## D-058 — 2026-08-27 — Model ids and effort knobs are discovered by M1-13
+
+**Decision.** The exact model identifiers and reasoning-effort knobs for
+every lane are discovered and recorded by M1-13, not stated in
+`ROADMAP.md`. `model:*` label values follow what M1-13 records. Minimal
+edits to `jackin-the-architect` on its `feat/managed-execution` branch are
+allowed under the D-048 consequences; the role already lists `codex`.
+
+**Rationale.** Model ids and effort environment variables change with
+provider releases; the roadmap names lanes by intent (runtime, family,
+account) and M1-13 binds them to current values.
+
+**Consequences.** `ROADMAP.md` §5 keeps model family names only; M1-13's
+task folder records ids and knobs; M1-09 creates `model:*` labels from that
+record.
+
+## D-059 — 2026-08-27 — Evidence is text in task folders; media on the issue
+
+**Decision.** Task folders hold text evidence only: GraphQL JSON, `.cast`
+recordings, logs, and `verify.sh` output. Screenshots and video recordings
+are attached to the Linear issue, not committed. D-001 and D-038 are
+unchanged.
+
+**Rationale.** Binary media bloats a Markdown repository and is more useful
+next to the issue it proves.
+
+**Consequences.** Every "screenshot in `tasks/<id>/`" in `ROADMAP.md`
+reads as "screenshot attached to the issue, reference in `tasks/<id>/`";
+`.gitattributes` needs no LFS.
+
+## D-060 — 2026-08-27 — Linear structure: team `JACKIN`, one project, milestones M1..M12
+
+**Decision.** A new Linear team `JACKIN` hosts the work; one project holds
+this effort; project milestones are M1..M12. M1 tasks never get Linear
+issues: they are executed by hand from their task folders. Issues start at
+M2; M1-12 creates the M2+ issues. Before any issue is created, subagents
+verify the current state of the work in the involved repositories, and the
+issue reflects what is already done.
+
+**Rationale.** M1 is the bootstrap that makes the daemon and roles exist;
+issuing it in Linear would be bookkeeping with nothing to consume it. A
+verified state avoids issues that ask for work already landed.
+
+**Consequences.** M1-12 scope and `SPEC.md` §10a are updated; the team key
+`JACKIN` replaces "the Linear team key … recorded in `tasks/M1-09/`".
+
+## D-061 — 2026-08-27 — Host-only verification runs in the host session
+
+**Decision.** `verify.sh` of host-only tasks (M1-02a, M1-05d, M1-06,
+M1-11, and every other `host` row) is run by the host Claude Code session
+that drives this roadmap (the `/goal` session on the Mac); its output is
+filed in the task folder.
+
+**Rationale.** These tasks have no container; the host session is the only
+place their checks can run and it already holds the evidence.
+
+**Consequences.** `host` rows in `ROADMAP.md` name the host session as the
+verifier; the task-format `verify.sh` contract states the host exception.
+
+## D-062 — 2026-08-27 — Task folders for M1..M5 now; later milestones when reached
+
+**Decision.** Task folders are authored now for M1..M5 (task M1-01); M6..M12
+folders are authored when those milestones are reached. Milestones may
+overlap in execution; operator preflights are merged per sitting rather
+than executed strictly per milestone.
+
+**Rationale.** Later scopes will change as the daemon takes shape;
+authoring them now would be rewritten. Overlap is what the dependency
+graph already allows.
+
+**Consequences.** M1-01 scope is unchanged; `SPEC.md` §9e and §10b state
+the overlap and the merged preflights.
+
+## D-063 — 2026-08-27 — Stuck rule: analyze with subagents before escalating
+
+**Decision.** When a task stalls or takes too long, the agent always spawns
+subagents to analyze why and to find a solution before anything is
+escalated. This applies to container agents and to the host session; in
+managed runs the daemon's stuck signal (D-049) triggers it. Prompt frames
+and every `TASK.md` carry the instruction.
+
+**Rationale.** Most stalls are solvable inside the session (a wrong
+assumption, a missing file, a flaky check); escalating first wastes the
+human's attention and violates D-050.
+
+**Consequences.** `AGENTS.md` rule 11; `concept/task-format.md` gains a
+"When stuck" section in the `TASK.md` template; `SPEC.md` §9f; the M5
+stuck transition and the M6-05 fallback are preceded by this analysis
+step.

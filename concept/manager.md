@@ -83,7 +83,7 @@ human ── jackin CLI ──┐ │
 3. **Runnable.** `dispatchable` is true (delegate is jackin, active state,
    every `blocks` relation resolved, fields valid; D-020) and a slot is free
    under the host, repository, state, and provider-account caps (D-022;
-   laptop: 2 per host, 1 per Codex home, 2 for `~/.claude`, 1 for
+   laptop, D-056: 6 per host, 1 per Codex home, 3 for `~/.claude`, 1 for
    `crew-operator`).
 4. **Picked up.** The daemon reads the issue once, prepares the workspace
    for the named repository and branch (reuse and pull if the branch exists
@@ -127,7 +127,13 @@ human ── jackin CLI ──┐ │
    failures; each attempt is a new container in the same workspace and
    each attempt's container is recorded on the issue (D-052). Exhausted
    attempts enter `blocked` with a blocker brief delivered as an
-   elicitation (D-029).
+   elicitation (D-029). **Lane fallback (D-057):** on provider quota
+   exhaustion or a stuck run past the recovery threshold, and after the
+   stuck rule has run (D-063: subagents analyze first), the daemon
+   re-launches the attempt on the lane's fallback (`ROADMAP.md` §5:
+   L1→L2→L3→L4→L5→L6→L1, L4→L5→L6→L1→L2→L3→L4), switching account home,
+   runtime, and model together; the ledger records each attempt's lane.
+   Implemented by M6-05; by hand before that.
 8. **Pull request and merge.** The daemon opens or updates the pull
    request on GitHub from the task's branch (D-014). A human moves the
    issue to the merging state; one `merge` attempt per repository at a
@@ -153,6 +159,8 @@ human ── jackin CLI ──┐ │
   (D-019).
 - Enforces slots per host, repository, repository state, and provider
   account, and sorts candidates by priority, age, identifier (D-022).
+- Falls back to the next lane on quota exhaustion or stuck, chains
+  wrapping across accounts, runtimes, and models (D-057).
 - Keeps every in-progress issue's Linear session current: run-state label
   and activity on each transition, heartbeat with last progress, the
   container identity in `externalUrls` from launch to removal and across

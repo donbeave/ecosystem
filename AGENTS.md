@@ -43,6 +43,10 @@ decisions, and concept of the project before implementation starts.
     this effort needs it; defects there are bugs to fix, gaps are
     extensions to add (D-046). All such changes land on the branch
     `feat/managed-execution` in that repository (D-047).
+11. **Stuck rule.** When a task stalls or takes too long, spawn subagents
+    to analyze why and to find a solution before anything is escalated.
+    This binds every container agent and the host session; in managed
+    runs the daemon's stuck signal triggers it (D-063).
 
 ## Where things go
 

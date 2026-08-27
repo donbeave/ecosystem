@@ -41,6 +41,7 @@ D-005, D-010..D-014, D-043, D-049)
 | Linear | Source of truth for issues, their fields, status, comments, and agent sessions. | exists |
 | GitHub | Hosts repositories and pull requests. | exists |
 | jackin CLI | Interactive sessions; unchanged. | exists |
+| Host (prototype) | The developer's Mac running OrbStack 2.2.3 (`docker context orbstack`; 18 CPU, about 122 GiB available to Docker, 1.6 TiB free; no Docker Desktop). jackin treats it as a plain Docker daemon (`crates/jackin/src/preflight.rs:217`). Host-only steps and host-only `verify.sh` are run by the host Claude Code session that drives the roadmap (D-056, D-061). | exists |
 | jackin daemon | Long-running per host. Monitors every agent container on the host (CLI- or daemon-started); polls Linear for issues assigned to jackin; prepares workspaces; spawns roles through the same container mechanism as the CLI; pushes progress and status; runs verification; manages pull requests. The manager logic (scheduler, retry policy, escalation, state snapshot) is compiled into the daemon binary for the prototype; whether it splits out is revisited at M12 (Q-001 adopted (a), D-053; D-026). | to build (D-008, D-009) |
 | jackin capsule | In-container PID 1; the attach point for live visibility; source of the agent-state signal (working, blocked, idle, exit) the daemon reads. | exists (D-016), extended (D-051) |
 | jackin agent roles | Dockerfile + `jackin.role.toml`: environment, skills, plugins. Selected per issue. Roles for this build: `the-architect` for every jackin and jackin-project task (D-048, used as is); `donbeave/crew-builder` for termrock, ecosystem, and the role repositories; `donbeave/crew-operator` for Linear, GitHub settings, 1Password items, and every browser proof; `donbeave/crew-reviewer` for pull-request reviews; `host` names a step the human performs on the developer machine. All three `crew` roles are built from `donbeave/jackin-role-template`, load from their default branch with trust pre-granted per host, and stay unpublished until M11. (D-045, D-053; `concept/roles.md`) | `the-architect` exists; `crew` roles to build |
@@ -110,9 +111,10 @@ sees a pending session.
    repository state (`merging = 1`), and per provider account. Candidates
    sort by Linear priority, then oldest `createdAt`, then identifier; when
    every host is at capacity the daemon waits. Laptop defaults (Q-010
-   adopted): `max_concurrent_agents = 2`, per Codex account home 1, for
-   `~/.claude` 2, and a per-role cap of 1 for `donbeave/crew-operator`
-   (one Chrome profile). (D-022, D-039, D-053)
+   adopted, revised by D-056): `max_concurrent_agents = 6`, per Codex
+   account home 1, for `~/.claude` 3, and a per-role cap of 1 for
+   `donbeave/crew-operator` (one Chrome profile). (D-022, D-039, D-053,
+   D-056)
 3. **Workspace.** Clone or reuse under the daemon's workspace root keyed by
    the sanitized issue identifier; fetch; pull and reuse the branch if it
    exists on the remote, otherwise create it from the base branch. The
@@ -159,7 +161,13 @@ sees a pending session.
    in the same workspace; `rework` (closed or merged PR) resets to the base
    branch; the workspace is removed only on terminal state. Exhausted
    attempts enter `blocked` with a blocker brief. (D-021, D-027; Q-008
-   closed)
+   closed) Lane fallback (D-057): on provider quota exhaustion or a stuck
+   run past the recovery threshold, and after the stuck rule (§9f) has
+   run, the daemon re-launches the attempt on the lane's `fallback`
+   (`ROADMAP.md` §5: L1→L2→L3→L4→L5→L6→L1; L4→L5→L6→L1→L2→L3→L4),
+   switching account home, runtime, and model together; the ledger records
+   the lane of every attempt. Implemented by M6-05; before that the host
+   session re-lanes by hand and records a preflight defect.
 9. **Escalation.** A blocker brief (what is missing, why it blocks, the
    exact human action) is posted as a Linear `elicitation`; the human's
    reply arrives as a `prompted` event and is sent into the same PTY; a
@@ -170,7 +178,8 @@ sees a pending session.
 11. **Pull request.** The daemon pushes the branch and opens or updates the
     PR titled with the issue identifier, links it on the issue, and marks
     it ready after verification. (D-014)
-12. **Merge.** A human moves the issue to the repository's merging state;
+12. **Merge.** The issue is moved to the repository's merging state (by
+    the human, or by the agent whose roadmap work needs the merge, D-055);
     the daemon dispatches one `merge` attempt per repository at a time
     (same role, runtime, workspace; prompt frame section "land"); the agent
     updates the branch, resolves conflicts, repairs CI, addresses review
@@ -307,7 +316,15 @@ prompt field land together as `v1alpha7` when M3-02 and M4-01 ship
 together, otherwise as two consecutive versions (Q-021 adopted). termrock's
 trunk-only `CONTRIBUTING.md` is amended on `feat/managed-execution` with an
 agent-authored-changes clause: branch, PR to `main`, `crew-reviewer`
-review, human merges (D-047, D-053).
+review requested, agent merges (D-047, D-053, D-055).
+
+Merges and releases (D-055): agents merge pull requests to `main`
+themselves, through the forwarded `gh`, whenever the roadmap needs the
+merge; work that blocks nothing stays unmerged on `feat/managed-execution`;
+no jackin release and no Homebrew tap publish before M11 — branch builds
+only. There is no human review gate: `crew-reviewer` tasks run in parallel
+and never block the next task; findings become follow-up checklist items
+on the reviewed issue.
 
 ## 9e. Unattended execution and operator preflight
 
@@ -324,6 +341,35 @@ input mid-task records it as a preflight defect, completes everything not
 depending on it, and marks the task blocked with the exact missing item.
 Open design questions never stop work: recommended answers are adopted by
 default and may be overridden later. (D-050, D-053)
+
+Further rules of the unattended run (D-060..D-063):
+
+- Linear structure: team `JACKIN`, one project, project milestones
+  M1..M12. M1 tasks never get issues — they run by hand from their task
+  folders; issues start at M2 and are created by M1-12, which first has
+  subagents verify the current state of the involved repositories so each
+  issue reflects what is already done. (D-060)
+- Host-only `verify.sh` (every `host` row) is run by the host Claude Code
+  session that drives the roadmap; its output is filed in the task folder.
+  (D-061)
+- Task folders exist for M1..M5 now (M1-01) and for M6..M12 when reached;
+  milestones may overlap; operator preflights are merged per sitting.
+  (D-062)
+- Evidence: text (GraphQL JSON, `.cast`, logs, verify output) in the task
+  folder; screenshots and recordings attached to the Linear issue. (D-059)
+- Model identifiers and effort knobs per lane are discovered and recorded
+  by M1-13; `model:*` labels follow that record. (D-058)
+- The stuck rule of §9f applies to every agent and to the host session.
+  (D-063)
+
+## 9f. Stuck rule
+
+When a task stalls or takes too long, the agent always spawns subagents to
+analyze why and to find a solution before anything is escalated. This binds
+container agents and the host session alike; in managed runs the daemon's
+stuck signal (D-049) triggers it, and lane fallback (D-057) or retry
+(D-027) follows only after that analysis. Prompt frames and every
+`TASK.md` carry the instruction. (D-063)
 
 ## 10. How the product is built
 
@@ -343,15 +389,18 @@ adopted).
 
 ## 10a. Linear project
 
-All work for this effort is one Linear project; each `tasks/` folder is one
-issue; dependencies are mirrored as blocking relations; milestones map to
-project milestones. (D-040) The preview jackin is uninstalled; only the
+All work for this effort is one Linear project in team `JACKIN`; each
+`tasks/` folder from M2 onward is one issue (M1 runs by hand, D-060);
+dependencies are mirrored as blocking relations, review tasks excepted
+(D-055); milestones map to project milestones. (D-040) The preview jackin is uninstalled; only the
 branch build (`feat/managed-execution`) runs on the machine. (D-042)
 
 ## 10b. Milestones
 
 Ordered proofs (D-037, extended by D-049 and D-053; details and tasks in
-`ROADMAP.md`, task folders in `tasks/`, D-038):
+`ROADMAP.md`, final under D-054; task folders in `tasks/` for M1..M5 now
+and for later milestones when reached, D-038, D-062). Milestones may
+overlap in execution; review tasks never gate the next milestone (D-055).
 
 1. **M1 Linear setup verified** — agent app, credentials in 1Password,
    browser profile, branch-built jackin, the three `crew` roles; a test
@@ -366,7 +415,8 @@ Ordered proofs (D-037, extended by D-049 and D-053; details and tasks in
 5. **M5 Live status in Linear** — run state machine, heartbeat, stuck and
    blocked visible, `run:*` labels, container identity in `externalUrls`
    (D-049, D-051, D-052).
-6. **M6 Checklist mirrored and written back.**
+6. **M6 Checklist mirrored and written back** — plus daemon lane fallback
+   on quota exhaustion or stuck (M6-05, D-057).
 7. **M7 Verification by verify command** — retry, ledger, escalation.
 8. **M8 Pull request opened and updated** — GitHub App per organization.
 9. **M9 Merge.**
