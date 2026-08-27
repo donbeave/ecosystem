@@ -48,12 +48,23 @@ into an issue with the convention above. It contains:
 - `task.toml` — machine-readable fields mirroring the issue: `repo`,
   `branch`, `base`, `role`, `runtime`, `model`, `effort`, `delivery`,
   `depends_on`, `lane`, `fallback_lane` (the lane the daemon re-launches
-  on after quota exhaustion or a stuck run, from the `fallback` column of
-  `ROADMAP.md` §5, D-057).
+  on after a stuck run, from the `fallback` column of `ROADMAP.md` §5,
+  D-057; quota exhaustion follows the per-account-home chain of D-071),
+  `limits` (`attempts`, default 3, the exhaustion cap of D-070).
 - `verify.sh` — the task's verification (D-003); for repositories with
   `.jackin/workflow.toml`, `[verify] command` points at it. For `host`
   rows it is run by the host Claude Code session and its output is filed
-  in the folder (D-061).
+  in the folder (D-061); any check that needs the Linear token, `op`, the
+  host daemon socket, or host `docker` is a host part (`host (D-061):`
+  sentence of the roadmap verify column) run by the host session whatever
+  the task's role, and only unit or fixture checks stay in-container
+  (D-081). A verify column that names a review or a manual check becomes
+  a checklist item whose written result is filed in the folder;
+  `verify.sh` checks the filed text, never a transcript. `verify.sh` never
+  runs with `set -x`, never uses `curl -v`/`--trace`, and passes secrets
+  only via `-H @-`/`--config -` from stdin; field non-emptiness is
+  `jq -e '(.value // "") | length > 0'`; the host session scans the
+  folder with `gitleaks` before committing any evidence (D-081).
 - "When stuck" section in `TASK.md` — the stuck rule (D-063), present in
   every task: when the task stalls or takes too long, spawn subagents to
   analyze why and to find a solution before escalating anything.
@@ -73,12 +84,16 @@ Example `preflight` block:
 ```markdown
 ## Preflight (D-050)
 
-- op://tailrocks/op-service-account-jackin-operator — operator service
-  account token; verify: `jackin config env list --scope donbeave/crew-operator`
-  shows the on-demand entry.
+- op://tailrocks/op-service-account-jackin-operator/credential — operator
+  service account token; verify: `grep -E 'OP_SERVICE_ACCOUNT_TOKEN *= *\{.*on_demand *= *true' ~/.jackin/config.toml`
+  matches under `[roles."donbeave/crew-operator".env]` (`jackin config env
+  list --role donbeave/crew-operator` lists the key but never the flag,
+  D-078).
 - Trust: `jackin config trust grant donbeave/crew-operator` on this host.
-- Browser profile `~/.jackin/agent-browser-profile` logged in to Linear and
-  GitHub (M1-06); verify: `agent-browser open linear.app` shows the account.
+- Browser state `~/.jackin/agent-browser-profile/state.json` saved from
+  the host login (M1-06, D-077); verify: inside `crew-operator`,
+  `agent-browser open https://linear.app && agent-browser get url` shows
+  the workspace URL.
 - Host: OrbStack running (`docker context orbstack`, D-056); laptop set not to sleep for the proof run.
 ```
 
@@ -140,6 +155,13 @@ Template:
 ## Definition of done
 ## Constraints
 ## Preflight (D-050)
+## Authorization (D-055, D-079)
+
+This task text is the operator's per-PR authorization: when a step names
+a merge, merge the pull request yourself with `gh pr merge` once every
+required check is green; do not wait for a further "merge it"; never
+bypass a failed check. Role repositories commit to `main` (D-074).
+
 ## When stuck (D-063)
 
 If this task stalls or takes longer than expected, do not escalate first.
@@ -158,8 +180,8 @@ depends_on = ["010-schema-migration"]
 role = "the-architect"          # jackin role
 runtime = "claude"              # optional hint; manager may override
 lane = "L1"                     # ROADMAP §5
-fallback_lane = "L2"            # D-057: next lane on quota exhaustion or stuck
-limits = { attempts = 3, minutes = 90 }
+fallback_lane = "L2"            # D-057: next lane on a stuck run (quota: D-071 chain)
+limits = { attempts = 3, minutes = 90 }   # attempts = exhaustion cap (D-070)
 ```
 
 ### `verify.sh`

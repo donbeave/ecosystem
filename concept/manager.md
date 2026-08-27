@@ -103,7 +103,9 @@ human ── jackin CLI ──┐ │
    verification subagents (D-007). Each time it finishes an item it updates
    the local file; the daemon pushes that progress back to the issue. The
    daemon also writes one activity per run-state transition and a heartbeat
-   every 10 minutes with "last progress at" (D-049); nothing else.
+   every 10 minutes with "last progress at" (D-049); no other writes
+   (the candidate and session polls and the pre-write `description` read
+   are not issue-content reads, D-081).
 5a. **Blocked.** The agent inside the container stops on something the
    daemon did not cause — a permission prompt, a tool refusal, a
    confirmation, any wait for input. The capsule exposes this state for
@@ -130,10 +132,12 @@ human ── jackin CLI ──┐ │
    elicitation (D-029). **Lane fallback (D-057):** on provider quota
    exhaustion or a stuck run past the recovery threshold, and after the
    stuck rule has run (D-063: subagents analyze first), the daemon
-   re-launches the attempt on the lane's fallback (`ROADMAP.md` §5:
-   L1→L2→L3→L4→L5→L6→L1, L4→L5→L6→L1→L2→L3→L4), switching account home,
-   runtime, and model together; the ledger records each attempt's lane.
-   Implemented by M6-05; by hand before that.
+   re-launches the attempt on the lane's fallback (`ROADMAP.md` §5: stuck
+   chain L1→L2→L3→L4→L5→L6→L1; quota exhaustion skips every lane sharing
+   the exhausted account home and consumes no attempt, D-071), switching
+   account home, runtime, and model together; the ledger records each
+   attempt's lane. Implemented by M6-05; by hand before that, recorded in
+   `PROGRESS.md` only, never as a preflight defect (D-071).
 8. **Pull request and merge.** The daemon opens or updates the pull
    request on GitHub from the task's branch (D-014). A human moves the
    issue to the merging state; one `merge` attempt per repository at a

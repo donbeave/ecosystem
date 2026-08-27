@@ -1,13 +1,15 @@
 # Tasks
 
-Index of every task folder in this directory with its status (D-038). An
+Index of every task with its status (D-038); M1-01 (wave 0) writes one row
+per M1..M5 id before any other task starts (D-072). An
 agent starting a task reads this file, then its task folder, works only on
 that task, and updates the status here when done. Tasks are created only
 after `ROADMAP.md` is finalized; each becomes a Linear issue when it is
 ready to execute.
 
-Statuses: `planned`, `ready`, `in-progress`, `blocked`, `done` — lowercase,
-exactly these. The root `verify.sh` (D-069) parses this table by the
+Statuses: `planned`, `ready`, `in-progress`, `waiting` (every lane of the
+chain throttled, D-071), `blocked` (missing operator input or exhausted,
+D-070), `done` — lowercase, exactly these. The root `verify.sh` (D-069) parses this table by the
 `Task` and `Status` header names, reads the task id from the `Task` cell
 (a link is fine), and requires `done` plus an existing
 `tasks/<id>/verify.sh` for every id in `ROADMAP.md`. Columns may be added
@@ -15,4 +17,4 @@ exactly these. The root `verify.sh` (D-069) parses this table by the
 
 | Task | Milestone | Depends on | Status |
 | --- | --- | --- | --- |
-| _none yet — roadmap not finalized_ | | | |
+| _none yet — written by M1-01_ | | | |

@@ -43,7 +43,9 @@ decisions, and concept of the project before implementation starts.
     github.com/jackin-project or github.com/tailrocks may be changed when
     this effort needs it; defects there are bugs to fix, gaps are
     extensions to add (D-046). All such changes land on the branch
-    `feat/managed-execution` in that repository (D-047).
+    `feat/managed-execution` in that repository (D-047), except role
+    repositories, whose changes are effective only on `main` because
+    jackin loads the default branch (D-074).
 11. **Stuck rule.** When a task stalls or takes too long, spawn subagents
     to analyze why and to find a solution before anything is escalated.
     This binds every container agent and the host session; in managed

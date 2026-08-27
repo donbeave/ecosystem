@@ -166,8 +166,14 @@ sees a pending session.
    run, the daemon re-launches the attempt on the lane's `fallback`
    (`ROADMAP.md` §5: L1→L2→L3→L4→L5→L6→L1; L4→L5→L6→L1→L2→L3→L4),
    switching account home, runtime, and model together; the ledger records
-   the lane of every attempt. Implemented by M6-05; before that the host
-   session re-lanes by hand and records a preflight defect.
+   the lane of every attempt. Quota exhaustion is infrastructure-class:
+   it consumes no attempt and skips every lane sharing the exhausted
+   account home (L1/L2/L3→L4→L5→L6→L1; L4→L5→L6→L1; …); a chain fully
+   throttled waits for the reset instead of blocking (D-071). Implemented
+   by M6-05; before that the host session re-lanes by hand and records the
+   hop in the task's `PROGRESS.md` result cell — never a preflight defect
+   (D-071). A task whose verify still fails after `limits.attempts` in the
+   host-driven run is `exhausted` and filed as such (D-070).
 9. **Escalation.** A blocker brief (what is missing, why it blocks, the
    exact human action) is posted as a Linear `elicitation`; the human's
    reply arrives as a `prompted` event and is sent into the same PTY; a
@@ -221,9 +227,12 @@ id, jackin instance name, host — kept current by the daemon from launch to
 removal and across retries, in the session `externalUrls` (human) and the
 ledger (machine). (D-052)
 
-The daemon reads the issue once at pickup; it writes on checklist
-completion, on every state transition (exactly one write per transition),
-and on heartbeat. (D-013, D-049)
+The daemon reads the issue content once at pickup; the M2-03 candidate,
+session, and activity polls and the M6-02 pre-write `description` read are
+not issue-content reads; it writes on checklist completion, on every state
+transition (exactly one write per transition), and on heartbeat, and its
+log tags `poll`, `issue.read`, and `write` so proofs can count them.
+(D-013, D-049, D-081)
 
 The daemon answers a synchronous state snapshot over its socket (`running`,
 `retrying`, `blocked`, `stuck`, totals, rate limits, attach target per row)
@@ -302,8 +311,10 @@ support. Models: Fable 5, Opus 5, Sonnet 5, GPT-5.6 Sol, GPT-5.6 Terra,
 GPT-5.6 Luna, all at medium reasoning. Tasks are assigned across agents,
 models, and account lanes. Until per-launch selection exists (`LoadOptions`
 gains `account`, `model`, `effort` in M3-01; Q-024 adopted) one jackin
-workspace profile per lane carries the account and model, and effort is
-pinned to medium by lane profile environment. (D-039, D-043)
+workspace profile per lane carries the account (`sync_source_dir`), and
+model and effort are set by workspace env for Claude lanes and by a role
+hook writing `$CODEX_HOME/config.toml` for Codex lanes; manifests carry no
+`[claude].model`. (D-039, D-043, D-078)
 
 ## 9d. Involved projects and branches
 
@@ -311,6 +322,10 @@ Any repository under github.com/jackin-project or github.com/tailrocks is
 changed when this effort needs it; defects are bugs to fix there, gaps are
 extensions (D-046). All such changes land on `feat/managed-execution` in
 each repository; this repository commits directly to `main` (D-047).
+Role repositories are the exception: jackin loads a role from its default
+branch only, so `donbeave/jackin-crew-*` and `jackin-role-template` commit
+directly to `main` and `jackin-the-architect` merges its PR in the same
+task (D-074).
 Manifest schema bumps are one per PR; `default_agent` and the launch
 prompt field land together as `v1alpha7` when M3-02 and M4-01 ship
 together, otherwise as two consecutive versions (Q-021 adopted). termrock's
@@ -318,9 +333,11 @@ trunk-only `CONTRIBUTING.md` is amended on `feat/managed-execution` with an
 agent-authored-changes clause: branch, PR to `main`, `crew-reviewer`
 review requested, agent merges (D-047, D-053, D-055).
 
-Merges and releases (D-055): agents merge pull requests to `main`
-themselves, through the forwarded `gh`, whenever the roadmap needs the
-merge; work that blocks nothing stays unmerged on `feat/managed-execution`;
+Merges and releases (D-055, D-074): agents merge pull requests to `main`
+themselves, through the forwarded `gh`, when a task's scope names the
+merge (the task text is the per-PR authorization, D-079); one rolling PR
+per repository stays open and is reviewed per milestone at successive head
+SHAs; work that blocks nothing stays unmerged on `feat/managed-execution`;
 no jackin release and no Homebrew tap publish before M11 — branch builds
 only. There is no human review gate: `crew-reviewer` tasks run in parallel
 and never block the next task; findings become follow-up checklist items
@@ -349,7 +366,9 @@ milestone's items are collected into one operator preflight list in
 agents start; task folders carry a `preflight` section
 (`concept/task-format.md`). An agent that discovers a missing operator
 input mid-task records it as a preflight defect, completes everything not
-depending on it, and marks the task blocked with the exact missing item.
+depending on it, and marks the task blocked with the exact missing item;
+a task whose verify still fails after the attempt cap is `exhausted` and
+filed the same way, and the run ends COMPLETE or BLOCKED (D-070).
 Open design questions never stop work: recommended answers are adopted by
 default and may be overridden later. (D-050, D-053)
 
@@ -441,8 +460,10 @@ overlap in execution; review tasks never gate the next milestone (D-055).
 ## 10c. Naming and escalation
 
 There is no separate product name: the feature is the jackin daemon's
-"managed execution" (D-066). Roadmap issues are created and assigned to
-jackin by M1-12 under label `auto-dispatch`; agent-created follow-ups
+"managed execution" (D-066). Roadmap issues are created by M1-12 under
+label `auto-dispatch` without a delegate; the host session delegates each
+issue to jackin when the daemon can serve it and closes the issue of every
+finished task until M9-01 does (D-067, D-073); agent-created follow-ups
 dispatch only when the parent carries that label (D-067). Escalation is
 Linear-only; the host session is first responder during the roadmap
 (D-068).

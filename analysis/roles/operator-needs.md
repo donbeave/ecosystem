@@ -320,7 +320,7 @@ M6-04, M7-01, M7-03, M8-02, M9-05, M10-01, M10-03, M11-03
 | Creating the two service accounts (M10-01, and the operator write account before M1-03) | Service accounts are created in the 1Password web UI by an owner/admin and the token is shown once | Human creates them and stores the tokens in `tailrocks` |
 | Linear workspace admin consent (M1-10) | `actor=app` authorization requires a workspace admin [doc: `analysis/linear-agents.md:25`]; the profile *is* the admin, so the role can click through, but the human should be the one deciding dedicated-vs-existing workspace (§6 of credentials) | Human decides; role executes in the profile |
 | GitHub App installation on orgs (M7-01) | Installing on `tailrocks`/`chainargos` needs org owner approval; the profile has it, but the scope decision is a human one | Human approves the installation page the role opens |
-| Picker confirmation for every 1Password write | jackin-exec is fail-closed and requires the operator at the TUI | Human presses Enter in `jackin hardline` |
+| Picker confirmation for every 1Password write | jackin-exec is fail-closed and requires the operator at the TUI | The host session confirms via `tmux send-keys Space Enter` after checking the displayed command (D-082); never a human step during the run |
 
 Everything else — creating the OAuth app form, filling scopes, running the
 token exchange with `curl`, `op item create/edit`, label and template

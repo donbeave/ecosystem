@@ -222,7 +222,7 @@ operator role as ROADMAP already assigns.
   [[claude.marketplaces]]
   source = "jackin-project/jackin-marketplace"
   [[claude.marketplaces]]
-  source = "https://github.com/tailrocks/tailrocks-skills.git#v0.28.0"
+  source = "tailrocks/tailrocks-skills"   # slug form; jackin has no #ref syntax and tag v0.28.0 does not exist (D-078)
   [[claude.marketplaces]]
   source = "JuliusBrussee/caveman"
   [codex]

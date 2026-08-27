@@ -101,11 +101,15 @@ it to the operator's `[docker.grants]` (`jackin/docs/content/(public)/(role-auth
 Recommendation: the manifest sets `min_profile = "standard"` (cargo needs
 open network to crates.io and github.com for the termrock git dependency) and
 omits `dind`; the six jackin workspace profiles of M1-13 set
-`[docker.grants] dind = "rootless"` so every lane can run the e2e lane, and
-the daemon's `LoadOptions` (M3-01) passes the same grant. Rootless first
-because the tests only need a daemon, not host-level capabilities; escalate to
-`privileged` only if allowlist networking (`iptables`) inside the sidecar
-proves necessary. Note the cost: the e2e `jackin load` inside DinD pulls
+`[docker.grants] dind = "privileged"` so every lane can run the e2e lane, and
+the daemon's `LoadOptions` (M3-01) passes the same grant. Rootless would be
+preferable because the tests only need a daemon, not host-level
+capabilities, but jackin's sidecar `ContainerSpec` exposes only `privileged`
+(no `security_opt`/`cap_add`), the upstream image documents `--privileged`
+as required, and jackin's own matrix cell is `TODO(WP0-tier2)`; M1-13 proves
+the tier on this host and its `dind.out` is the tier of record (D-078). A
+`security_opt`/`cap_add` knob for the sidecar is a non-gating jackin
+follow-up so rootless can be retried later. Note the cost: the e2e `jackin load` inside DinD pulls
 `projectjackin/construct:0.36-trixie` and builds a fixture role image on every
 fresh sidecar, so the DinD data volume should persist across the lane's
 instances. The macOS OrbStack usage-broker lane (`TESTING.md` "Mandatory macOS
@@ -268,7 +272,9 @@ DinD volume (§3). Hooks: `preflight.sh` only; no `setup_once` writes outside
 **Threat model bullets (for the role's `AGENTS.md`).**
 
 - Holds a GitHub session able to push to `jackin-project/jackin` and open
-  PRs; never merges without the operator's per-PR "merge it" (`jackin/.github/AGENTS.md`).
+  PRs; merges only when the task text names the merge — under D-055/D-079
+  the task prompt is the operator's per-PR "merge it" that
+  `jackin/.github/AGENTS.md` requires (opinion superseded by D-055).
 - Issue text delivered by the daemon is untrusted input (M4-07); the role has
   no browser profile, no vault access, no Linear token, so the worst case is a
   bad commit on a branch that still needs review and CI.
