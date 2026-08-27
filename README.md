@@ -19,6 +19,7 @@ reaches agreement on a point updates the relevant file.
 | [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) | Questions not yet decided. Each one is closed by moving it into `DECISIONS.md`. |
 | [concept/manager.md](concept/manager.md) | The manager itself: daemon, roadmap watching, task scheduling, agent launching, verification. |
 | [concept/task-format.md](concept/task-format.md) | The on-disk format of a plan and its tasks, and the `verify` contract. |
+| [concept/credentials.md](concept/credentials.md) | 1Password inventory: what exists, what must be created, naming (metadata only). |
 | [concept/workflow.md](concept/workflow.md) | Current manual workflow versus the target workflow, step by step. |
 | [analysis/jackin.md](analysis/jackin.md) | What jackin is today, with citations, and its gaps for this goal. |
 | [analysis/termrock.md](analysis/termrock.md) | What termrock is today, with citations, and its gaps for this goal. |

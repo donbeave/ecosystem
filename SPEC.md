@@ -124,6 +124,17 @@ Every credential is created into 1Password and referenced as `op://`;
 none lives in files, images, documents, or chat. The daemon resolves
 credentials from 1Password at runtime. (D-035)
 
+Inventory of what exists and what must be created is in
+`concept/credentials.md` (metadata only, never values). Summary as of
+2026-08-27: Linear workspace login exists (Google SSO,
+alexey@chainargos.com); no Linear OAuth agent app yet; two GitHub Apps
+exist with the wrong scope for PR management; provider runtimes use
+jackin's host login forwarding (`auth_forward = "sync"`), fine for the
+laptop prototype, to be replaced by `op://` provider keys at the server
+step; no `jackin` vault yet. Proposed: vault `jackin`, one item per
+rotation unit (`linear-agent-app`, `github-app-jackin-daemon`,
+`<runtime>-daemon`, ...).
+
 ## 9b. Delegation
 
 All work — planning here, implementation, and the agents the daemon runs —
