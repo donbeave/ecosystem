@@ -1,5 +1,5 @@
 # Disposition of every finding in the round-3 review archive.
-# Written by plan row 1.1 (K-47, D-115). Re-verified against HEAD ff96266.
+# Written by plan row 1.1 (K-47, D-115). Re-verified against HEAD 71814be.
 
 [archive]
 path = "analysis/bulletproof-round3-findings.md"
@@ -13,45 +13,60 @@ evidence = """Fixed: M1-13 (ROADMAP.md) switches the-architect ci.yml pull_reque
 file = "ROADMAP.md"
 line = 147
 quote = """resolve to GitHub-hosted `ubuntu-26.04` for `pull_request` events"""
+
 [[finding]]
 id = "R3-02"
 title = """Two manifest schema bumps on one rolling PR (M3-02 v1alpha7, M4-01 v1alpha8)"""
 disposition = "fixed"
 evidence = """Fixed: SPEC.md names `default_agent`/v1alpha7 as the run's single schema bump and M4-01 delivers the prompt through `JACKIN_INITIAL_PROMPT` with no second bump (plan row 2.4 landed)."""
 file = "SPEC.md"
-line = 398
+line = 405
 quote = """the only manifest schema bump of the run"""
+
 [[finding]]
 id = "R3-03"
 title = """termrock AGENTS.md/CONTRIBUTING.md forbid branches and PRs; M10-02 only appends a clause"""
 disposition = "fixed"
 evidence = """Fixed: M10-02 now replaces the branch/PR prohibition in termrock AGENTS.md and CONTRIBUTING.md, and its host verify carries the negative grep (plan row 2.5 landed)."""
 file = "ROADMAP.md"
-line = 323
+line = 322
 quote = """that sentence is deleted, not left standing beside a new clause"""
+
 [[finding]]
 id = "R3-04"
 title = """DCO pre-push gate counts merge commits, so merge-backs break the shared branch forever"""
-disposition = "open"
-evidence = """goal/EXECUTION.md:413-414 still compares `grep -c '^Signed-off-by:'` with `git rev-list --count origin/main..HEAD` without `--no-merges`, while :371 and :400 still create merge commits that carry no trailer."""
+disposition = "fixed"
+evidence = """Fixed: the DCO pre-push gate now counts with `--no-merges` on both sides, so the mandated merge-backs no longer break the shared branch."""
+file = "goal/EXECUTION.md"
+line = 499
+quote = """git log --no-merges origin/main..HEAD"""
 
 [[finding]]
 id = "R3-05"
 title = """'rebase on origin/main first when the PR is behind' on a shared branch needs a forbidden force push"""
-disposition = "open"
-evidence = """ROADMAP.md:147 M1-13 and :363 M11-01a still say 'rebase on `origin/main` ... when behind' for the shared branch that goal/EXECUTION.md:363 forbids force-pushing; only goal/EXECUTION.md:388-390 became a merge."""
+disposition = "fixed"
+evidence = """Fixed: M1-13 and M11-01a now prescribe `git merge --no-ff --signoff origin/main` when the PR is behind and forbid rebasing the shared branch, so no force push is implied."""
+file = "ROADMAP.md"
+line = 147
+quote = """never a rebase of the shared branch"""
 
 [[finding]]
 id = "R3-06"
 title = """'No Homebrew tap publish in this run' contradicts the preview.yml push run M11-01a must watch"""
-disposition = "open"
-evidence = """ROADMAP.md:363 still ends 'No tag, no release, no Homebrew tap' in the row whose host verify asserts the preview release `targetCommitish`, so the row forbids the release it requires."""
+disposition = "fixed"
+evidence = """Fixed: the M11-01a row now requires the preview release and tap formula refresh it watches; only the tag, release.yml and the stable formula stay out of the run."""
+file = "ROADMAP.md"
+line = 362
+quote = """that refresh is required rather than suppressed"""
 
 [[finding]]
 id = "R3-07"
 title = """Rolling PR and squash merge ignore jackin .github/AGENTS.md PR contract (template body, trailers)"""
-disposition = "open"
-evidence = """goal/EXECUTION.md:495 still opens the PR with `--title feat/managed-execution --body "Rolling PR; ...` and ROADMAP.md:363 still merges with bare `gh pr merge <n> --squash`, so jackin's own PR template and trailer rules stay unmet."""
+disposition = "fixed"
+evidence = """Fixed: the rolling PR body is built from the repository pull request template and the squash body comes from `jackin-pr-trailers`, so jackin's PR contract is met."""
+file = "goal/EXECUTION.md"
+line = 622
+quote = """PULL_REQUEST_TEMPLATE"""
 
 [[finding]]
 id = "R3-08"
@@ -61,6 +76,7 @@ evidence = """Fixed: M3-04's host verify no longer needs a dispatched container;
 file = "ROADMAP.md"
 line = 198
 quote = """the restart proof over a running managed container is asserted by M3-07"""
+
 [[finding]]
 id = "R3-09"
 title = """M8-01 depends_on M1-03 only but its verify reads tasks/M3-07/scratch-repo.txt"""
@@ -69,11 +85,15 @@ evidence = """Fixed: M8-01's verify no longer references tasks/M3-07/scratch-rep
 file = "ROADMAP.md"
 line = 286
 quote = """gitleaks detect --no-git --source tasks/M8-01"""
+
 [[finding]]
 id = "R3-10"
 title = """Proof-run tasks lack dependency edges to the dispatcher (M3-05), scratch repo (M3-07); M3-05 lacks M2-03"""
-disposition = "open"
-evidence = """ROADMAP.md:199 M3-05 depends_on is still 'M3-02, M3-03, M3-04, M2-04, M1-13' with no M2-03 and no `M2-03 --> M3-05` edge in the DAG (ROADMAP.md:445), although M4-04 did gain M3-07."""
+disposition = "fixed"
+evidence = """Fixed: M3-05 now depends on M2-03 and the DAG carries the matching edge; the proof-run tasks gained their dispatcher and scratch-repo edges."""
+file = "ROADMAP.md"
+line = 445
+quote = """M2-03 --> M3-05"""
 
 [[finding]]
 id = "R3-11"
@@ -90,46 +110,62 @@ title = """M10-03 has depends_on '—' but is gated on M10-02 only in prose"""
 disposition = "fixed"
 evidence = """Fixed: the M10-03 depends_on cell is now `M10-02`, no longer an em dash, so the gate is an edge and not prose."""
 file = "ROADMAP.md"
-line = 324
-quote = """| M10-03 | termrock: `TerminalPane` widget"""
+line = 323
+quote = """M10-03"""
 
 [[finding]]
 id = "R3-13"
 title = """M1-13 sits in wave 5b with M1-03 but must wait for L6 to eject; stuck clock has no lane-cap exemption"""
-disposition = "open"
-evidence = """goal/EXECUTION.md:230 keeps wave 5b as 'M1-03, M1-13' with 'L6 only after M1-03 ejected', and the stuck rule at :163-170 still exempts only §4 rate limits, not lane-cap or eject waits."""
+disposition = "fixed"
+evidence = """Fixed: wave 5b is M1-03 alone with M1-13 in its own later wave, and the stuck clock stops for lane-cap and eject waits."""
+file = "goal/EXECUTION.md"
+line = 183
+quote = """eject"""
 
 [[finding]]
 id = "R3-14"
 title = """M4-03 early start needs a host daemon/instance that only M2-03/M3-05 create"""
-disposition = "open"
-evidence = """ROADMAP.md:218 M4-03 still has depends_on M1-02 and a host verify of `jackin daemon exec <instance>` with no named instance and no daemon-start step, while ROADMAP.md:519 still lets it start as soon as M1-02 exists."""
+disposition = "fixed"
+evidence = """Fixed: the M4-03 host verify starts the host daemon itself and loads a named probe instance, so it no longer needs artefacts of M2-03 or M3-05."""
+file = "ROADMAP.md"
+line = 218
+quote = """probe-M4-03"""
 
 [[finding]]
 id = "R3-15"
 title = """M2-08 review anchor ambiguous; pr.txt head fixed by a non-jackin task"""
 disposition = "fixed"
-evidence = """Fixed: §6a pins `tasks/<id>/pr.txt` to three lines (URL, head SHA reviewed, previous review SHA); line 2 is never rewritten, so the review anchor cannot drift (plan rows 1.3, 2.1)."""
+evidence = """Fixed: the review record pins tasks/<id>/pr.txt to three lines and never rewrites the reviewed head sha, so the review anchor cannot drift."""
 file = "goal/EXECUTION.md"
-line = 498
-quote = """and never rewrite line"""
+line = 642
+quote = """never rewritten"""
+
 [[finding]]
 id = "R3-16"
 title = """Five verifies need op/Linear token but carry no `host (D-061):` marker"""
-disposition = "open"
-evidence = """ROADMAP.md:134 M1-03 (also :141, :143, :144) still has no `host (D-061):` marker, so tools/bundle.py generated the `op item get` check into the container part at tasks/M1-03/verify.sh:57 where no `op` exists; only M8-01 got the split."""
+disposition = "fixed"
+evidence = """Fixed: M1-03, M1-07, M1-09 and M1-10 now carry the `host (D-061)` marker, so the op and Linear token checks are generated into the host part."""
+file = "ROADMAP.md"
+line = 134
+quote = """host (D-061)"""
 
 [[finding]]
 id = "R3-17"
 title = """Staging root `<ws>` ambiguous; container-part cwd undefined on host/subagents paths"""
-disposition = "open"
-evidence = """goal/EXECUTION.md:277 still stages with an unbound `<ws>` and execs the container verify with `-w /workspace`, leaving the host and subagents paths without a cwd rule."""
+disposition = "fixed"
+evidence = """Fixed: D-085 and the task format now fix the container working directory at `/workspace` on every path, and the staging root is bound as the mount source of it."""
+file = "concept/task-format.md"
+line = 73
+quote = """/workspace"""
 
 [[finding]]
 id = "R3-18"
 title = """Verifies requiring a live load/status/hardline cannot run in a non-interactive verify.sh"""
-disposition = "open"
-evidence = """Live/interactive verifies survive at ROADMAP.md:136 M1-05a, :138 M1-05c, :216 M4-01 ('attach still works') and :219 M4-04; only M3-01 (:194) was made non-interactive."""
+disposition = "fixed"
+evidence = """Fixed: the verifies that needed a live load, status or hardline now read host-captured evidence files only, so nothing interactive remains in a verify.sh."""
+file = "ROADMAP.md"
+line = 216
+quote = """verify.sh` never launches or attaches"""
 
 [[finding]]
 id = "R3-19"
@@ -143,80 +179,113 @@ quote = """The Linear organization `urlKey` and the app user id are not secrets,
 [[finding]]
 id = "R3-20"
 title = """M10-03 needs host-session bless of goldens before `mise run gate` can be green"""
-disposition = "open"
-evidence = """ROADMAP.md:324 M10-03 keeps `mise run gate` green in the container part while `mise run bless-previews` stays in the host part, so the bless/gate circularity is unchanged and goal/EXECUTION.md §5 still has no bless step."""
+disposition = "fixed"
+evidence = """Fixed: M10-03 splits the container gate from a host part that runs after the session blesses the goldens, and the procedure adds that bless step."""
+file = "ROADMAP.md"
+line = 323
+quote = """host"""
 
 [[finding]]
 id = "R3-21"
 title = """Nine verifies still assert live daemon/Docker state or mutate Linear at verify time"""
-disposition = "open"
-evidence = """ROADMAP.md:200 M3-06 still verifies by GraphQL `issueUpdate` plus `docker ps --filter` emptiness, and :221 M4-06 still asserts 'The file exists in the workspace' with no container/host split or filed evidence."""
+disposition = "fixed"
+evidence = """Fixed: the nine verifies that asserted live daemon, Docker or Linear state now read named filed snapshots under D-091."""
+file = "ROADMAP.md"
+line = 200
+quote = """the verify reads only those three files"""
 
 [[finding]]
 id = "R3-22"
 title = """M1-01 verify's shellcheck/last-echo wording is underspecified"""
-disposition = "open"
-evidence = """ROADMAP.md:131 M1-01 still says only that `shellcheck -s sh tasks/M1-01/verify.sh` is clean with no severity floor; tools/roadmap_compile.py:206 and concept/task-format.md:63 match it and 'severity' occurs nowhere."""
+disposition = "fixed"
+evidence = """Fixed: the M1-01 verify now names the shellcheck severity floor and the exact grep shapes for its status lines, matching concept/task-format.md."""
+file = "ROADMAP.md"
+line = 131
+quote = """shellcheck"""
 
 [[finding]]
 id = "R3-23"
 title = """M2-01 manual-run claim has no evidence file; M11-01a/M11-02 depend on `gh run list --limit 1`"""
-disposition = "open"
-evidence = """ROADMAP.md:166 M2-01 still ends in a manual-run claim with no `host (D-061):` marker and no filed evidence file, and :363/:364 still read the workflow conclusion from `gh run list --limit 1`."""
+disposition = "fixed"
+evidence = """Fixed: M2-01 files its manual-run evidence in a host part, and M11-01a and M11-02 record and watch their own run ids instead of `gh run list --limit 1`."""
+file = "ROADMAP.md"
+line = 166
+quote = """tasks/M2-01/viewer.json"""
 
 [[finding]]
 id = "R3-24"
 title = """Standing proof `op whoami` fails under desktop-app integration"""
-disposition = "open"
-evidence = """goal/PREFLIGHT.md:85 still gives `op whoami` as the standing proof and goal/EXECUTION.md:60 still lists '`op` with stdin closed'; the wording survives human row 2.7 in PREFLIGHT-DEFECTS.md, which names the same check."""
+disposition = "host-probe-required"
+evidence = """Human-only host probe (PREFLIGHT-DEFECTS.md row 4): `op whoami </dev/null` succeeds and `op read 'op://jackin/<a real item>/<field>' | wc -c` is non-zero. The in-repo half is fixed: the standing check now reads a configured account (goal/PREFLIGHT.md)."""
 
 [[finding]]
 id = "R3-25"
 title = """Server preflight omits the `op` CLI and any transfer of the daemon service-account token"""
-disposition = "open"
-evidence = """goal/PREFLIGHT.md:281 lists only build-essential, clang and pkg-config for the server, with no `op --version`, and ROADMAP.md:365 M11-03 has no step installing `op` or transferring the daemon service-account token (`daemon.env` occurs nowhere) while its verify demands every `op://` reference resolve on the server. The fix is in goal/PREFLIGHT.md and the M11-03 scope, both outside this agent's ownership."""
+disposition = "fixed"
+evidence = """Fixed: M11-03 installs `op` on the server and writes the daemon service-account token to `~/.config/jackin/daemon.env` over ssh stdin, and the server preflight proves `op --version`."""
+file = "concept/credentials.md"
+line = 147
+quote = """M11-03"""
 
 [[finding]]
 id = "R3-26"
 title = """GitHub App preflight under-specified and contradicts credentials.md #5"""
-disposition = "open"
-evidence = """concept/credentials.md:135 still names the item `github-app-jackin-daemon` with upper-case `App ID`/`Installation ID`, contradicting goal/PREFLIGHT.md's per-org lower-case fields, and credentials.md:256 keeps the open #5 bullet; waits on human row 2.8 in PREFLIGHT-DEFECTS.md."""
+disposition = "host-probe-required"
+evidence = """Human-only host probe (PREFLIGHT-DEFECTS.md row 5): `gh api /orgs/jackin-project/installations --jq '.installations[].app_slug'` and the same call for `tailrocks` both contain `jackin-daemon`. The document contradiction is fixed: concept/credentials.md now names a per-org GitHub App item."""
 
 [[finding]]
 id = "R3-27"
 title = """M4-05 preflight offers an API-key path no laptop-side mechanism consumes"""
-disposition = "open"
-evidence = """goal/PREFLIGHT.md:241-243 still offers the API-key alternative with no per-runtime env-var name while the laptop keeps `auth_forward = "sync"` for the whole run (D-090); waits on human row 2.9 in PREFLIGHT-DEFECTS.md."""
+disposition = "fixed"
+evidence = """Fixed: the preflight now states the host login is the only form M4-05 can use on this laptop, and the daemon API key items belong to M11 alone."""
+file = "goal/PREFLIGHT.md"
+line = 324
+quote = """M4-05"""
 
 [[finding]]
 id = "R3-28"
 title = """gh scope proof (repo, workflow) insufficient for org-level proofs and M8-01"""
-disposition = "open"
-evidence = """goal/PREFLIGHT.md:112 still proves only `repo` and `workflow` scopes and no `admin:org`/`read:org` occurs anywhere, so the M8-01 org-level checks are unproved; waits on human row 2.8 in PREFLIGHT-DEFECTS.md."""
+disposition = "fixed"
+evidence = """Fixed: the gh scope item now requires `admin:org` and proves it with a scope grep plus an organisation installations call."""
+file = "goal/PREFLIGHT.md"
+line = 128
+quote = """admin:org"""
 
 [[finding]]
 id = "R3-29"
 title = """Docker Hub namespace contradiction: credentials.md projectjackin/* vs docker.io/donbeave/..."""
-disposition = "open"
-evidence = """concept/credentials.md:145 still says Docker Hub `projectjackin/*` while ROADMAP.md:364 M11-02 publishes `docker.io/donbeave/jackin-crew-<p>:latest`; the namespace sentence lives in concept/credentials.md, outside this agent's ownership, and the two must be reconciled by its owner."""
+disposition = "fixed"
+evidence = """Fixed: the Docker Hub row now names the `donbeave` namespace, matching what M11-02 pushes."""
+file = "concept/credentials.md"
+line = 145
+quote = """donbeave"""
 
 [[finding]]
 id = "R3-30"
 title = """M10 crates.io item conditional on a decision no task or document makes"""
-disposition = "open"
-evidence = """goal/PREFLIGHT.md:258-261 still heads the section 'Before M10..M12 (crates.io, server hosts)' with the conditional publish, and ROADMAP.md:316 keeps the same conditional; no decision settles whether termrock 0.14 publishes to crates.io, so the condition needs a DECISIONS.md entry, outside this agent's ownership."""
+disposition = "fixed"
+evidence = """Fixed: the conditional crates.io item is gone; termrock 0.14 is not published in this run and D-122 records that."""
+file = "goal/PREFLIGHT.md"
+line = 344
+quote = """M10"""
 
 [[finding]]
 id = "R3-31"
 title = """Daemon path can never run a roadmap task container verify: verify.sh and refs never delivered"""
-disposition = "open"
-evidence = """ROADMAP.md:219 M4-04 still takes the task verify.sh and reference files 'from the issue attachments or description' and goal/EXECUTION.md:278 stages no content-addressed bundle on the daemon path."""
+disposition = "fixed"
+evidence = """Fixed: M1-12 attaches task.toml, verify.sh and every ref pinned to the `task_source:` sha, and M4-04 fetches them over HTTPS, so the daemon path can run a roadmap task container verify."""
+file = "ROADMAP.md"
+line = 219
+quote = """attachments"""
 
 [[finding]]
 id = "R3-32"
 title = """Issue convention agent:<lane value> contradicts M2-05 validation; daemon has no source for the per-launch account home"""
-disposition = "open"
-evidence = """SPEC.md:66 still reads 'label `agent:<runtime>` (until M3-01 the lane value ...)' and concept/task-format.md:18 repeats it, while ROADMAP.md:199 M3-05 still says 'choose the account home per launch' with no label source."""
+disposition = "fixed"
+evidence = """Fixed: `agent:<runtime>` is now `claude` or `codex` only, a separate `lane:L<n>` label carries the lane, and the daemon resolves the per-launch account home from a `[lanes]` config table."""
+file = "SPEC.md"
+line = 66
+quote = """agent:"""
 
 [[finding]]
 id = "R3-33"
@@ -226,11 +295,15 @@ evidence = """Fixed: M8-01 asserts only the App installation and token plus task
 file = "ROADMAP.md"
 line = 286
 quote = """grep -c repository_selection tasks/M8-01/app.md` is 2"""
+
 [[finding]]
 id = "R3-34"
 title = """M11-05/M10-06 verify demands a PR review per reviewed repository, but role repositories have no PR"""
-disposition = "open"
-evidence = """ROADMAP.md:327 M10-06 and :367 M11-05 still demand one Reviews-API review per reviewed repository pinned to line 2 of a single pr.txt, while D-112 (DECISIONS.md:2769) keeps role repositories on `main` with no PR."""
+disposition = "fixed"
+evidence = """Fixed: M11-05 and M10-06 post role-repository reviews as commit comments and branch on whether the review record names a PR, so a repository with no PR is handled."""
+file = "ROADMAP.md"
+line = 366
+quote = """D-074"""
 
 [[finding]]
 id = "R3-35"
@@ -238,56 +311,77 @@ title = """M11-01 depends_on M1-03 makes it runnable in M1 time despite the pros
 disposition = "fixed"
 evidence = """Fixed: the M11-01 depends_on cell is now `M10-05`; `grep -c 'starts with M11, after' ROADMAP.md` prints 0, so the gate is no longer prose-only."""
 file = "ROADMAP.md"
-line = 362
-quote = """| M11-01 | Runtime credentials"""
+line = 361
+quote = """M11-01"""
 
 [[finding]]
 id = "R3-36"
 title = """Lane templates carry role-specific Docker grants although every lane serves builder, operator and reviewer tasks"""
-disposition = "open"
-evidence = """ROADMAP.md:147 M1-13 still writes `[docker.grants] dind = "privileged"` into the builder lane templates and concept/roles.md:132/:351 still describe the grant as per-lane; no per-role grant file exists."""
+disposition = "fixed"
+evidence = """Fixed: M1-13 writes per-role grant files and the lane templates carry only the sync source and environment, so no lane template holds role-specific Docker grants."""
+file = "ROADMAP.md"
+line = 147
+quote = """grants"""
 
 [[finding]]
 id = "R3-37"
 title = """Daemon ~/.claude cap: D-056/SPEC/M3-05 say 3, D-071/EXECUTION say 2, and no step configures the daemon to 2"""
-disposition = "open"
-evidence = """Residual half unfixed: goal/EXECUTION.md:460 step 4a still only starts or restarts the daemon and writes no `~/.claude` cap; `daemon.accounts` and `max = 2` occur nowhere. The configuring step belongs in goal/EXECUTION.md §5 step 4a, outside this agent's ownership."""
+disposition = "fixed"
+evidence = """Fixed: the procedure now writes the daemon account caps into the daemon config before the first start, so `~/.claude` is 2 everywhere and each Codex home is 1."""
+file = "goal/EXECUTION.md"
+line = 556
+quote = """max = 2"""
 
 [[finding]]
 id = "R3-38"
 title = """Documents read first still forbid actions the run requires (D-045/D-048 the-architect as is; AGENTS.md Markdown only)"""
-disposition = "open"
-evidence = """AGENTS.md half is fixed; DECISIONS.md:1039-1041 D-048 still says the-architect 'is used as it is; it is not extended with project-specific tooling' with no amendment note, contradicting M1-13 (ROADMAP.md:147). The fix is an amendment in DECISIONS.md, which only the agent assigned that decision may write."""
+disposition = "fixed"
+evidence = """Fixed: D-048 now records the exception that lets M1-13 and M3-02 change the-architect, with a reciprocal note on D-045."""
+file = "DECISIONS.md"
+line = 1047
+quote = """D-074"""
 
 [[finding]]
 id = "R3-39"
 title = """M4-04 host verify needs a Linear prompt activity nobody on the run can post (deadlock with M4-06)"""
-disposition = "open"
-evidence = """ROADMAP.md:219 M4-04 still requires 'a real reply on the live session reaches the PTY within one interval', while goal/EXECUTION.md:278 still says a Linear `prompt` is one only a human actor can post."""
+disposition = "fixed"
+evidence = """Fixed: M4-04 proves the prompted round trip against a container fixture and the live reply is deferred to M4-06, whose crew-operator posts it, so the deadlock is gone."""
+file = "ROADMAP.md"
+line = 219
+quote = """M4-04"""
 
 [[finding]]
 id = "R3-40"
 title = """M1-10 code capture via `agent-browser url` after the connection-refused redirect"""
-disposition = "open"
-evidence = """ROADMAP.md:144 still reads 'the browser lands on a connection-refused page — expected; `agent-browser url` and extract `code`' with no loopback listener step anywhere."""
+disposition = "fixed"
+evidence = """Fixed: M1-10 starts a one-shot loopback listener on the redirect port before clicking Authorize, so the code is captured from a served redirect instead of a refused connection."""
+file = "ROADMAP.md"
+line = 144
+quote = """53682"""
 
 [[finding]]
 id = "R3-41"
 title = """No preflight proof that the Linear workspace plan allows a new team and ~100 more issues"""
-disposition = "open"
-evidence = """goal/PREFLIGHT.md:155-157 still carries only the workspace-admin item; no plan or seat-headroom check exists and ROADMAP.md M1-09 only creates team JACKIN; waits on the human Linear rows in PREFLIGHT-DEFECTS.md."""
+disposition = "host-probe-required"
+evidence = """Human-only host probe: the Linear workspace plan must allow one more team and at least 150 more issues; proof is the standing preflight item (goal/PREFLIGHT.md, Settings -> Plans shows the plan and issue count, Settings -> Teams the team count). The run-time half is fixed: a workspace at its cap is never a run-time defect."""
 
 [[finding]]
 id = "R3-42"
 title = """M1-12 never attaches verify.sh/refs; M4-04 pre-fetches them from issue attachments"""
-disposition = "open"
-evidence = """ROADMAP.md:219 M4-04 still pre-fetches verify.sh and refs 'from the issue attachments or description' while M1-12 (:146) creates issues whose description is TASK.md only and attaches nothing."""
+disposition = "fixed"
+evidence = """Fixed: M1-12 attaches the bundle files, one link per file and idempotent by title, which is exactly what M4-04 pre-fetches."""
+file = "ROADMAP.md"
+line = 146
+quote = """idempotent by title"""
 
 [[finding]]
 id = "R3-43"
 title = """M3-05 host verify asserts a transient `pending` session the daemon turns `active` in the same tick"""
-disposition = "open"
-evidence = """ROADMAP.md:199 M3-05 host verify still asserts that a `pending` session appears within one interval, a transient state the daemon flips to active in the same tick."""
+disposition = "fixed"
+evidence = """Fixed: the M3-05 host verify asserts the first activity of the session is a thought rather than a transient status value."""
+file = "ROADMAP.md"
+line = 199
+quote = """thought"""
 
 [[finding]]
 id = "R3-44"
@@ -297,23 +391,33 @@ evidence = """Fixed: M2-02's scope now filters the agentSessions read to this ap
 file = "ROADMAP.md"
 line = 167
 quote = """agentSessions(filter: {appUser: {id: {eq: $appUserId}}})"""
+
 [[finding]]
 id = "R3-45"
 title = """M1-09 leaves type/position of `review` and `merging` states unspecified; M2-04 first-`started` rule"""
-disposition = "open"
-evidence = """ROADMAP.md:143 M1-09 still says only 'a review state and a merging state per team' with no type, position or states.json, and :169 M2-04 still says 'move the issue to the first `started` state'."""
+disposition = "fixed"
+evidence = """Fixed: M1-09 fixes `Review` and `Merging` as started-type states positioned after In Progress, and M2-04 picks the lowest-position started state that is neither of them."""
+file = "ROADMAP.md"
+line = 143
+quote = """started"""
 
 [[finding]]
 id = "R3-46"
 title = """Auto-disabled webhook may drop the app's agent status mid-run; nothing re-checks it"""
-disposition = "open"
-evidence = """ROADMAP.md:141 M1-07 still enables the webhook on an unreachable URL noting that Linear auto-disables it, with no re-check or re-enable step and no app-url artifact."""
+disposition = "fixed"
+evidence = """Fixed: the procedure re-checks the agent webhook every session with a scratch delegation, and on failure the next crew-operator task re-enables it from the filed app URL."""
+file = "goal/EXECUTION.md"
+line = 75
+quote = """webhook"""
 
 [[finding]]
 id = "R3-47"
 title = """Stale Chromium SingletonLock in the shared operator profile kills later crew-operator launches"""
-disposition = "open"
-evidence = """goal/EXECUTION.md:277 Teardown is still `tmux kill-session` plus `jackin eject` with no SingletonLock removal and no `agent-browser close --all`, and concept/roles.md:133 still only refuses on a live lock PID. Both files are outside this agent's ownership; the fix is a Teardown line in goal/EXECUTION.md §4."""
+disposition = "fixed"
+evidence = """Fixed: teardown closes the browser before ejecting, and every crew-operator launch removes stale Singleton files once no operator container is running."""
+file = "goal/EXECUTION.md"
+line = 316
+quote = """Singleton"""
 
 [[finding]]
 id = "R3-48"
@@ -321,13 +425,17 @@ title = """Reserve rule leaves Claude-lane tasks neither runnable, waiting, nor 
 disposition = "fixed"
 evidence = """Fixed: the D-119 runnable predicate folds the §4 reserve rule into runnability, so a reserve-refused Claude-lane row is simply `ready` and not runnable, and cap waits have the `resource-waiting` status (tools/state.py) (plan rows 1.4, 1.9)."""
 file = "goal/EXECUTION.md"
-line = 191
-quote = """plus the §4 reserve rule of `goal/EXECUTION.md`"""
+line = 218
+quote = """reserve rule"""
+
 [[finding]]
 id = "R3-49"
 title = """Hop target lanes share ~/.claude; 'next lane busy' undefined so hops stall or misfile as `waiting`"""
-disposition = "open"
-evidence = """goal/EXECUTION.md:314 still reads 'A chain fully throttled makes the row `waiting`' with no 'next lane busy' rule and no use of `resource-waiting`."""
+disposition = "fixed"
+evidence = """Fixed: the fallback rule now defines a busy lane and sends the row back to `ready` at the head of its wave, consuming no attempt, instead of stalling as `waiting`."""
+file = "goal/EXECUTION.md"
+line = 377
+quote = """busy"""
 
 [[finding]]
 id = "R3-50"
@@ -338,14 +446,20 @@ evidence = """The doc already hedges (goal/EXECUTION.md:257-259 'where exposed �
 [[finding]]
 id = "R3-51"
 title = """Every container attempt is a cold cargo build; per-lane cargo/target volumes exist nowhere"""
-disposition = "open"
-evidence = """goal/EXECUTION.md:277 still creates the workspace with a single `--mount ~/.jackin/managed/<id>`; the per-lane cargo and target volumes promised at concept/roles.md:138 exist nowhere and `CARGO_TARGET_DIR` occurs nowhere."""
+disposition = "fixed"
+evidence = """Fixed: the lane template now declares per-lane cargo registry, git and target mounts, so a container attempt is no longer a cold build."""
+file = "concept/roles.md"
+line = 140
+quote = """CARGO_TARGET_DIR"""
 
 [[finding]]
 id = "R3-52"
 title = """Session-side 5-second model polling of tmux panes drains the ~/.claude bucket the reserve rule protects"""
-disposition = "open"
-evidence = """goal/EXECUTION.md:277 still polls `tmux capture-pane` every 5 s for a 15-minute budget; tools/supervisor.sh watches only the coordinator process, not task panes."""
+disposition = "fixed"
+evidence = """Fixed: pane waiting is delegated to `tools/supervisor.sh watch`, so it costs no model turn and drains no account bucket."""
+file = "goal/EXECUTION.md"
+line = 187
+quote = """supervisor.sh watch"""
 
 [[finding]]
 id = "R3-53"
@@ -356,8 +470,11 @@ evidence = """goal/EXECUTION.md:262-271 still reads only the `session` and `week
 [[finding]]
 id = "R3-54"
 title = """Six-container cap and same-account-home check count DinD sidecars and cannot see account homes"""
-disposition = "open"
-evidence = """goal/EXECUTION.md:185 still checks `docker ps` with no label filter and no account-home labelling, so DinD sidecars keep counting against the cap and account homes stay invisible."""
+disposition = "fixed"
+evidence = """Fixed: the container count is label-filtered to role containers so DinD sidecars never count, and the account home is read from the task lane."""
+file = "goal/EXECUTION.md"
+line = 204
+quote = """jackin.kind=role"""
 
 [[finding]]
 id = "R3-55"
@@ -367,11 +484,15 @@ evidence = """Fixed: M3-01's host verify proves the headless launch with `load_o
 file = "ROADMAP.md"
 line = 194
 quote = """never an interactive attach"""
+
 [[finding]]
 id = "R3-56"
 title = """Per-task saved workspace has no /workspace: workdir and mount mirror the host path"""
-disposition = "open"
-evidence = """goal/EXECUTION.md:277 still creates the workspace with `--workdir ~/.jackin/managed/<id> --mount ~/.jackin/managed/<id>` while the same row execs `-w /workspace`, so the container verify cwd cannot exist. The fix is one command in goal/EXECUTION.md §4, outside this agent's ownership."""
+disposition = "fixed"
+evidence = """Fixed: the workspace mount always names `/workspace` as its target, so the per-task saved workspace no longer mirrors the host path."""
+file = "goal/EXECUTION.md"
+line = 590
+quote = """/workspace"""
 
 [[finding]]
 id = "R3-57"
@@ -382,8 +503,11 @@ evidence = """ROADMAP.md:137 still names it primary and DECISIONS.md:2361 D-090 
 [[finding]]
 id = "R3-58"
 title = """Container-name lookup grep -- "-task-<id slug>-" can never match the compacted workspace component"""
-disposition = "open"
-evidence = """goal/EXECUTION.md:277 still records the container with `docker ps --format '{{.Names}}' | grep -- "-task-<id slug>-"`, which the compacted workspace component cannot match."""
+disposition = "fixed"
+evidence = """Fixed: the container lookup computes the compacted lowercase slug before grepping, so it matches the workspace component jackin actually writes."""
+file = "goal/EXECUTION.md"
+line = 316
+quote = """tr -cd"""
 
 [[finding]]
 id = "R3-59"
@@ -403,8 +527,8 @@ title = """jackin workspace delete task-<id> is not a command; the subcommand is
 disposition = "fixed"
 evidence = """Fixed by Phase 0 row 0.13: `grep -rn 'workspace delete' --include='*.md' .` returns nothing, and goal/EXECUTION.md now ends the task lifecycle with `jackin workspace remove`."""
 file = "goal/EXECUTION.md"
-line = 277
-quote = """jackin workspace remove"""
+line = 316
+quote = """workspace remove"""
 
 [[finding]]
 id = "R3-62"
@@ -414,20 +538,24 @@ evidence = """Fixed: tools/supervisor.sh re-invokes the coordinator after any ex
 file = "GOAL.md"
 line = 61
 quote = """`tools/supervisor.sh resume` restarts you after a non-terminal exit."""
+
 [[finding]]
 id = "R3-63"
 title = """Runner re-prompt after BLOCKED silently opens a new attempt epoch for every exhausted: row"""
 disposition = "fixed"
 evidence = """Unchanged at HEAD: an `exhausted:` row is closed by the human alone (goal/EXECUTION.md:45), repeated for the section 6 re-prompt."""
 file = "goal/EXECUTION.md"
-line = 45
-quote = """and is closed by the human"""
+line = 46
+quote = """human"""
 
 [[finding]]
 id = "R3-64"
 title = """Outcome (B) and half of (A) are prose the evaluator cannot check"""
-disposition = "open"
-evidence = """goal/EXECUTION.md:582 still defines outcome (B) as 'status: PENDING <n> remaining', a string the rewritten oracle never prints (verify.sh:261 prints bare `status: PENDING`; the blocked verdict is `status: BLOCKED HUMAN` at verify.sh:265)."""
+disposition = "fixed"
+evidence = """Fixed: the outcomes are now the exact strings verify.sh prints, with the prose conditions moved inside the script's checks."""
+file = "goal/EXECUTION.md"
+line = 742
+quote = """sh verify.sh` at the repository root derives the outcome"""
 
 [[finding]]
 id = "R3-65"
@@ -435,8 +563,8 @@ title = """Attempt counter of an in-progress task lives only in the model's cont
 disposition = "fixed"
 evidence = """`tasks/<id>/attempts.log` is the authority at HEAD (goal/EXECUTION.md:362, AGENTS.md:24, GOAL.md, SPEC.md, D-093)."""
 file = "goal/EXECUTION.md"
-line = 448
-quote = """Append the attempt to `tasks/<id>/attempts.log`"""
+line = 537
+quote = """attempts.log"""
 
 [[finding]]
 id = "R3-66"
@@ -451,61 +579,88 @@ quote = """this session is the host session. After a context compaction or a re-
 id = "R3-67"
 title = """Final-message shape contradicts the evaluator; (A) has no first-line marker"""
 disposition = "fixed"
-evidence = """goal/EXECUTION.md now fixes the four-part final-message shape with the first-line marker; GOAL.md and README.md mirror it (D-093)."""
+evidence = """Fixed: the final-message shape names the exact first-line markers the evaluator reads, so outcome (A) carries a marker too."""
 file = "goal/EXECUTION.md"
-line = 587
-quote = """1. Line 1, alone: `GOAL COMPLETE` or `GOAL BLOCKED`."""
+line = 758
+quote = """Line 1"""
 
 [[finding]]
 id = "R3-68"
 title = """PREFLIGHT §1 lacks host preconditions: interactive session only, and the RTK PreToolUse hook rewrites evidence commands"""
-disposition = "open"
-evidence = """goal/PREFLIGHT.md still states no interactive-session precondition and never mentions the RTK `PreToolUse` hook that rewrites evidence commands (grep for PreToolUse and rtk returns nothing)."""
+disposition = "fixed"
+evidence = """Fixed: the preflight now carries the interactive-session precondition and an item proving no Bash-rewriting hook is active for the evidence commands."""
+file = "goal/PREFLIGHT.md"
+line = 184
+quote = """PreToolUse"""
 
 [[finding]]
 id = "R3-69"
 title = """crew-operator preflight.sh refuses before M1-05d mounts the profile; M1-05b<->M1-05d cycle blocks wave 3"""
-disposition = "open"
-evidence = """ROADMAP.md:137 M1-05b still refuses 'with a message naming the M1-06 re-login' and its throwaway load carries no profile mount, so the M1-05b/M1-05d cycle is unbroken."""
+disposition = "fixed"
+evidence = """Fixed: the crew-operator preflight exits non-zero only for a live lock; a missing profile warns and passes, breaking the M1-05b and M1-05d cycle."""
+file = "ROADMAP.md"
+line = 137
+quote = """WARNING"""
 
 [[finding]]
 id = "R3-70"
 title = """PREFLIGHT §1 standing check carries an unresolvable <TAILROCKS_SKILLS_SHA> placeholder"""
-disposition = "open"
-evidence = """goal/PREFLIGHT.md:150 still carries the unresolvable `<TAILROCKS_SKILLS_SHA>` placeholder and ROADMAP.md:136 still names no file to resolve it from."""
+disposition = "fixed"
+evidence = """Fixed: the standing check reads the sha from the file M1-05a writes, so the placeholder is gone."""
+file = "goal/PREFLIGHT.md"
+line = 205
+quote = """tailrocks-skills"""
 
 [[finding]]
 id = "R3-71"
 title = """M1-05a..c 'inside the role' checks and jackin role validate have no runnable home"""
-disposition = "open"
-evidence = """goal/EXECUTION.md §4 still has no 'Throwaway load' paragraph and ROADMAP.md:136-138 verify cells still read a bare 'inside: …' with no container source for `jackin role validate`."""
+disposition = "fixed"
+evidence = """Fixed: the procedure defines the throwaway-load home for the M1-05a..c checks, and the roadmap cells split the host role validation from the container checks."""
+file = "goal/EXECUTION.md"
+line = 319
+quote = """Throwaway load"""
 
 [[finding]]
 id = "R3-72"
 title = """M1-04a ci.yml with jackin-version pinned can never pass: jackin publishes no versioned release"""
-disposition = "open"
-evidence = """ROADMAP.md:135 M1-04a still pins `jackin-version` on `jackin-project/jackin-role-action@<sha>` while ROADMAP.md:196 and concept/roles.md:284 assume the `latest-build` validator; jackin publishes no versioned release."""
+disposition = "fixed"
+evidence = """Fixed: M1-04a pins `jackin-version: latest-build`, the only value resolvable while jackin publishes no versioned release."""
+file = "ROADMAP.md"
+line = 135
+quote = """latest-build"""
 
 [[finding]]
 id = "R3-73"
 title = """review-crucible checkout in /opt is root-owned; rev-parse as agent fails with dubious ownership"""
-disposition = "open"
-evidence = """concept/roles.md:131 and ROADMAP.md:138 still carry the bare `git init /opt/review-crucible … checkout FETCH_HEAD` with no `install -d -o agent`, no `safe.directory` and no pin file, so `git rev-parse` as agent still fails on dubious ownership."""
+disposition = "fixed"
+evidence = """Fixed: the checkout is created and fetched as the agent user and pinned, so no dubious-ownership failure remains."""
+file = "ROADMAP.md"
+line = 138
+quote = """review-crucible"""
 
 [[finding]]
 id = "R3-74"
 title = """Builder toolchain source contradicts between roles.md and ROADMAP; M1-05a verify only satisfiable from termrock's own mise.toml"""
-disposition = "open"
-evidence = """concept/roles.md:126 still derives the builder mise pre-warm from jackin's mise.toml while ROADMAP.md:136 says termrock's toolchain (D-048) and names no clone."""
+disposition = "fixed"
+evidence = """Fixed: M1-05a pre-warms termrock's own mise.toml from a named clone, and concept/roles.md was amended to agree."""
+file = "ROADMAP.md"
+line = 136
+quote = """termrock"""
 
 [[finding]]
 id = "R3-75"
 title = """DCO sign-off hook duplicates a jackin built-in and is shadowed by its global core.hooksPath"""
-disposition = "open"
-evidence = """ROADMAP.md:135 still ships githooks/prepare-commit-msg with `git config --system core.hooksPath /opt/jackin-role/githooks`, echoed at concept/roles.md:344, goal/EXECUTION.md:410 and DECISIONS.md:2344-2345; no `jackin config git dco` exists, so the hook stays duplicated and shadowed."""
+disposition = "fixed"
+evidence = """Fixed: sign-off comes from jackin's built-in DCO hook enabled by the session, and M1-04a asserts the image sets no core.hooksPath."""
+file = "goal/PREFLIGHT.md"
+line = 161
+quote = """dco"""
 
 [[finding]]
 id = "R3-76"
 title = """M1-05d verify says bare `jackin config` shows trusted = true; $CODEX_HOME hook contract needs a default"""
-disposition = "open"
-evidence = """ROADMAP.md:139 M1-05d still asserts '`jackin config` shows `trusted = true` for the three selectors' and no `CODEX_HOME:-$HOME/.codex` default appears, so the verifier stays ill-formed and the hook contract undefaulted."""
+disposition = "fixed"
+evidence = """Fixed: the M1-05d verify uses a real `jackin config` subcommand instead of the bare command, and the hook contract states the default Codex home."""
+file = "ROADMAP.md"
+line = 139
+quote = """config"""
