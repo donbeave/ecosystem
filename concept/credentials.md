@@ -130,7 +130,7 @@ Derived from `SPEC.md` §5, §6, §9a, §10; D-032, D-035; `concept/workflow.md`
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Linear OAuth agent app identity (`actor=app`, `app:assignable`, `app:mentionable`) | client id + client secret | `linear-agent-app` fields `client id`, `client secret`, `app url`, `redirect uri` (= `http://localhost:53682/callback`, loopback, D-080) | `op://jackin/linear-agent-app/client id`, `…/client secret` | runtime (refresh, client-credentials) | **CREATE** — no OAuth app item exists |
 | 2 | Linear webhook verification (`Linear-Signature` HMAC) | signing secret | `linear-agent-app` field `webhook signing secret` | `op://jackin/linear-agent-app/webhook signing secret` | runtime (relay or daemon) | **CREATE** in M1-07 (stored, unused until a relay exists; webhook enabled on the unreachable placeholder `https://jackin-webhook.invalid/linear`, D-080; row 18 stays DEFER) |
-| 3 | Linear per-workspace installation token | client-credentials access token (30 days, D-087) + expires_at + the authorization-code refresh token kept only as `installation seed` + app_user_id + organization_id | `linear-workspace-<org-slug>` fields `access token`, `expires at`, `installation seed`, `app user id`, `organization id` | `op://jackin/linear-workspace-<org>/access token`, `…/expires at` | runtime; the host session re-mints when fewer than 48 h remain and `op item edit`s both fields; daemons mint their own in memory and write nothing back | **CREATE** — produced by the authorize flow after #1 |
+| 3 | Linear per-workspace installation token | client-credentials access token (30 days, D-087) + expires_at + the authorization-code refresh token kept only as `installation seed` + app_user_id + organization_id | `linear-workspace` fields `access token`, `expires at`, `installation seed`, `app user id`, `organization id` | `op://jackin/linear-workspace/access token`, `…/expires at` | runtime; the host session re-mints when fewer than 48 h remain and `op item edit`s both fields; daemons mint their own in memory and write nothing back | **CREATE** — produced by the authorize flow after #1 |
 | 4 | Linear workspace human login (browser profile, D-032) | Google SSO | existing `Private/Linear` (SSO marker) + Google account | none (interactive SSO; profile persists the session) | setup | **EXISTS** (`Private/Linear`, login = Google SSO `alexey@chainargos.com`) |
 | 5 | GitHub: push branches, open/update PRs, read repos | GitHub App installation (preferred) or fine-grained PAT with `contents:write`, `pull_requests:write`, `metadata:read` | `github-app-jackin-daemon` (same field shape as `GitHub App — jackin-package-updater`) | `op://jackin/github-app-jackin-daemon/PEM private key`, `…/App ID`, `…/Installation ID` | runtime | **PARTIAL** — `tailrocks/GitHub App — jackin-package-updater` and `…tailrocks-package-updater` exist but are scoped to package-update repos and permissions; a daemon app (or widened installation) is needed. Repo-scope PATs on `Private/GitHub` are tap-publisher/renovate/read-only, not PR-management |
 | 6 | GitHub human login for browser profile (D-032) | LOGIN with TOTP | existing `Private/GitHub` (2011 item, has `Key` OTP + recovery codes) | `op://Private/GitHub/Key` for OTP during first login only | setup | **EXISTS** (`Private/GitHub`) |
@@ -169,7 +169,8 @@ this set in the same edit.
   runtime lives there, nothing else does. This gives the 1Password service
   account (#17) a single-vault scope and makes the audit trivial.
 - Item names: lowercase, hyphenated, `<system>-<role-of-credential>`:
-  `linear-agent-app`, `linear-workspace-<org>`, `github-app-jackin-daemon`,
+  `linear-agent-app`, `linear-workspace`,
+  `github-app-jackin-daemon-<github-org>` (`…-jackin-project`, `…-tailrocks`),
   `claude-daemon`, `codex-daemon`, `amp-daemon`, `grok-daemon`,
   `registry-dockerhub`, `webhook-relay`. Field names: lowercase words with
   spaces, matching what the vendor calls them (`client id`, `client secret`,
@@ -221,10 +222,21 @@ this set in the same edit.
   grant (D-087): the authorization-code exchange in M1-10 only installs
   the app, and every consumer holds a `grant_type=client_credentials`
   token (30 days, up to 1,000 in parallel, same scopes) — the host
-  session's in `linear-workspace-<org>` (re-minted when fewer than 48 h
+  session's in `linear-workspace` (re-minted when fewer than 48 h
   remain, `goal/EXECUTION.md` §4), each daemon's in memory (M2-01).
   Re-authorising through the browser profile is needed only if the app
   is uninstalled from the workspace.
+- The Linear organization `urlKey` and the app user id are not secrets,
+  but neither exists until M1-10 runs the authorize flow, and `op` may be
+  signed out on the host, so no literal can be written here in advance.
+  They are therefore not part of any item name: M1-10 stores them as the
+  `url key` and `app user id` fields of the single item
+  `op://jackin/linear-workspace` and writes them to
+  `tasks/M1-10/linear-org.txt` as named non-secret evidence (D-108). The
+  GitHub organizations are literals today — `jackin-project` and
+  `tailrocks` (`gh api user/orgs`) — so their App items are named
+  `github-app-jackin-daemon-jackin-project` and
+  `github-app-jackin-daemon-tailrocks`.
 - Rotating the Linear client secret invalidates all client-credentials
   tokens; rotate #1 and re-mint every token (no re-authorise needed).
 - GitHub App private keys can have two active keys; rotate by adding the

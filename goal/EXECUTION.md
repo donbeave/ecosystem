@@ -278,7 +278,7 @@ Rules that hold on every path:
   pane is a quota hop, not stuck. Only a weekly-cap message with a reset
   more than 24 hours away is a preflight defect (billing action).
 - Linear token (D-087): every host-side GraphQL call reads `op://jackin/
-  linear-workspace-<org>/access token`, a client-credentials token (30
+  linear-workspace/access token`, a client-credentials token (30
   days); before the call the session reads `…/expires at` and, when fewer
   than 48 hours remain, mints a new one (`grant_type=client_credentials`,
   same scope list, `curl --config -` fed from `op read` on stdin) and `op

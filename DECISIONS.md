@@ -1737,7 +1737,8 @@ wires the server daemon; the laptop config never switches).
 **Decision.** (1) The GitHub App `jackin-daemon` is created and installed
 by the human in preflight for each of `jackin-project` and `tailrocks`
 (sudo mode and owner consent are human-only); the private key and ids are
-stored by the human as `op://jackin/github-app-jackin-daemon-<org>`. M8-01
+stored by the human as `op://jackin/github-app-jackin-daemon-jackin-project`
+and `op://jackin/github-app-jackin-daemon-tailrocks` (D-108). M8-01
 becomes verify-and-mint only. GitHub sudo-mode and Google re-auth prompts
 are never answered by the operator role (it has no `Private` access by
 design); one that appears mid-run is a preflight defect. (2) Vault `jackin`
@@ -1897,8 +1898,9 @@ failed deliveries, which polling (Q-015, D-053) tolerates; the signing
 secret is stored anyway, so `concept/credentials.md` row 2 becomes CREATE
 (stored, unused until a relay exists). The token exchange passes the client
 secret through `curl --config -` fed from `jackin-exec op read` on stdin,
-never as an argument. `<org>` in `linear-workspace-<org>` is the
-`organization.urlKey` from `viewer`. The whole procedure lives in the M1-10
+never as an argument. The item is the single
+`linear-workspace`, whose `url key` field holds the `organization.urlKey`
+from `viewer` (D-108). The whole procedure lives in the M1-10
 row so M1-01 copies it into `tasks/M1-10/TASK.md`.
 
 **Rationale.** Without a redirect URI and a capture procedure the agent
@@ -2198,7 +2200,7 @@ Adopted under D-053 (bulletproofing round 2). Amends D-073 and D-081
 **Decision.** (1) Tokens: the M1-10 authorization-code exchange installs
 the app; every consumer then uses a `grant_type=client_credentials` token
 (30 days, same scopes). The host session stores its token as `access
-token` plus `expires at` in `op://jackin/linear-workspace-<org>` and
+token` plus `expires at` in `op://jackin/linear-workspace` and
 re-mints when fewer than 48 hours remain; each daemon instance (laptop,
 M11, M12) mints its own in memory at start and at the threshold. Nobody
 uses the refresh-token grant and nothing is written back, so no consumer
@@ -2597,3 +2599,26 @@ escape hatch was named (K-42).
 `SPEC.md` from the session's "Write" bullet and states the delegation;
 `AGENTS.md` and `GOAL.md` say the same. Committing a file the session did
 not read stays allowed, because the subagent reports what it wrote.
+
+## D-108 — 2026-08-28 — 1Password item names carry no unresolvable slug
+
+**Decision.** No `op://` path in this repository contains an unresolved
+`<org>` placeholder. The Linear workspace item is the single item
+`op://jackin/linear-workspace`; the organization `urlKey`, the app user
+id, and the organization id are fields of that item and are also written
+to `tasks/M1-10/linear-org.txt` as non-secret evidence. GitHub App items
+are named with the literal organization: `github-app-jackin-daemon-jackin-project` and `github-app-jackin-daemon-tailrocks`.
+
+**Rationale.** `<org>` appeared in eleven `op://` paths and was never
+resolved, so no host verify could name the item deterministically (K-36).
+The GitHub organizations are literals today (`gh api user/orgs`), but the
+Linear `urlKey` does not exist until M1-10 runs the authorize flow and
+`op` may be signed out on the host, so an item name that embeds it can
+never be written in advance. Removing the slug from the name makes the
+path a constant and keeps the workspace identity as data inside the item.
+
+**Consequences.** `goal/EXECUTION.md` §4, `ROADMAP.md` M1-09, M1-10,
+M8-01 and its §5 preflight paragraph, and `concept/credentials.md` §5.1,
+§5.3, §5.4 use the literal names. M1-10 additionally files
+`tasks/M1-10/linear-org.txt`. Only one Linear workspace is in scope; a
+second one would need a new decision, not a slug.

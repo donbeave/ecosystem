@@ -298,7 +298,8 @@ is created for the daemon (M8); provider runtimes use jackin's host login
 forwarding (`auth_forward = "sync"`), fine for the laptop prototype, to be
 replaced by `op://` provider keys at the server step; vault `jackin` is
 created in M1, one item per rotation unit (`linear-agent-app`,
-`linear-workspace-<org>`, `github-app-jackin-daemon`, `<runtime>-daemon`,
+`linear-workspace`, `github-app-jackin-daemon-<github-org>` (the literals
+`…-jackin-project` and `…-tailrocks`, D-108), `<runtime>-daemon`,
 ...). The `agent-browser` profile directory
 (`~/.jackin/agent-browser-profile`, Q-017 adopted) is a secret on the host,
 mounted read-write only into `donbeave/crew-operator`, never committed or
