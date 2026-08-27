@@ -22,6 +22,7 @@ depends_on = [
 decisions = [
   "D-055",
   "D-061",
+  "D-064",
   "D-074",
   "D-089",
 ]
@@ -34,6 +35,7 @@ script = "verify.sh"
 has_container_part = false
 container = []
 host = [
+  "gh run view <id> --json jobs --jq '.jobs[] | select(.name==\"ci-required\") | .labels'",
   "gh pr view <n> -R jackin-project/jackin --json state --jq .state",
   "gh release view preview --repo jackin-project/jackin --json targetCommitish --jq .targetCommitish",
   "git rev-parse origin/main",

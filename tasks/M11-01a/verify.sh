@@ -58,6 +58,7 @@ case "$part" in
     finish
     ;;
   host)
+    run_cmd 'gh run view <id> --json jobs --jq '\''.jobs[] | select(.name=="ci-required") | .labels'\'''
     run_cmd 'gh pr view <n> -R jackin-project/jackin --json state --jq .state'
     run_cmd 'gh release view preview --repo jackin-project/jackin --json targetCommitish --jq .targetCommitish'
     run_cmd 'git rev-parse origin/main'

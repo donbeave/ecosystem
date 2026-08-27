@@ -24,7 +24,7 @@ Merge jackin `feat/managed-execution` to `main` and republish the preview valida
 
 ## Scope
 
-The `jackin-role-action` used by every role repository's `ci.yml` and by `publish.yml` downloads `jackin-role` from jackin's `preview` release, built by `preview.yml` from `main` only; jackin `main` knows manifests up to `v1alpha6`, and the crew manifests are `v1alpha7` since M3-02a, so no image can be published before `main` carries the branch (D-089; D-055 forbids releases and tap publishes, not this merge, and D-074 allows a merge a task's scope names). Ensure the rolling jackin PR is green on `ci-required` and `DCO` (fix on the branch if not; rebase on `origin/main` when behind), `gh pr merge <n> --squash` through the forwarded `gh`, `gh run watch` the `preview.yml` push run on `main` until `publish-preview` succeeds, then `git merge origin/main` back into `feat/managed-execution` and push (D-074). No tag, no release, no Homebrew tap.
+The `jackin-role-action` used by every role repository's `ci.yml` and by `publish.yml` downloads `jackin-role` from jackin's `preview` release, built by `preview.yml` from `main` only; jackin `main` knows manifests up to `v1alpha6`, and the crew manifests are `v1alpha7` since M3-02a, so no image can be published before `main` carries the branch (D-089; D-055 forbids releases and tap publishes, not this merge, and D-074 allows a merge a task's scope names). First make the rolling PR's `ci-required` job runnable at all: jackin's `.github/workflows/ci.yml` line 168 selects `ubuntu-26.04` only for a `push` or a `workflow_dispatch` with `lanes == github`, and for every other event, a `pull_request` included, it selects `fromJSON('["self-hosted","velnor-target-mvp"]')`, so no PR check can start without the velnor fleet. Change that job so a `pull_request` event selects a GitHub-hosted `ubuntu-*` runner as well, commit it on the branch, and re-run the check (D-064, D-089). Then ensure the rolling jackin PR is green on `ci-required` and `DCO` (fix on the branch if not; rebase on `origin/main` when behind), `gh pr merge <n> --squash` through the forwarded `gh`, `gh run watch` the `preview.yml` push run on `main` until `publish-preview` succeeds, then `git merge origin/main` back into `feat/managed-execution` and push (D-074). No tag, no release, no Homebrew tap.
 
 ## References
 
@@ -48,6 +48,7 @@ container-relative (D-086).
 ## Checklist
 
 - [ ] The scope above is implemented in the listed repositories.
+- [ ] host check passes: `gh run view <id> --json jobs --jq '.jobs[] | select(.name=="ci-required") | .labels'`
 - [ ] host check passes: `gh pr view <n> -R jackin-project/jackin --json state --jq .state`
 - [ ] host check passes: `gh release view preview --repo jackin-project/jackin --json targetCommitish --jq .targetCommitish`
 - [ ] host check passes: `git rev-parse origin/main`
@@ -66,7 +67,7 @@ Container part (run inside the task container):
 
 Host part (run by the host Claude Code session, D-061):
 
-> `gh pr view <n> -R jackin-project/jackin --json state --jq .state` is `MERGED`; `gh release view preview --repo jackin-project/jackin --json targetCommitish --jq .targetCommitish` equals `git rev-parse origin/main`; a fresh `jackin-role` from that release (`gh release download preview --pattern 'jackin-<host target>.tar.gz'`) runs `jackin-role validate .` green on the three crew checkouts; `gh run list -R donbeave/jackin-crew-<p> --workflow ci.yml --branch main --limit 1 --json conclusion | jq -e '.[0].conclusion=="success"'` after a re-run for all three
+> `gh run view <id> --json jobs --jq '.jobs[] | select(.name=="ci-required") | .labels'` for the PR's last check run lists an `ubuntu-*` label and no `self-hosted`; `gh pr view <n> -R jackin-project/jackin --json state --jq .state` is `MERGED`; `gh release view preview --repo jackin-project/jackin --json targetCommitish --jq .targetCommitish` equals `git rev-parse origin/main`; a fresh `jackin-role` from that release (`gh release download preview --pattern 'jackin-<host target>.tar.gz'`) runs `jackin-role validate .` green on the three crew checkouts; `gh run list -R donbeave/jackin-crew-<p> --workflow ci.yml --branch main --limit 1 --json conclusion | jq -e '.[0].conclusion=="success"'` after a re-run for all three
 
 ## Evidence expected (D-118)
 
