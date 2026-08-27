@@ -39,12 +39,12 @@ subagents work. `goal/PREFLIGHT.md` is done.
 1. Take every runnable row in wave order.
 
 Runnable predicate (D-119). A row is Runnable (D-119) iff: its status is
-`ready`; every `depends_on` id is `done`; a lane slot is free
-under the caps — at most two host subagents on `~/.claude`, at most three
-in flight (D-071) — plus the §4 reserve rule of `goal/EXECUTION.md`; and,
-for M2+ ids other than M3-01, M3-03, M4-02, M4-03, the M1-12 row is `done`
-(D-088). Rows `planned`, `blocked`, `waiting` or `in-progress` are not
-runnable and do not count as `done` (D-084).
+`ready`; every `depends_on` id is `done`; a lane slot is free under the
+caps — at most two host subagents on `~/.claude`, at most
+three host subagents in flight (D-071) — plus the §4 reserve rule of
+`goal/EXECUTION.md`; and, for M2+ ids other than M3-01, M3-03, M4-02, M4-03,
+the M1-12 row is `done` (D-088). Rows `planned`, `blocked`, `waiting` or
+`in-progress` are not runnable and do not count as `done` (D-084).
 
 Arming (D-072): `state.py arm` readies wave 0 once; each `done` transition readies tasks
 whose deps are `done`; no task runs from a bare row.

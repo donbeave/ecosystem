@@ -213,12 +213,12 @@ refuses a load whose lane's account home, or whose role where the cap is
 per role, already appears in it.
 
 Runnable predicate (D-119). A row is Runnable (D-119) iff: its status is
-`ready`; every `depends_on` id is `done`; a lane slot is free
-under the caps — at most two host subagents on `~/.claude`, at most three
-in flight (D-071) — plus the §4 reserve rule of `goal/EXECUTION.md`; and,
-for M2+ ids other than M3-01, M3-03, M4-02, M4-03, the M1-12 row is `done`
-(D-088). Rows `planned`, `blocked`, `waiting` or `in-progress` are not
-runnable and do not count as `done` (D-084).
+`ready`; every `depends_on` id is `done`; a lane slot is free under the
+caps — at most two host subagents on `~/.claude`, at most
+three host subagents in flight (D-071) — plus the §4 reserve rule of
+`goal/EXECUTION.md`; and, for M2+ ids other than M3-01, M3-03, M4-02, M4-03,
+the M1-12 row is `done` (D-088). Rows `planned`, `blocked`, `waiting` or
+`in-progress` are not runnable and do not count as `done` (D-084).
 
 Arming and promotion. Nothing dispatches a `planned` row, so wave 0 is
 armed once, by `python3 tools/state.py arm`: it moves every task whose
