@@ -1,4 +1,4 @@
-# Bulletproof round 3 findings (unapplied; workflow stopped 2026-08-27)
+# Bulletproof findings archive (workflow stopped 2026-08-27; includes round-3 unapplied items and earlier lenses)
 
 Rounds 1–2 applied 111 fixes (commits `62d52fe`, `f2aa595`). Round 3 finders below returned findings that were NOT verified or applied. Each item: title, file, where, risk, fix, severity.
 
