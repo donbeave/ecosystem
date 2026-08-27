@@ -173,7 +173,7 @@ title = """Linear `<org>` urlKey and app user id never filed as evidence"""
 disposition = "fixed"
 evidence = """Fixed by D-108 (Phase 0 row 0.14): `grep -c '<org>' goal/EXECUTION.md ROADMAP.md` prints 0 for both, and M1-10 now stores the urlKey and app user id as fields of `op://jackin/linear-workspace` plus the named non-secret evidence file `tasks/M1-10/linear-org.txt`."""
 file = "concept/credentials.md"
-line = 229
+line = 230
 quote = """The Linear organization `urlKey` and the app user id are not secrets,"""
 
 [[finding]]
@@ -224,7 +224,7 @@ title = """Server preflight omits the `op` CLI and any transfer of the daemon se
 disposition = "fixed"
 evidence = """Fixed: M11-03 installs `op` on the server and writes the daemon service-account token to `~/.config/jackin/daemon.env` over ssh stdin, and the server preflight proves `op --version`."""
 file = "concept/credentials.md"
-line = 147
+line = 148
 quote = """M11-03"""
 
 [[finding]]
@@ -257,7 +257,7 @@ title = """Docker Hub namespace contradiction: credentials.md projectjackin/* vs
 disposition = "fixed"
 evidence = """Fixed: the Docker Hub row now names the `donbeave` namespace, matching what M11-02 pushes."""
 file = "concept/credentials.md"
-line = 145
+line = 146
 quote = """donbeave"""
 
 [[finding]]
@@ -266,7 +266,7 @@ title = """M10 crates.io item conditional on a decision no task or document make
 disposition = "fixed"
 evidence = """Fixed: the conditional crates.io item is gone; termrock 0.14 is not published in this run and D-122 records that."""
 file = "goal/PREFLIGHT.md"
-line = 344
+line = 349
 quote = """M10"""
 
 [[finding]]

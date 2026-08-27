@@ -290,18 +290,23 @@ never lowers the bar. Clear those items in §1..§5 below and re-run it.
       later `select(.app_slug==…)` reads that file, never the literal.
       Permissions `contents:write`,
       `pull_requests:write`, `metadata:read`; private key generated and
-      stored as `op://jackin/github-app-jackin-daemon-<org>` with fields
+      stored once per organization, as
+      `op://jackin/github-app-jackin-daemon-jackin-project` and
+      `op://jackin/github-app-jackin-daemon-tailrocks`, each with fields
       `app id`, `client id`, `installation id`, `PEM private key`
       (`concept/credentials.md` §5.1, §5.5), installed with repository
       access **All repositories** in both organizations because the
       scratch repository `jackin-project/jackin-managed-scratch` is created
       during the run (M3-07, D-089); the App is not installed on the
       `donbeave` user account, so no `donbeave/*` repository is ever a
-      daemon-managed target. Proof: `op item get
-      github-app-jackin-daemon-<org> --vault jackin --format json | jq
-      '.fields[].label'` lists the four fields for both orgs; `gh api
-      /orgs/<org>/installations --jq '.installations[]|select(.app_slug=="jackin-daemon")|.repository_selection'`
-      prints `all` for both. Done now rather than before M8 because it is
+      daemon-managed target. Proof, run once per organization: `op item
+      get github-app-jackin-daemon-jackin-project --vault jackin --format
+      json | jq '.fields[].label'` and `op item get
+      github-app-jackin-daemon-tailrocks --vault jackin --format json | jq
+      '.fields[].label'` each list the four fields; `gh api
+      /orgs/jackin-project/installations --jq '.installations[]|select(.app_slug=="jackin-daemon")|.repository_selection'`
+      and `gh api /orgs/tailrocks/installations --jq '.installations[]|select(.app_slug=="jackin-daemon")|.repository_selection'`
+      each print `all`. Done now rather than before M8 because it is
       one sitting (D-062).
 - [ ] `jackin-preview` may still be installed; the session removes it in
       M1-02a (D-042). Nothing to do.

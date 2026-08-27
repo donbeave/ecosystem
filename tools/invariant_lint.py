@@ -187,6 +187,31 @@ def check_retired_strings():
 
 
 # --------------------------------------------------------------------------
+# 3b. No `op://` reference carries an unexpanded `<org>` placeholder
+# --------------------------------------------------------------------------
+
+# A credential reference is only runnable when the item name is a literal, so
+# `op://jackin/github-app-jackin-daemon-<org>/...` is a defect wherever it
+# appears: the human cannot create an item called `<org>` and `op read` cannot
+# resolve one. The check is deliberately wider than the `<org>` retired-string
+# check above, which covers two files only; this one covers every Markdown
+# file of the repository except the two non-authoritative sources.
+OP_REFERENCE = re.compile(r"op://[^\s`|)\]]+")
+
+
+def check_op_org_placeholder():
+    for path in all_markdown():
+        text = read(path)
+        for match in OP_REFERENCE.finditer(text):
+            if "<org>" not in match.group(0):
+                continue
+            line = text.count("\n", 0, match.start()) + 1
+            fail("op-org-placeholder", "%s:%d" % (path, line),
+                 "the `op://` reference %r keeps an unexpanded `<org>`; "
+                 "name the literal items instead (D-108)" % match.group(0))
+
+
+# --------------------------------------------------------------------------
 # 4. Every cited decision and question resolves
 # --------------------------------------------------------------------------
 
@@ -306,6 +331,7 @@ CHECKS = (
     ("d119-predicate", check_runnable_predicate),
     ("claude-cap", check_claude_cap),
     ("retired-strings", check_retired_strings),
+    ("op-org-placeholder", check_op_org_placeholder),
     ("citations", check_citations),
     ("open-questions", check_no_open_questions),
     ("goal-size", check_goal_size),
