@@ -138,6 +138,11 @@ live_gate() {
   ok   "gitleaks"        gitleaks version
   ok   "claude"          claude --version
   ok   "codex"           codex --version
+  # `op whoami` prints "account is not signed in" until the desktop app unlocks
+  # the session, so it cannot serve as the tool check. An account being
+  # configured is what proves the CLI is installed and wired to the right
+  # tenant; the sign-in itself is the human row below (PREFLIGHT-DEFECTS #4).
+  oksh "op configured"   "op account list </dev/null | grep -q ."
   # The launcher is a shell function, so it only exists in an interactive zsh.
   oksh "claude-yolo"     "zsh -ic 'type claude-yolo' >/dev/null"
   # The host must stay awake for the whole run.
@@ -154,6 +159,8 @@ live_gate() {
 
   # Human-only inputs. Each one is a browser login, an OTP, a consent screen,
   # a UI-created credential or a repository setting only the owner can flip.
+  # Signed-in proof (PREFLIGHT-DEFECTS row 4). A configured account is checked
+  # live above; only an unlocked session makes `op whoami` succeed.
   human "1Password signed in" "PREFLIGHT-DEFECTS: op-signin" \
     "op whoami </dev/null"
   human "gh auth" "PREFLIGHT-DEFECTS: gh-auth" \
