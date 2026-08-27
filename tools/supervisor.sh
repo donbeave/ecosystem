@@ -57,9 +57,13 @@ repo = sys.argv[1]
 sys.path.insert(0, os.path.join(repo, "tools"))
 os.environ.setdefault("PYTHONDONTWRITEBYTECODE", "1")
 import state  # noqa: E402
-state.RUN_DIR = os.path.join(repo, "run")
-state.LOG_PATH = os.path.join(state.RUN_DIR, "events.jsonl")
-state.LOCK_PATH = os.path.join(state.RUN_DIR, "events.lock")
+# `ECOSYSTEM_STORE` already points state.py at a rehearsal store; overriding
+# the paths here would silently drag a rehearsal back onto the run of record.
+# Only bind the store to --repo when no rehearsal store is set.
+if not os.environ.get("ECOSYSTEM_STORE", "").strip():
+    state.RUN_DIR = os.path.join(repo, "run")
+    state.LOG_PATH = os.path.join(state.RUN_DIR, "events.jsonl")
+    state.LOCK_PATH = os.path.join(state.RUN_DIR, "events.lock")
 snapshot = state.project(state.read_events())
 done = [t for t, row in snapshot["tasks"].items() if row["status"] == "done"]
 print("done_count\t%d" % len(done))
@@ -195,8 +199,19 @@ launch_coordinator() {
 	# The session runs the coordinator with its output teed to the run log and
 	# its exit code written to a status file, so this process can observe both
 	# without owning the terminal.
+	# A tmux session inherits the *server's* environment, not this process's,
+	# so a rehearsal store set only in this process would be invisible to the
+	# coordinator and it would write to the run of record. Export it inline.
+	env_prefix=""
+	if [ -n "${ECOSYSTEM_STORE:-}" ]; then
+		env_prefix="$env_prefix ECOSYSTEM_STORE='$ECOSYSTEM_STORE'"
+	fi
+	if [ -n "${ECOSYSTEM_RUN_DIR:-}" ]; then
+		env_prefix="$env_prefix ECOSYSTEM_RUN_DIR='$ECOSYSTEM_RUN_DIR'"
+	fi
+	[ -z "$env_prefix" ] || env_prefix="export$env_prefix;"
 	tmux new-session -d -s "$SESSION" \
-		"cd $REPO && { $command; } >>$RUN_LOG 2>&1; printf '%s' \$? >$STATUS_FILE"
+		"cd $REPO && { $env_prefix $command; } >>$RUN_LOG 2>&1; printf '%s' \$? >$STATUS_FILE"
 	printf '%s' "$SESSION" >"$PID_FILE"
 	while tmux has-session -t "$SESSION" 2>/dev/null; do
 		sleep 2
