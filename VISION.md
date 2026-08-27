@@ -109,6 +109,13 @@ A manager, which may live inside jackin as a daemon, that:
 The human's job becomes: write or approve the roadmap, say "ready", and answer
 questions. The system's job becomes everything else.
 
+## The bar
+
+The destination is a production-ready product and a production-ready
+process for building software with Linear + jackin: issues are the work,
+jackin roles do it, humans decide (D-041). Everything in this repository —
+milestones, tasks, decisions — is measured against that bar.
+
 ## Scope boundaries
 
 - The manager orchestrates; it is **not** another agent runtime and does not

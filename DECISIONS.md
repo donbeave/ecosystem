@@ -540,3 +540,56 @@ cost/quality point for this phase.
 - Prompts and role configuration pin reasoning effort to medium for every
   runtime that exposes it.
 - Adding accounts or models later is a one-line change to this decision.
+
+## D-040 — 2026-08-27 — One Linear project, issues with explicit dependencies mirroring `tasks/`
+
+**Decision.** All work for this effort lives in one Linear project. Each
+task folder under `tasks/` (D-038) becomes one issue in that project. The
+dependencies recorded in `tasks/README.md` and `ROADMAP.md` are mirrored in
+Linear as blocking relations, so the dependency graph is identical in the
+repository and in Linear. Milestones (D-037) map to Linear project
+milestones.
+
+**Rationale.** One project gives one place to see the whole plan, its
+progress, and its critical path; mirrored dependencies let the daemon gate
+dispatch on Linear relations (D-004) while the repository stays the
+authored plan.
+
+**Consequences.** The task that turns folders into issues (ROADMAP M1-12)
+creates the project, its milestones, the issues, and the blocking
+relations, and browser-verifies the result (D-032). A change to a
+dependency is made in the repository first, then mirrored to Linear.
+
+## D-041 — 2026-08-27 — The goal is a production-ready product and process
+
+**Decision.** This repository exists to reach a production-ready product
+and a production-ready process: building software with Linear + jackin,
+where issues are the work, jackin roles do it, and humans decide. Prototype
+milestones are steps toward that, not the destination.
+
+**Rationale.** States the bar explicitly so that "works on my laptop" is
+never mistaken for done.
+
+**Consequences.** Later milestones (server host, multi-host, TUI,
+credentials via service accounts, retry and escalation policy) are in
+scope, not optional. `VISION.md` states the goal.
+
+## D-042 — 2026-08-27 — The preview jackin is removed; only the branch build runs here
+
+**Decision.** The Homebrew preview install of jackin (`jackin-preview`,
+currently `0.6.4-preview.1100+6b0dfe1` at `/opt/homebrew/bin/jackin`) is
+uninstalled from this computer. From then on the only jackin on the machine
+is the locally built one from the working branch where this effort lands
+(`feat/managed-execution`, Q-020), kept current by rebuilding from the
+branch. All managed-execution support is added to jackin on that branch and
+merged to `main` through pull requests (D-034).
+
+**Rationale.** Two jackins on one machine invite testing the wrong binary.
+The branch build is the product being built; it must be the one in daily
+use (D-033).
+
+**Consequences.** ROADMAP M1-02 (local jackin build from branch) includes
+uninstalling `jackin-preview` and installing the branch build on `PATH`
+first; `jackin-dev` (the workflow plugin) stays. Roles built locally must
+target the branch's construct base. If the branch build breaks, the fix is
+to fix the branch, never to reinstall the preview.

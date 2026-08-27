@@ -8,6 +8,9 @@ conversation that reaches agreement. It states only what is decided in
 
 ## 1. Purpose
 
+The bar is a production-ready product and process for building software
+with Linear + jackin (D-041).
+
 Turn "work with an agent" into "assign an issue". A human creates a Linear
 issue that names a repository, a branch, a jackin agent role, an agent
 runtime, a prompt, and a checklist, then assigns it to jackin. A jackin
@@ -163,7 +166,14 @@ in the real Linear and GitHub UIs with `agent-browser` on one persistent
 logged-in profile (D-032). The end-to-end workflow is written out in
 `concept/workflow.md`.
 
-## 10a. Milestones
+## 10a. Linear project
+
+All work for this effort is one Linear project; each `tasks/` folder is one
+issue; dependencies are mirrored as blocking relations; milestones map to
+project milestones. (D-040) The preview jackin is uninstalled; only the
+branch build (`feat/managed-execution`) runs on the machine. (D-042)
+
+## 10b. Milestones
 
 Ordered proofs (D-037): (1) Linear setup verified; (2) daemon listens and
 reacts to Linear; (3) an assigned issue spawns a local jackin agent in
