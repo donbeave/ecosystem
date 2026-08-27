@@ -128,15 +128,19 @@ ignores (D-059).
   `TASK.md` references other files container-relative as
   `.jackin/task/refs/<name>` (`concept/task-format.md`), because the
   container never sees this repository.
-- Workspace: the touched repository checkout under
-  `~/.jackin/managed/<id>/<repo>` (D-047; for operator tasks the evidence
+- Workspace: the touched repository's per-task worktree under
+  `~/.jackin/managed/<id>/<repo>`, on branch `managed/<run-id>/<id>` from
+  the `run/LOCK.toml` base SHA (D-112; for operator tasks the evidence
   directory `~/.jackin/managed/<id>/`), registered once as the saved
   jackin workspace `task-<id>` (workdir and one shared mount
   `~/.jackin/managed/<id>`) that carries the lane's account, env, and
   grants (§4, D-085).
-- Output: the task's changes committed and pushed in every touched
-  repository (`feat/managed-execution` there, `main` in role repositories,
-  D-047, D-074); text evidence in `tasks/<id>/` (D-059); the composite
+- Output: the task's changes committed and pushed on the task branch in
+  every touched repository, then merged into that repository's integration
+  target (`feat/managed-execution`, or `main` in role repositories) by the
+  holder of its integrator lease, with the resulting integrated SHA in
+  `tasks/<id>/evidence.json` as `integrated_sha` (D-112, D-074); text
+  evidence in `tasks/<id>/` (D-059); the composite
   `tasks/<id>/verify.out` (container part, then host part) with
   `status: DONE` as its last line; the `tasks/README.md` row set to `done`;
   one `PROGRESS.md` row. This repository has one writer: this session
@@ -270,7 +274,7 @@ Exactly one path per task, chosen by this table. Record the path in the
 | Path | When | How |
 | --- | --- | --- |
 | `host` | `role` is `host`, or the task only changes this repository | This session runs the commands (delegating research and verification to subagents). Host-only `verify.sh` runs here and its output is filed (D-061). A host command that creates a named resource runs the corresponding `get` first and skips when present. Only this session commits to this repository (D-086). |
-| `subagents` | Claude lanes (L1..L3) only: the task changes an involved repository and needs no role-only tool (`agent-browser`, `op` inside a container, DinD) and the daemon cannot dispatch it yet (before M3-05 is merged) | In-session subagents with the lane's model, working in `~/.jackin/managed/<id>/<repo>` (clone or fetch, branch `feat/managed-execution`, D-047). They all share this session's `~/.claude`, so each such task counts against the `~/.claude` cap and an L1→L2→L3 fallback is a model change only. Codex lanes never use this path (D-082). A task whose verify launches or attaches to a jackin instance takes this path (host Docker) before M3-05, never `container` (D-091). |
+| `subagents` | Claude lanes (L1..L3) only: the task changes an involved repository and needs no role-only tool (`agent-browser`, `op` inside a container, DinD) and the daemon cannot dispatch it yet (before M3-05 is merged) | In-session subagents with the lane's model, working in that task's own git worktree at `~/.jackin/managed/<id>/<repo>` (clone or fetch, then `git worktree add` on branch `managed/<run-id>/<id>` created from the base SHA locked in `run/LOCK.toml`; never a checkout of `feat/managed-execution`, D-112). They all share this session's `~/.claude`, so each such task counts against the `~/.claude` cap and an L1→L2→L3 fallback is a model change only. Codex lanes never use this path (D-082). A task whose verify launches or attaches to a jackin instance takes this path (host Docker) before M3-05, never `container` (D-091). |
 | `container` | The task's scope or verify names a role container, `agent-browser`, `jackin-exec`, or the profile mount (every `crew-operator` task; role smoke tests), or the task's lane is a Codex lane (L4..L6), and the daemon cannot dispatch it yet | **Workspace (D-085).** `jackin workspace show task-<id>` or, when absent, `jackin workspace create task-<id> --workdir ~/.jackin/managed/<id> --mount ~/.jackin/managed/<id>`; then merge the lane template into `~/.config/jackin/workspaces/task-<id>.toml`: `tasks/M1-13/lanes/L<n>.toml` once M1-13 is done, before that `tasks/M1-02a/lanes/L<n>.toml` (only `[codex] sync_source_dir` or `[claude] sync_source_dir`; that is the sole account selector before M1-13, and host `CODEX_HOME`/`CLAUDE_CONFIG_DIR` select nothing in `jackin load`). `jackin load <role> task-<id> --agent <runtime> --dry-run --format json` must report `.data.workspace == "task-<id>"`; an ad-hoc load (no workspace name) is a plan defect, never retried. **Staging.** `mkdir -p <ws>/.jackin/task && cp tasks/<id>/TASK.md tasks/<id>/task.toml tasks/<id>/verify.sh <ws>/.jackin/task/`, the `## References` files into `<ws>/.jackin/task/refs/`, `tasks/<id>/pr.txt` for reviews, and `echo .jackin/ >> <ws>/.git/info/exclude` (for the read-only reviewer mount the copy is still host-side). **Teardown before any launch of the same id** (retry, fallback, re-sync, resume): `tmux kill-session -t <id>` if `has-session` succeeds, then `jackin eject "$(cat tasks/<id>/container.txt)"` if that file names a live container; never start a second load for the same id while one is loaded. **Launch.** `tmux new-session -d -s <id> -x 200 -y 50 "env -u CI TERM=xterm-256color JACKIN_NO_MOTION=1 jackin load <role> task-<id> --agent <runtime>"` from `$HOME` (never from a directory containing an entry named `task-<id>`). `<role>` is the task's role, or `the-architect` for the bootstrap tasks M1-04a and M1-05a..c (`ROADMAP.md` §4). Preconditions so no dialog appears: trust granted (M1-05d), every manifest `[env]` var satisfied, no mount source under jackin's sensitive list. Poll `tmux capture-pane -p -t <id>` every 5 s until the capsule tab strip and the runtime's input prompt are visible (15-minute budget for a cold build); then record the container: `docker ps --format '{{.Names}}' \| grep -- "-task-<id slug>-"` (the newest name, launches inside a wave are sequential; or `jackin status --format json` filtered by workspace `task-<id>`) → `tasks/<id>/container.txt`. **Prompt.** One line only, never the multi-line `TASK.md` as keystrokes: `goal` delivery → `tmux send-keys -t <id> -l '/goal Read this file: .jackin/task/TASK.md — implement it fully until sh .jackin/task/verify.sh container prints status: DONE'`; `prompt` delivery → `tmux send-keys -t <id> -l 'Read .jackin/task/TASK.md and follow it as your task prompt; the container check is sh .jackin/task/verify.sh container'`; confirm with `capture-pane` that the line sits in the input box, then `tmux send-keys -t <id> Enter`; note `prompt landed: file` in the result cell. Read progress with `capture-pane -p -S -200`. **Container verify** is never typed into the TUI: `docker exec -u agent -w /workspace "$(cat tasks/<id>/container.txt)" sh .jackin/task/verify.sh container > tasks/<id>/verify.container.out 2>&1` (from M4-03: `jackin daemon exec <instance> -- sh .jackin/task/verify.sh container`). **End.** When `verify.out` is `DONE` run `jackin eject "$(cat tasks/<id>/container.txt)"` — always by container name, never by role class, never `--all` (two `the-architect` instances run concurrently in most M3/M4 waves; an eject error is filed as a jackin gap and the run continues) — then `tmux kill-session -t <id>`; `jackin workspace remove task-<id>` after the `PROGRESS.md` row. Interim when no loadable role exists (M1-04a before `the-architect` supports the task, or a D-046 gap): a detached `tmux` session running `CODEX_HOME=<home> codex exec --dangerously-bypass-approvals-and-sandbox -C ~/.jackin/managed/<id>/<repo> -c model_reasoning_effort=medium "$(cat tasks/<id>/TASK.md)" 2>&1 \| tee tasks/<id>/codex.log` (argv, not keystrokes; the only place the host `CODEX_HOME` selects the account); the session reads the log and runs `verify.sh` here. One process per Codex home at a time. |
 | `daemon` | From the moment M3-05 and M3-06 are merged on `feat/managed-execution`, the branch build is installed (§5 step 4a), and `jackin daemon status` answers on this host, for every M2+ task whose row carries a Linear URL and whose delivery the daemon supports at that time (M4-01 for prompt delivery, M7-01 for verify, M8-02 for PRs, D-073) | This session delegates the issue to jackin (`issueUpdate(id, input:{delegateId})` with the workspace token obtained per the Linear-token rule below, D-023 holds) when the task becomes runnable; the daemon itself creates the agent session for a delegated issue that has none (`agentSessionCreateOnIssue`, M2-02, D-087), so the host step is the one mutation. It watches `jackin daemon status --format json` and Linear, answers elicitations by PTY injection through `jackin hardline <instance>` or `jackin daemon exec` (never as a Linear `prompt`, which only a human actor can post; Linear-UI replies are made by the proof task's own `crew-operator`), applies the stuck rule, and files evidence when the run reaches `done`. Nothing is started by hand that the daemon can dispatch; a task the daemon cannot serve takes the `subagents` or `container` path with no delegate set. Before the first daemon start against the real workspace, at every daemon restart, and at every session start, reconcile per D-073. |
 
@@ -352,27 +356,58 @@ Rules that hold on every path:
   started tasks never modify `~/.config/jackin/config.toml` or any lane
   template; the laptop stays on forwarded logins (`auth_forward = "sync"`)
   for the whole run (D-090).
-- Branches (D-074, D-089): before every push to `feat/managed-execution`,
-  `git fetch origin && git rebase origin/feat/managed-execution` (up to
-  five retries), never `--force`. Role repositories (`donbeave/jackin-crew-*`,
-  `donbeave/jackin-role-template`) commit directly to `main`;
-  `jackin-the-architect` changes are merged from `feat/managed-execution`
-  to `main` in the same task, and because that repository deletes the head
+- Branches (D-112, amending D-047/D-074/D-089): a worker never checks out,
+  rebases, or pushes an integration branch. Each task creates its own
+  worktree and branch from the base SHA locked in `run/LOCK.toml` — `git
+  worktree add -b managed/<run-id>/<task-id> ~/.jackin/managed/<id>/<repo>
+  <base-sha>` — and pushes only that branch (`git push -u origin
+  managed/<run-id>/<task-id>`), never `--force`.
+- Integration (D-112): a task branch reaches a repository's integration
+  target — `feat/managed-execution` in involved projects, `main` in role
+  repositories (`donbeave/jackin-crew-*`, `donbeave/jackin-role-template`,
+  D-074) — only through the holder of that repository's single integrator
+  lease, taken with `python3 tools/state.py lease --owner
+  integrator:<repo>` and released after the push. The integrator
+  fast-forwards where it can (`git merge --ff-only`), otherwise `git fetch
+  origin && git merge` and push (up to five retries), never `--force`.
+  Verification then runs against the integrated SHA — `git rev-parse HEAD`
+  on the integration target after that merge — never against a worker
+  branch tip, and that SHA is written to `tasks/<id>/evidence.json` as
+  `integrated_sha`. Every role change ends with `jackin load <role>
+  --rebuild`.
+- jackin `main` is protected by ruleset 14746904, read 2026-08-28 with `gh
+  api repos/jackin-project/jackin/rulesets/14746904`: `--jq
+  '.rules[].type'` returns `deletion`, `pull_request`,
+  `required_status_checks`, `non_fast_forward`, and `--jq .bypass_actors`
+  returns exactly `[]`. `required_status_checks` names the contexts
+  `ci-required` and `DCO` with `strict_required_status_checks_policy:
+  true`; `pull_request` carries `require_extra_approval_for_unattributed_
+  changes: true` with `required_approving_review_count: 0`. The constraint
+  on the jackin path follows from that literal result: every change to
+  jackin `main` lands through a pull request that the agent itself merges
+  once `gh pr checks <n> --watch --fail-fast` reports `ci-required` and
+  `DCO` green (D-055, D-079); the head branch must be up to date with
+  `main` first (strict policy) — `git fetch origin main && git merge
+  origin/main`, then push; nothing may be pushed to `main`, `--admin` and
+  every other bypass is unavailable to every actor because the bypass list
+  is empty, and history is never rewritten (`non_fast_forward`). A commit
+  without a `Signed-off-by:` trailer fails the `DCO` check, and an
+  unattributed commit needs an extra approval, so every commit is
+  attributed to the account that pushes it. The same PR-only rule holds
+  for every protected `main` under jackin-project and tailrocks.
+- `jackin-the-architect` changes are merged from `feat/managed-execution`
+  to `main` in the same task; because that repository deletes the head
   branch on a squash merge unless preflight turned it off, the merging
   task ends with `git fetch origin main && git merge origin/main && git
   push -u origin feat/managed-execution` and confirms `gh api
   repos/jackin-project/jackin-the-architect/branches/feat/managed-execution`
-  returns 200 (recreate the branch from `origin/main` when it is gone);
-  every role change ends with `jackin load <role> --rebuild`. Merges to a
-  protected `main` (jackin-project, tailrocks) happen only through `gh pr
-  merge <n> --squash` after `gh pr checks <n> --watch --fail-fast` reports
-  `ci-required` and `DCO` green; the rulesets have no bypass actors, so
-  `--admin` never works, and a check pending on a self-hosted runner label
-  is a defect of the task's own CI edit (fix it in the PR, D-064), never a
-  preflight defect. No pull request from `feat/managed-execution` to
-  `main` is merged in `jackin` or `termrock` during this run unless the
-  task's scope names the merge (M11-01a does for jackin); if one is, the
-  same task merges `origin/main` back into the branch and pushes it.
+  returns 200 (recreate the branch from `origin/main` when it is gone). A
+  check pending on a self-hosted runner label is a defect of the task's
+  own CI edit (fix it in the PR, D-064), never a preflight defect. No pull
+  request from `feat/managed-execution` to `main` is merged in `jackin` or
+  `termrock` during this run unless the task's scope names the merge
+  (M11-01a does for jackin); if one is, the same task merges `origin/main`
+  back into the branch and pushes it.
 - DCO (D-089): the role images install a `prepare-commit-msg` hook that
   appends `Signed-off-by:` (M1-04a template, M1-13 for the-architect) and
   every `TASK.md` says `git commit -s`; before any push or PR the session
