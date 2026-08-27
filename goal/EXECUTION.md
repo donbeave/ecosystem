@@ -233,8 +233,8 @@ task runs from a bare row" and "a runnable row is not `planned`" say the
 same thing rather than contradicting each other.
 
 M1 exit audit (D-123). Promotion of an M2+ row carries one further
-condition: `tasks/M1-12/audit.md` exists and its last non-empty line is
-`audit: PASS`. `tools/state.py` refuses the promotion otherwise, in both
+condition: M1-12 will have written `tasks/M1-12/audit.md` and its last
+non-empty line will read `audit: PASS`. `tools/state.py` refuses the promotion otherwise, in both
 `arm` and the auto-promotion of `transition <id> done`, so an M2+ row
 physically cannot reach `ready` before the audit passes and nothing has to
 remember the rule. The audit gates every M2+ id: the four early-start ids

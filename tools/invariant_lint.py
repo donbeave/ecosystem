@@ -347,6 +347,27 @@ EXPLICIT_AMEND = re.compile(
     r"((?:`?D-\d{3}`?(?:,| and|,? and)?\s*)+)\s*(?:is|are) amended by\s+([^.]*)")
 
 
+def _sentence(body, start):
+    """The rest of the sentence at `start`, parentheticals included.
+
+    A note lists several amendments in one sentence, each with its own
+    parenthetical gloss ("Amended by D-083 (… ends on script output) and
+    D-084 (… never propagates)."). Stopping at the first `(` or `.` read
+    only the first id and reported every later one as a missing note, so
+    the scan ends at the first period outside parentheses instead.
+    """
+    depth = 0
+    for index in range(start, len(body)):
+        char = body[index]
+        if char == "(":
+            depth += 1
+        elif char == ")":
+            depth = max(0, depth - 1)
+        elif char == "." and depth == 0:
+            return body[start:index]
+    return body[start:]
+
+
 def check_amendments_reciprocal():
     bodies = _decision_bodies()
     body_of = {ident: body for ident, body, _ in bodies}
@@ -390,8 +411,9 @@ def check_amendments_reciprocal():
         targets = set()
         # "Amends D-057 and the D-027 interpretation", "Amends the last
         # sentence of D-071": every id in the sentence opened by "amends".
-        for match in re.finditer(r"\b[Aa]mends\b([^.]*)", body):
-            targets.update(re.findall(r"\bD-\d{3}\b", match.group(1)))
+        for match in re.finditer(r"\b[Aa]mends\b", body):
+            targets.update(re.findall(r"\bD-\d{3}\b",
+                                     _sentence(body, match.end())))
         # passive form: "D-001 is amended", "D-013 is amended a second time"
         for match in re.finditer(r"\b(D-\d{3}) is amended\b", body):
             targets.add(match.group(1))
@@ -403,13 +425,14 @@ def check_amendments_reciprocal():
     amended_by = {}
     for ident, body, _ in bodies:
         found = set()
-        for match in re.finditer(r"[Aa]mended by\b([^.(]*)", body):
+        for match in re.finditer(r"[Aa]mended by\b", body):
             # A quoted note about a third decision ("D-056 carries an
             # \"Amended by D-071\" note") is prose, not this decision's note.
             before = body[max(0, match.start() - 40):match.start()]
             if '"' in before[-3:] or "carries" in before:
                 continue
-            found.update(re.findall(r"\bD-\d{3}\b", match.group(1)))
+            found.update(re.findall(r"\bD-\d{3}\b",
+                                    _sentence(body, match.end())))
         found.update(explicit_reverse.get(ident, set()))
         found.discard(ident)
         amended_by[ident] = found

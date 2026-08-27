@@ -234,8 +234,10 @@ checklist is safe). Per-item verification (`verify.sh`, D-003) applies to
 checklist items where present; how checklist items and verification
 scripts relate is Q-014.
 
-*Amended by D-081: the candidate, session, and activity polls and the
-pre-write `description` read are not issue-content reads.*
+*Amended by D-049: the daemon also writes on every run-status change and
+heartbeat, not only on checklist-item completion. Amended by D-081: the
+candidate, session, and activity polls and the pre-write `description`
+read are not issue-content reads.*
 
 ## D-014 — 2026-08-27 — A task names its repository and its branch; branches are created or reused
 
@@ -516,6 +518,9 @@ first host remains open.
 
 ## D-027 — 2026-08-27 — Failure classes decide recovery
 
+*Amended by D-071: provider quota exhaustion is an infrastructure-class
+failure that consumes no attempt.*
+
 **Decision.** Failures are classified as workflow/config, workspace (git
 preparation, hooks), agent (exit, stall, timeout, blocked past
 deadline), tracker, or observability. Agent failures retry with backoff
@@ -603,6 +608,10 @@ on `Merging`; D-014's PR ownership; D-023's credential rule.
 queue in the first version; the cap serializes merges per repository.
 
 ## D-032 — 2026-08-27 — Implementation is verified visually with agent-browser on a persistent profile
+
+*Amended by D-077: a macOS profile is not readable by Linux Chromium, so
+the portable credential is agent-browser storage state and the operator
+image uses Debian Chromium.*
 
 **Decision.** During implementation, every step is verified against the
 real Linear and GitHub user interfaces with `agent-browser` (visual
@@ -702,6 +711,11 @@ happen and cannot be rotated or audited.
 
 ## D-036 — 2026-08-27 — Work is done through subagents, heavily
 
+*Amended by D-082: in-session subagents are always Claude on this
+session's `~/.claude`, so Codex lanes are delegated through the container
+path instead. Amended by D-092: every subagent the host session spawns
+runs on Opus and the session's own reading is capped.*
+
 **Decision.** In this workflow, every unit of work is carried out by
 delegated agents: subagents inside a session, or separate agents spawned
 through jackin (`jackin load <role>` today, the daemon later) when the
@@ -759,9 +773,12 @@ is ready to execute.
 
 ## D-038 — 2026-08-27 — Tasks live in `tasks/`, indexed by a README with status
 
-*Amended by D-111: `tasks/README.md` and `PROGRESS.md` are generated
-projections of the state store, never hand-edited. Amended by D-118: the
-permitted task-folder files are listed there.*
+*Amended by D-093: `verify.sh`, `task.toml` and text evidence under
+`tasks/<id>/`, and the root `verify.sh`, are all excepted from the
+no-implementation rule. Amended by D-111: `tasks/README.md` and
+`PROGRESS.md` are generated projections of the state store, never
+hand-edited. Amended by D-118: the permitted task-folder files are listed
+there.*
 
 **Decision.** This repository has a `tasks/` folder. `tasks/README.md` is
 the index: a list of every task subfolder with its status. Each subfolder
@@ -789,6 +806,10 @@ before execution; a folder per task is the format already observed to work
   roles or new ones) is decided during that planning; see Q-016.
 
 ## D-039 — 2026-08-27 — Build in parallel across accounts, agents, and models
+
+*Amended by D-078: a lane's model and effort come from workspace `env`
+and, for Codex, a role `hooks/source.sh` step, not from a manifest
+`--model`.*
 
 **Decision.** The build runs as many tasks in parallel as the dependency
 graph allows. Parallelism uses the multiple provider accounts already on
@@ -927,7 +948,7 @@ loop to run and is clearer as a plain prompt.
 
 ## D-045 — 2026-08-27 — New purpose-built roles under the `donbeave` GitHub account
 
-Amended by D-074, D-078, D-089 (reciprocal note, D-107): `jackin-the-
+Amended by D-074, D-078 and D-089: `jackin-the-
 architect` does receive exactly the three changes this run needs — CI on
 GitHub-hosted runners for `pull_request` and the removal of
 `[claude].model` plus the DCO sign-off hook (M1-13), and `default_agent`
@@ -1012,6 +1033,9 @@ or is not.
 termrock PRs stay open during the run.*
 
 ## D-048 — 2026-08-27 — jackin development always uses `jackin-the-architect`
+
+*Amended by D-074: a role change is effective only on `main`, so the
+the-architect pull request is opened and merged inside the same task.*
 
 **Decision.** Every task that changes the jackin repository (and its
 sibling repositories in jackin-project that `the-architect` already
@@ -1190,9 +1214,16 @@ references in Linear, task folders, and evidence; the status line of
 `ROADMAP.md` names this decision.
 
 *Amended by D-072: M1-01 loses its dependency; M1-09 gains M1-10 and
-M1-13; M1-12 gains M1-13.*
+M1-13; M1-12 gains M1-13. Amended by D-088: M11-01a is added, M11-02
+depends on it, and the task count is 81.*
 
 ## D-055 — 2026-08-27 — Agents merge; reviews never block; no releases before M11
+
+*Amended by D-074: the one `feat/managed-execution` pull request per
+repository in jackin and termrock stays open and unmerged for the whole
+run; a merge happens only where a task's scope names it. Amended by D-079:
+while the reviewer's `gh` identity equals the PR author the review event
+is `COMMENT`, and the merge authorization lives in the task text.*
 
 **Decision.** Agents merge pull requests to `main` themselves whenever the
 roadmap needs a merge, using the forwarded `gh` identity. Work that does not
@@ -1255,6 +1286,13 @@ attempt.*
 
 ## D-058 — 2026-08-27 — Model ids and effort knobs are discovered by M1-13
 
+*Amended by D-074: a role change is effective only on `main`, so M1-13's
+the-architect edits are merged in the same task. Amended by D-078: the
+model and effort are bound by workspace `env` and a Codex `config.toml`
+hook. Amended by D-091: M1-13 records the lane facts in
+`tasks/M1-13/lanes.json` and a `model:*` label carries the exact model
+id.*
+
 **Decision.** The exact model identifiers and reasoning-effort knobs for
 every lane are discovered and recorded by M1-13, not stated in
 `ROADMAP.md`. `model:*` label values follow what M1-13 records. Minimal
@@ -1284,6 +1322,10 @@ reads as "screenshot attached to the issue, reference in `tasks/<id>/`";
 `.gitattributes` needs no LFS.
 
 ## D-060 — 2026-08-27 — Linear structure: team `JACKIN`, one project, milestones M1..M12
+
+*Amended by D-073: M1-12 creates every M2+ issue but sets no delegate;
+delegation happens per issue once the daemon can serve it, and every
+authoring re-runs the M1-12 procedure.*
 
 **Decision.** A new Linear team `JACKIN` hosts the work; one project holds
 this effort; project milestones are M1..M12. M1 tasks never get Linear
@@ -1343,6 +1385,9 @@ human's attention and violates D-050.
 
 ## D-064 — 2026-08-27 — CI for this roadmap runs on GitHub-hosted runners, not velnor
 
+*Amended by D-089: the-architect's switch to GitHub-hosted runners happens
+in M1-13, its first pull request of the run.*
+
 **Decision.** For every involved repository — all repositories under
 github.com/jackin-project and github.com/tailrocks that this effort
 touches, the `donbeave` role repositories, and this repository —
@@ -1368,6 +1413,9 @@ default (D-034); CI is confirmation.
   superseded for this effort.
 
 ## D-065 — 2026-08-27 — Every repository we create is public
+
+*Amended by D-089: the rule also covers the organization-owned
+`jackin-project/jackin-managed-scratch`.*
 
 **Decision.** Every repository created for this effort is public from
 creation: the `donbeave/jackin-crew-*` role repositories, the
@@ -1441,8 +1489,11 @@ that the host session is the first responder to escalations.
 
 ## D-069 — 2026-08-27 — One root `verify.sh` and a `goal/` package drive the unattended run
 
-*Amended by D-110: the root `verify.sh` derives four terminal classes, not
-two. Amended by D-118: the permitted machine files are listed there.*
+*Amended by D-083: the invocation is the one-line argument carrying the
+two terminal facts, not `Follow GOAL.md`. Amended by D-093: the final
+message shape is fixed for both outcomes. Amended by D-110: the root
+`verify.sh` derives four terminal classes, not two. Amended by D-118: the
+permitted machine files are listed there.*
 
 **Decision.** D-001 is amended a second time: besides the task-level
 `tasks/<id>/verify.sh` (D-038), exactly one more runnable file is permitted
@@ -1510,7 +1561,10 @@ after the analysis has run on every attempt.
 
 ## D-071 — 2026-08-27 — Quota fallback is per account home, consumes no attempt, and is never a preflight defect
 
-Amends D-057 and the D-027 interpretation in `SPEC.md` §6 step 8.
+Amends D-056 (the `~/.claude` cap for this run is 2, not 3), D-057 and
+the D-027 interpretation in `SPEC.md` §6 step 8.
+Amended by D-092: the cheapest-model clause of the last sentence is
+struck — every subagent the host session spawns runs on Opus.
 Amended by D-090: the reset-time command is `jackin usage host snapshot
 --agent <claude|codex> --format json` (there is no `jackin usage host
 accounts`), the host session applies a headroom reserve rule before
@@ -1633,7 +1687,8 @@ issues need a re-run.
 *Amended by D-112: a change to a role repository is still made in a per-task
 worktree and branch and integrated under the repository's integrator lease.*
 
-Amends D-047, D-048, D-055, D-058. Amended by D-088 (M11-01a merges
+Amends D-045, D-047, D-048, D-055, D-058. Amended by D-086 (the push
+protocol on this repository's `main`), D-088 (M11-01a merges
 jackin `feat/managed-execution` into `main` once, before M11-02, because
 the role-publishing validator is built from `main`) and D-089 (the-
 architect's CI switch happens in M1-13, its first merge;
@@ -1757,7 +1812,8 @@ on the critical path.
 
 ## D-078 — 2026-08-27 — Lane mechanics: workspace env, Codex hook, privileged DinD, hand-written on-demand binding
 
-Amends D-039/D-058 wiring. Amended by D-085 (item (1): a lane is a
+Amends D-039/D-058 wiring and D-045 (`[claude].model` is removed from
+`jackin-the-architect`). Amended by D-085 (item (1): a lane is a
 template merged into a per-task saved workspace `task-<id>`, because a
 saved workspace is selected only by name and pins one `workdir`), D-090
 (item (4): the file is `~/.config/jackin/config.toml`), and D-091 (item
@@ -1803,7 +1859,9 @@ M11-02 fail their own verify.
 
 ## D-079 — 2026-08-27 — Reviewer identity and verdicts before M8; merge authorization lives in the task text
 
-Amends D-055 wiring.
+Amends D-055 wiring. Amended by D-091: `pr.txt` is three lines, the review
+reads `git diff <line 3>..<line 2>`, and the verify accepts the pinned
+`commit_id` or a later head that has it as an ancestor.
 
 **Decision.** While the reviewer's `gh` identity equals the PR author
 (every review before M8-01, and any later PR opened by the forwarded `gh`),
@@ -1958,7 +2016,9 @@ without checking for a surviving run dispatches the same task twice.
 
 ## D-083 — 2026-08-27 — The `/goal` argument carries the terminal facts; BLOCKED needs a quiet run and ends on script output
 
-Amends D-069 and D-070.
+Amends D-069 and D-070. Amended by D-093: the final message shape is
+fixed — the verdict line, the §7 report, the open defect rows, then the
+literal `sh verify.sh` output.
 
 **Decision.** The invocation is no longer `/goal Follow GOAL.md` but the
 one-line argument printed in `GOAL.md`: the goal is reached only when the
@@ -1994,7 +2054,9 @@ copying it, so the text cannot drift.
 
 ## D-084 — 2026-08-27 — Attempt epochs; `exhausted:` rows have no proof command; `blocked` never propagates
 
-Amends D-070.
+Amends D-070. Amended by D-093: an `exhausted:` row is closed only when
+the human fills its `Resolved` cell; the session never opens a new epoch
+itself.
 
 **Decision.** (1) An `exhausted: <id>` row carries `re-run` in its proof
 cell instead of a proof command: `sh tasks/<id>/verify.sh` cannot pass
@@ -2172,7 +2234,7 @@ their `blocks` relations never resolved.
 
 *Amended by D-114: no `<milestone>-00 authoring` task remains in the graph.*
 
-Amends D-054, D-072, D-073.
+Amends D-054, D-072, D-073, D-074.
 
 **Decision.** (1) New task M11-01a "Merge jackin `feat/managed-execution`
 to `main` and republish the preview validator" (the-architect, L2,
@@ -2219,7 +2281,7 @@ deterministic first-task failure).
 
 ## D-089 — 2026-08-27 — GitHub mechanics: the-architect CI switch in M1-13, three repositories keep the branch, merge protocol, DCO hook, named workflows, scratch repository under `jackin-project`, App on all repositories
 
-Amends D-064, D-065, D-074, D-076 (1).
+Amends D-045, D-064, D-065, D-074, D-076 (1).
 
 **Decision.** (1) `jackin-project/jackin-the-architect` `main` requires
 `ci-required` and `DCO` with no bypass actors, and its `ci.yml` routes

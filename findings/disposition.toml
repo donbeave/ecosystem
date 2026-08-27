@@ -338,7 +338,7 @@ title = """Documents read first still forbid actions the run requires (D-045/D-0
 disposition = "fixed"
 evidence = """Fixed: D-048 now records the exception that lets M1-13 and M3-02 change the-architect, with a reciprocal note on D-045."""
 file = "DECISIONS.md"
-line = 1020
+line = 1044
 quote = """D-074"""
 
 [[finding]]
