@@ -122,7 +122,7 @@ M3-02 (`default_agent`).
 | --- | --- | --- | --- |
 | Repo | `donbeave/jackin-crew-builder` | `donbeave/jackin-crew-operator` | `donbeave/jackin-crew-reviewer` |
 | Identity | Crew Builder | Crew Operator | Crew Reviewer |
-| apt | `build-essential libssl-dev openssl pkg-config cmake xxd` (dev §7) | `unzip openssl chromium fonts-noto-cjk fonts-noto-color-emoji` + 1Password apt repo → `1password-cli` 2.39.0 (op §2); Debian Chromium on both architectures, never `agent-browser install` (Chrome for Testing has no Linux arm64 build, D-077) | none beyond construct |
+| apt | `build-essential libssl-dev openssl pkg-config cmake xxd` (dev §7) | `unzip openssl chromium fonts-noto-cjk fonts-noto-color-emoji`; `op` 2.39.0 by direct download, not the apt repository (it serves only the current version, so a pinned `1password-cli=2.39.0` fails on the next release, D-090): `ARG OP_CLI_VERSION=2.39.0`, `ARG OP_CLI_SHA256_ARM64=829baeff1c07e055cfa132031b1d9f2282ccdf5076258e482caf2fda70aea5d0`, `ARG OP_CLI_SHA256_AMD64=6fba7f376b6c6dec49f41b06408930a43ad064cce103c6a2ce5b3d0413a86434`, `RUN arch=$(dpkg --print-architecture) && curl -fsSLo /tmp/op.zip "https://cache.agilebits.com/dist/1P/op2/pkg/v${OP_CLI_VERSION}/op_linux_${arch}_v${OP_CLI_VERSION}.zip" && echo "<sha for arch>  /tmp/op.zip" \| sha256sum -c && unzip -o /tmp/op.zip -d /usr/local/bin op && chmod 755 /usr/local/bin/op` (`cache.agilebits.com` is a trust anchor named in `AGENTS.md`; op §2); Debian Chromium on both architectures, never `agent-browser install` (Chrome for Testing has no Linux arm64 build, D-077) | none beyond construct |
 | mise | pre-warm regenerated from `jackin@feat/managed-execution` `mise.toml` (dev §1 rows: nextest, deny, audit, shear, hack, dylint, actionlint, shellcheck, sccache, weaver, codebook, bun, node, python, uv, reuse, zig, cosign, syft, boltffi) **plus** termrock's delta (tr §6): rust `1.97.1` beside `1.98.0`, nightly minimal, `wasm32-unknown-unknown`, cargo-semver-checks 0.48.0, wasm-pack 0.15.0, git-cliff 2.13.1, gitleaks 8.30.1, cargo-public-api 0.52.0; `rustup component add rust-analyzer`; `MISE_TRUSTED_CONFIG_PATHS=/workspace:/tmp/jackin-mise` | `node@24.19.0` only (op §2) | `node@24.19.0` only (rev A.6) |
 | npm / binstall | `skills` CLI (Codex/Amp skill installs); `cargo binstall lychee`; drop `cargo-watch` | `npm i -g agent-browser@0.35.1` only; the browser is `/usr/bin/chromium` via `AGENT_BROWSER_EXECUTABLE_PATH` (D-077) | none |
 | Removed vs the-architect | OpenTofu, Context7/`ctx7`, headroom, amp/opencode/kimi/grok, `feature-dev`, `security-guidance`, `claude-md-management`, `code-simplifier`, `pr-review-toolkit` | everything Rust, OpenTofu, provider overrides | Rust, `rust-analyzer-lsp`, OpenTofu, `op`, `agent-browser`, `feature-dev` |
@@ -137,7 +137,7 @@ M3-02 (`default_agent`).
 | Must never hold | Linear client secret or workspace tokens (D-035; the daemon reads them host-side), `OP_SERVICE_ACCOUNT_TOKEN`, browser profile, registry credentials, `CONTEXT7_API_KEY`, org-admin `GITHUB_TOKEN` (dev §4) | tokens for `Private`, `tailrocks`, `ChainArgos` vaults; personal access tokens on the human's GitHub; a second Google account in the profile; a `compat` Docker profile; plaintext of anything it `op item create`d (op §6) | write mount on `/workspace`; Linear token; `op`; browser profile; `APPROVE` (rev A.5) |
 | Mounts (all from operator/workspace config; manifests cannot declare mounts, `mounts.mdx:85-110`) | workspace checkout (`~/.jackin/managed/<key>` from M3-03; `~/Projects/...` for hand-run M1/M2); named volumes for `~/.cargo/registry`, `~/.cargo/git`, `target/` per lane; persistent DinD data volume | `jackin config mount add agent-browser-profile --src ~/.jackin/agent-browser-profile --dst /home/agent/.agent-browser-profile --scope donbeave/crew-operator`, rw (Chrome writes cookies) — **operator config, not manifest** (op §3, §7); workspace = evidence dir | workspace `:ro` |
 | Threat model | pushes to `jackin-project/jackin`, merges its own PR through the forwarded `gh` only when the task text says so (the task prompt is the per-PR "merge it", D-055, D-079); issue text untrusted; DinD is a throwaway second daemon; supply chain = mise/cargo `--locked`, three marketplaces, tagged clones; termrock push credential bound only for M9-02/M9-03 launches; golden bless performed only by the host session under the pre-approval of D-075, never by the image (dev §7, tr §6) | profile = the human account on Linear (admin) and GitHub (org owner); page content is untrusted with a shell behind it; credential creation is one-way (`> /dev/null`, verify with `jq -e '(.value // "") | length > 0'` (D-081)); screenshots after secrets are masked, never of 1Password pages; one instance at a time (op §6) | PR content is untrusted; no compilation; two new trust anchors (`tailrocks-skills` commit, `review-crucible` commit); `gh` write scope is the whole blast radius; `source.sh` writes only `$CODEX_HOME/agents/` and the `config.toml` model keys (rev A.6, D-078) |
-| ROADMAP tasks served | M1-01, M1-02, M1-08, M1-13, M2-01..M2-06, M3-01..M3-06, M4-01..M4-05, M5-01, M5-02, M6-01..M6-03, M7-02, M8-01, M9-01..M9-04, M10-02, M11-01, M11-02 (dev §6, tr §3, §4) | M1-02a, M1-03, M1-06, M1-07, M1-09..M1-12, M2-07, M3-07, M4-06, M5-03, M6-04, M7-01, M7-03, M8-02, M9-05, M10-01, M10-03, M11-03 proof halves, plus the browser-proof items moved out of the six builder tasks (op §7) | M2-08, M3-08, M4-07, review halves of M5-03..M11-03 (rev A.1) |
+| ROADMAP tasks served | M1-01, M1-02, M1-08, M1-13, M2-01..M2-06, M3-01..M3-06, M4-01..M4-05, M5-01, M5-02, M6-01..M6-03, M7-02, M8-01, M9-01..M9-04, M10-02, M11-02 (dev §6, tr §3, §4) | M1-02a, M1-03, M1-06, M1-07, M1-09..M1-12, M2-07, M3-07, M4-06, M5-03, M6-04, M7-01, M7-03, M8-02, M9-05, M10-01, M10-03, M11-01 (verify-and-record, D-090), M11-03 proof halves, plus the browser-proof items moved out of the six builder tasks (op §7) | M2-08, M3-08, M4-07, review halves of M5-03..M11-03 (rev A.1) |
 
 ### 3.2 Manifest sketches
 
@@ -182,8 +182,7 @@ dockerfile = "Dockerfile"
 agents = ["claude", "codex"]
 [identity]
 name = "Crew Operator"
-[claude]
-model = "claude-sonnet-4-6"
+[claude]                                 # no model: the lane sets it (D-078)
 plugins = ["github@claude-plugins-official"]
 [codex]
 [docker]
@@ -197,10 +196,11 @@ default = "/home/agent/.agent-browser-profile"
 default = "operator"
 [env.AGENT_BROWSER_SCREENSHOT_DIR]
 default = "/workspace/evidence"
-[env.OP_SERVICE_ACCOUNT_TOKEN]
-interactive = true
-skippable = true                         # laptop: value comes through the jackin-exec binding
-secret = true
+[env.AGENT_BROWSER_EXECUTABLE_PATH]
+default = "/usr/bin/chromium"            # Debian Chromium, D-077
+# OP_SERVICE_ACCOUNT_TOKEN is never declared here: on-demand binding in
+# ~/.config/jackin/config.toml (D-078); EnvVarDecl has no `secret` key and an
+# interactive declaration would raise a launch prompt (D-090).
 [env.CLAUDE_CODE_EFFORT_LEVEL]
 default = "medium"
 [env.CLAUDE_CODE_NO_FLICKER]
@@ -231,8 +231,14 @@ default = "1"
 ```
 
 Reviewer verdict flow (rev A.5): a PR *review* through the Reviews API
-(`gh api repos/{o}/{r}/pulls/{n}/reviews -f commit_id=… -f event=… --input
-comments.json`), never `gh pr comment`; the event is always `COMMENT` while
+with one JSON payload — `jq -n --arg c "$review_sha" --arg b "$(cat
+review.md)" --slurpfile cm comments.json '{commit_id:$c,event:"COMMENT",body:$b,comments:$cm[0]}'
+| gh api -X POST repos/{o}/{r}/pulls/{n}/reviews --input -` (`-f` cannot be
+mixed with `--input`) — never `gh pr comment`; `commit_id` is always the
+SHA given in the task (line 2 of the staged `.jackin/task/pr.txt`), never
+`gh pr view` head, because concurrent pushes move the head while the
+review is written, and the diff reviewed is `git diff <line 3>..<line 2>`
+(D-091); the event is always `COMMENT` while
 the reviewer's `gh` login equals the PR author (every review before M8-01;
 GitHub returns 422 for `REQUEST_CHANGES` and `APPROVE` on one's own PR and
 a 422 is never retried with the same event); the verdict is the first body
@@ -241,7 +247,7 @@ prefixes; the real `REQUEST_CHANGES` event only when `gh api user` login
 differs from the PR author; never `APPROVE` (D-079); findings for Linear
 emitted in task-format checklist syntax in the final message and appended
 to the issue by the host session; preflight skips closed PRs and PRs
-already reviewed by this login at the current head commit (one rolling PR
+already reviewed by this login at the task's `review_sha` (one rolling PR
 per repository is reviewed once per milestone, D-074), drafts are accepted. `review-crucible` cannot be a
 Claude plugin until some marketplace lists it (its README points at a
 non-existent `tailrocks/tailrocks-marketplace`; `jackin role validate`
@@ -267,18 +273,24 @@ Claude the reviewer runs the official plugins plus `tailrocks-review-pr`.
   grant donbeave/crew-builder`, `…-operator`, `…-reviewer`, once per host.
   An untrusted role in a non-interactive launch fails with "role trust
   prompt"; the daemon reports a missing grant as a validation failure.
-- **M10:** add `published_image = "docker.io/donbeave/jackin-crew-<p>:latest"`
+- **M11 (M11-02):** add `published_image = "docker.io/donbeave/jackin-crew-<p>:latest"`
   (the `donbeave` Docker Hub user exists), the `publish-image.yml` caller of
-  `jackin-role-action`, and two Hub secrets; the workflow builds amd64+arm64
-  and signs keyless with cosign. jackin does not verify cosign on pull;
-  freshness is the `jackin.role.git.sha` label versus the cached checkout.
+  `jackin-role-action` with explicit GitHub-hosted `runner-*` inputs
+  (`publish.yml` defaults them to `velnor-target-mvp`, D-064, D-089), and
+  two Hub secrets; the workflow builds amd64+arm64 and signs keyless with
+  cosign. The publish workflow's validator comes from jackin's `preview`
+  release built from `main`; a `v1alpha7` manifest therefore needs the
+  jackin merge M11-01a before the first publish, and the role `ci.yml`
+  (validator `latest-build`) is expected red from M3-02a until then
+  (D-089). jackin does not verify cosign on pull; freshness is the
+  `jackin.role.git.sha` label versus the cached checkout.
 
 ## 5. Credentials wiring
 
 | Role | Mechanism | Scope |
 | --- | --- | --- |
 | builder | `[github] auth_forward = "sync"` (host `~/.config/gh/` copied in, `gh auth setup-git`, host never written); per-agent provider forwarding from the lane's `CLAUDE_CONFIG_DIR` / `CODEX_HOME` (M1-13; OAuth-token mode for Claude lanes where M1-13 adopts it, D-082) | the human's `gh` identity until the GitHub App (M8-01) supplies a per-repo token |
-| operator | workspace × role env entry in **operator config** (not manifest): `OP_SERVICE_ACCOUNT_TOKEN = { op = "op://tailrocks/op-service-account-jackin-operator/credential", on_demand = true }`; the agent runs `jackin-exec op item create …`; the host session confirms in the picker via `tmux send-keys Space Enter` after checking the displayed command (D-082); the entry is hand-written with the mandatory `path` field, D-078 | 1Password service account with `read_items` + `write_items` on vault **`jackin` only**; cannot reach `Private`; token stored in `tailrocks` (op §4) |
+| operator | role env entry in **operator config** `~/.config/jackin/config.toml` (not manifest, and never `~/.jackin/config.toml`, which jackin does not read, D-090): `OP_SERVICE_ACCOUNT_TOKEN = { op = "op://tailrocks/op-service-account-jackin-operator/credential", on_demand = true }`; the agent runs `jackin-exec op item create …`; the host session confirms in the picker via `tmux send-keys Space Enter` after checking the displayed command (D-082); the entry is hand-written with the mandatory `path` field, D-078 | 1Password service account with `read_items` + `write_items` on vault **`jackin` only**; cannot reach `Private`; token stored in `tailrocks` (op §4) |
 | reviewer | `gh` forward only | review + comment |
 
 **Correction to ROADMAP** (§4 role table "host-side `op`" and §7 Q-018 row
@@ -318,10 +330,10 @@ Checklist per role (conv B.7):
 3. Dockerfile: construct `0.36-trixie@sha256:41815a35…`; one ARG + one RUN per tool; `--mount=type=secret,id=github_token`; no `latest`; skills cloned by tag or commit (`ARG <NAME>_SHA`).
 4. `AGENTS.md`: threat model naming every new trust anchor, hard rules, conventions; `CLAUDE.md -> AGENTS.md`; `AGENTS.md.d/` runtime-neutral instructions.
 5. `hooks/preflight.sh` or `hooks/source.sh` as in §3.1.
-6. `jackin role validate .`; push; `jackin-role-action` CI green (hadolint, amd64 build).
+6. `jackin role validate .`; push; `jackin-role-action` CI green (hadolint, amd64 build) — expected red from M3-02a (`v1alpha7`) until the jackin merge M11-01a republishes the validator (D-089); never a defect to chase before then.
 7. On each host: `jackin config trust grant donbeave/crew-<purpose>`; `jackin load donbeave/crew-<purpose> --dry-run --format json | jq -r .data.role` prints the selector (dry-run prints workspace, role, agent, and mounts only — no image decision, D-078; needs a rich terminal, run under `tmux`).
 8. Record the role here and in the lane table (`ROADMAP.md` §5).
-9. M10: `published_image`, `publish-image.yml`, Hub secrets; first publish is a cold build.
+9. M11-02: `published_image`, `publish-image.yml` with explicit GitHub-hosted `runner-*` inputs, Hub secrets; first publish is a cold build, after M11-01a.
 
 Task deltas (replace M1-04 and M1-05; role column for these bootstrap tasks
 is `the-architect`, unmodified, since the builder does not exist yet):
@@ -329,11 +341,11 @@ is `the-architect`, unmodified, since the builder does not exist yet):
 | id | title | depends_on | role | lane | size | verification |
 | --- | --- | --- | --- | --- | --- | --- |
 | M1-04 | *dropped* | — | — | — | — | — |
-| M1-04a | Create `donbeave/jackin-role-template` | M1-02 | the-architect | L4 (codex, GPT-5.6 Sol, `~/.codex`) | S | `verify.sh`: repo is a GitHub template, has no `jackin.role.toml`, ships the preamble, `AGENTS.md.d/00-common.md`, `hooks/source.sh`, audit script, `renovate.json`, three workflows; hadolint clean |
+| M1-04a | Create `donbeave/jackin-role-template` | M1-02 | the-architect | L4 (codex, GPT-5.6 Sol, `~/.codex`) | S | `verify.sh`: repo is a GitHub template, has no `jackin.role.toml`, ships the preamble, `AGENTS.md.d/00-common.md`, `hooks/source.sh`, `githooks/prepare-commit-msg` (DCO sign-off, D-089), audit script, `renovate.json`, exactly three workflows (`ci.yml` running `jackin-role-action` on `ubuntu-latest`, `precommit.yml`, dispatch-only `publish-image.yml`; never the velnor fleet `ci.yml`/`ci-required` template of `jackin-the-architect`, D-064); hadolint clean; no `velnor`/`self-hosted` under `.github/workflows` |
 | M1-05a | Create `donbeave/crew-builder` | M1-04a | the-architect | L4 (codex, GPT-5.6 Sol, `~/.codex`) | M | `verify.sh`: `jackin role validate` passes; `jackin load donbeave/crew-builder --agent claude` starts; inside: `mise install` in a jackin checkout is a no-op, `cargo nextest --version`, `cargo public-api --version`, `rustup run 1.97.1 cargo --version` exit 0; no `agent-browser`, no `op` on PATH |
-| M1-05b | Create `donbeave/crew-operator` | M1-04a | the-architect | L5 (codex, GPT-5.6 Terra, `~/.codex-chainargos`) | M | `verify.sh`: validate passes; `jackin load donbeave/crew-operator --agent claude` starts; inside: `op --version`, `gh --version`, `agent-browser --version` exit 0; `test -x /usr/bin/chromium`; `agent-browser doctor --json` exits 0 naming `/usr/bin/chromium`; profile path writable; no `cargo` on PATH (D-077) |
+| M1-05b | Create `donbeave/crew-operator` | M1-04a | the-architect | L5 (codex, GPT-5.6 Terra, `~/.codex-chainargos`) | M | `verify.sh`: validate passes and the manifest declares no `[env.OP_SERVICE_ACCOUNT_TOKEN]` and no `model =`; `jackin load donbeave/crew-operator --agent claude` starts; inside: `op --version` prints `2.39.0`, `gh --version`, `agent-browser --version` exit 0; `test -x /usr/bin/chromium`; `agent-browser doctor --json` exits 0 naming `/usr/bin/chromium`; profile path writable; no `cargo` on PATH (D-077) |
 | M1-05c | Create `donbeave/crew-reviewer` | M1-04a | the-architect | L6 (codex, GPT-5.6 Luna, `~/.codex-chainargos2`) | S | `verify.sh`: validate passes; loads on both runtimes; `/home/agent/.agents/skills/review-crucible/SKILL.md` exists and `/opt/review-crucible` is at `REVIEW_CRUCIBLE_SHA`; `$CODEX_HOME/agents/` populated after `source.sh`; no `cargo`, no `op`, no `agent-browser` |
-| M1-05d | Grant trust and configure host bindings | M1-05a, M1-05b, M1-05c | host | — | S | `verify.sh` (host session, D-061): `jackin config` shows `trusted = true` for the three selectors; the profile mount scoped to `donbeave/crew-operator` exists; `grep` finds the on-demand `OP_SERVICE_ACCOUNT_TOKEN` entry with `on_demand = true` in `~/.jackin/config.toml`; three `--dry-run` loads print the selector in `.data.role` (D-078) |
+| M1-05d | Grant trust and configure host bindings | M1-05a, M1-05b, M1-05c | host | — | S | `verify.sh` (host session, D-061): `jackin config` shows `trusted = true` for the three selectors; the profile mount scoped to `donbeave/crew-operator` exists; `jackin config env list --role donbeave/crew-operator --format json` lists `OP_SERVICE_ACCOUNT_TOKEN` with its on-demand marker and `grep` finds the entry with `on_demand = true` in `~/.config/jackin/config.toml` (the file jackin reads, D-090); three `--dry-run` loads print the selector in `.data.role` (D-078) |
 
 Other row edits: M1-06 `depends_on` = M1-05b, M1-05d; M1-13 adds
 `[docker.grants] dind = "privileged"` to the builder lanes (D-078) and the
@@ -377,7 +389,8 @@ makes one Rust role sufficient for three repositories.
   rewritten as in `concept/roles.md` §6.
 - The operator writes to 1Password through a service account scoped to
   vault `jackin`, delivered per invocation by a `jackin-exec` binding.
-- termrock's `CONTRIBUTING.md` needs an agent-authored-changes clause
-  before M9-02 starts; the human decides.
+- termrock's `CONTRIBUTING.md` agent-authored-changes clause is written
+  by M10-02 as its first commit (D-053 adopted, D-088); no human decides
+  it.
 - Q-016 is closed.
 ```

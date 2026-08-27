@@ -1165,8 +1165,9 @@ task tables has a `tasks/README.md` row in status `done` and a
 `tasks/<id>/verify.sh` exists, and it prints `status: DONE` or
 `status: PENDING <n> remaining` as its last line. It is read-only and has
 no dependencies beyond POSIX `sh` and `awk`. The run itself is defined by
-Markdown only: `GOAL.md` (the `/goal` prompt, under 4000 characters, run as
-`/goal Follow GOAL.md`), `goal/EXECUTION.md` (session start, per-task
+Markdown only: `GOAL.md` (the `/goal` prompt, under 4000 characters, run
+with the one-line invocation printed in `GOAL.md`, which since D-083
+carries the two terminal facts the runner's judge checks), `goal/EXECUTION.md` (session start, per-task
 procedure, wave order, execution paths, resume), `goal/PREFLIGHT.md` (the
 human's one-time operator checklist consolidated from `ROADMAP.md`),
 `PROGRESS.md` (append-only ledger, one row per task), and
@@ -1195,7 +1196,11 @@ files are frozen during a run except through a decision here.
 
 ## D-070 — 2026-08-27 — The run has two terminal outcomes; a task can be `exhausted`
 
-Adopted under D-053 (bulletproofing round 1).
+Adopted under D-053 (bulletproofing round 1). Amended by D-083 (the
+BLOCKED predicate also requires no `in-progress` or `waiting` row and the
+BLOCKED message ends on script output) and D-084 (attempts are counted per
+epoch; an `exhausted:` row has no proof command and is closed by the next
+session start; `blocked` never propagates to dependents).
 
 **Decision.** The `/goal` run ends in exactly one of two outcomes, both of
 which satisfy the run's goal condition for the current session: COMPLETE —
@@ -1209,8 +1214,9 @@ preceded by the D-063 analysis, without wrapping past the starting lane.
 Exhaustion is recorded as a `PREFLIGHT-DEFECTS.md` row of kind
 `exhausted: <id>` carrying the last `tasks/<id>/verify.out` path and the
 analysis summary; the human resolves it like a defect (or edits the task)
-and re-runs `/goal Follow GOAL.md`. Attempts are counted in the
-`PROGRESS.md` result cell so a resume never resets them. A provider quota
+and re-runs the invocation of `GOAL.md`. Attempts are counted in the
+`PROGRESS.md` result cell so a resume never resets them within an epoch
+(D-084). A provider quota
 or rate-limit wait is neither an attempt nor a block (D-071).
 
 **Rationale.** A model-judged loop with no turn cap and a single STOP
@@ -1227,7 +1233,12 @@ unchanged.
 ## D-071 — 2026-08-27 — Quota fallback is per account home, consumes no attempt, and is never a preflight defect
 
 Adopted under D-053 (bulletproofing round 1). Amends D-057 and the D-027
-interpretation in `SPEC.md` §6 step 8.
+interpretation in `SPEC.md` §6 step 8. Amended by D-090: the reset-time
+command is `jackin usage host snapshot --agent <claude|codex> --format
+json` (there is no `jackin usage host accounts`), the host session applies
+a headroom reserve rule before drawing on `~/.claude`, and a limit hit on
+the session itself is survived by Claude Code's auto-continue setting, not
+by a poll the limited session could not run.
 
 **Decision.** Provider quota exhaustion is an infrastructure-class failure:
 it consumes no attempt. The re-launch skips every lane whose account home
@@ -1266,7 +1277,10 @@ tests assert the per-account-home chain and an unchanged attempt counter.
 
 ## D-072 — 2026-08-27 — Graph amendments: M1-01 is wave 0; M1-09 and M1-12 depend on M1-13; M1-09 depends on M1-10
 
-Adopted under D-053 (bulletproofing round 1). Amends D-054.
+Adopted under D-053 (bulletproofing round 1). Amends D-054. Amended by
+D-088: M1 wave 5 is split because throwaway loads count as lane use, and
+M1-01's verify clause "n = total − 1" is replaced by a state-independent
+check (the row is still `in-progress` when its verify runs).
 
 **Decision.** Three edges of the frozen graph change because the findings
 proved an impossible ordering or a missing edge. (1) M1-01 has no
@@ -1293,11 +1307,18 @@ the "tasks that precede M1-01" rule; `goal/EXECUTION.md` §3 table starts
 with wave 0; M1-01's verify becomes machine-checkable (three files per id,
 `sh -n` clean `verify.sh` ending in a `status:` line, required `task.toml`
 keys, required `TASK.md` sections, one `tasks/README.md` row per id, root
-`sh verify.sh` printing `status: PENDING <n> remaining` with n = total − 1).
+`sh verify.sh` printing a `status: PENDING` line — the exact clause is the
+state-independent one of D-088, since this row is `in-progress` at verify
+time).
 
 ## D-073 — 2026-08-27 — Issues are delegated to jackin only when the daemon can serve them; the host session closes issues; M1-12 re-runs after every authoring
 
 Adopted under D-053 (bulletproofing round 1). Amends D-067 and D-060.
+Amended by D-087 (the host session completes every finished task's issue
+for the whole run, not only until M9-01; the daemon creates the agent
+session for a delegated issue itself; a `response` is posted only when a
+session exists) and D-088 (the early-start tasks M3-01, M3-03, M4-02,
+M4-03 may run before M1-12 exists; every other M2+ task waits for it).
 
 **Decision.** M1-12 creates, labels (`auto-dispatch` included), relates,
 and links every M2+ issue but sets no delegate; issues for tasks already
@@ -1338,7 +1359,12 @@ issues need a re-run.
 ## D-074 — 2026-08-27 — Role repositories are effective on `main`; jackin and termrock PRs stay open during the run
 
 Adopted under D-053 (bulletproofing round 1). Amends D-047, D-048, D-055,
-D-058.
+D-058. Amended by D-088 (M11-01a merges jackin `feat/managed-execution`
+into `main` once, before M11-02, because the role-publishing validator is
+built from `main`) and D-089 (the-architect's CI switch happens in M1-13,
+its first merge; `delete_branch_on_merge` is turned off on three
+repositories; merge protocol and the single DCO `--force-with-lease`
+exception).
 
 **Decision.** `jackin load` builds a role from the cached default branch
 only and `--role-branch` is interactive-only, so a role change is effective
@@ -1398,7 +1424,11 @@ threat-model cell.
 
 ## D-076 — 2026-08-27 — Human-only GitHub and 1Password steps move into preflight
 
-Adopted under D-053 (bulletproofing round 1).
+Adopted under D-053 (bulletproofing round 1). Amended by D-089 (the App
+is installed with access to all repositories; the scratch repository is
+named) and D-090 (item (3): auto-lock Never is mandatory with no
+service-account fallback; item (5): M11-01 verifies and records, M11-03
+wires the server daemon; the laptop config never switches).
 
 **Decision.** (1) The GitHub App `jackin-daemon` is created and installed
 by the human in preflight for each of `jackin-project` and `tailrocks`
@@ -1434,6 +1464,10 @@ M8-01, M11-01, M8 and M11 preflight paragraphs; `concept/credentials.md` §4.
 ## D-077 — 2026-08-27 — Browser session travels as agent-browser storage state; the operator image uses Debian Chromium
 
 Adopted under D-053 (bulletproofing round 1). Amends D-032/Q-017 wiring.
+Amended by D-090: the login commands use `open <url>` (a bare
+`agent-browser --headed --profile … --session operator` does nothing) and
+the standing proof reads `agent-browser state --help`, since the top-level
+`--help` of 0.35.1 lists no `state save`/`state load`.
 
 **Decision.** A Chrome user-data directory created on macOS is not readable
 by Linux Chromium (cookies are encrypted with an OS-bound key). The
@@ -1465,6 +1499,11 @@ on the critical path.
 ## D-078 — 2026-08-27 — Lane mechanics: workspace env, Codex hook, privileged DinD, hand-written on-demand binding
 
 Adopted under D-053 (bulletproofing round 1). Amends D-039/D-058 wiring.
+Amended by D-085 (item (1): a lane is a template merged into a per-task
+saved workspace `task-<id>`, because a saved workspace is selected only by
+name and pins one `workdir`), D-090 (item (4): the file is
+`~/.config/jackin/config.toml`), and D-091 (item (3): the DinD grant never
+serves a nested `jackin load`; launch-based verifies are host parts).
 
 **Decision.** jackin has no per-workspace model or effort knob today; the
 only model source is the manifest's `--model`. Therefore: (1) M1-13 writes
@@ -1485,7 +1524,9 @@ use `[docker.grants] dind = "privileged"`; M1-13 proves `docker info` and
 `docker run --rm hello-world` inside one builder-lane load and files
 `tasks/M1-13/dind.out`, which later tasks cite as the tier of record.
 (4) The on-demand `OP_SERVICE_ACCOUNT_TOKEN` binding is written by hand
-into `~/.jackin/config.toml` under `[roles."donbeave/crew-operator".env]`
+into `~/.config/jackin/config.toml` (the file jackin reads, `paths.rs`;
+corrected by D-090 from the earlier `~/.jackin/config.toml`) under
+`[roles."donbeave/crew-operator".env]`
 as `{ op = "op://tailrocks/op-service-account-jackin-operator/credential",
 path = "tailrocks/op-service-account-jackin-operator/credential",
 on_demand = true }` (`path` is mandatory); `jackin config env set` is not
@@ -1566,6 +1607,12 @@ rows 1 and 2.
 ## D-081 — 2026-08-27 — Host-side verification parts, evidence secret scan, and read-count wording
 
 Adopted under D-053 (bulletproofing round 1). Amends D-061 and D-013.
+Amended by D-086 (item (1): `verify.sh` takes `container|host` and the
+host part asserts the container verdict, so the concatenation can never
+mask a failure; the in-container part runs through `docker exec`, never
+typed into the TUI), D-087 (item (3): a fourth log tag `pre-read`, one
+`write` line per logical write with a `kind`), and D-091 (item (1): a
+launch of or attach to a jackin instance is always a host part).
 
 **Decision.** (1) D-061 extends from `host` rows to host-side checks: any
 verify part that needs the Linear token, `op`, the host daemon socket, or
@@ -1612,6 +1659,13 @@ M4-03, M4-04, M4-05, M5-04, M5-06, M6-02, M6-03, M7-03, §1 M5/M6 proof cells;
 ## D-082 — 2026-08-27 — Execution mechanism per runtime, container-path dialog handling, and resume checks
 
 Adopted under D-053 (bulletproofing round 1). Amends D-036 wiring.
+Amended by D-085 (items (1)–(2): the `CODEX_HOME=`/`CLAUDE_CONFIG_DIR=`
+prefixes select nothing in `jackin load`; the account comes from the
+per-task workspace; the prefixes remain only for the `codex exec` interim
+and the host probes of item (4)) and D-086 (item (2): one-line prompt
+pointing at the staged `.jackin/task/TASK.md`, eject by container name
+recorded in `tasks/<id>/container.txt`, teardown before any re-launch;
+item (3): an idle surviving tmux session is a finished attempt).
 
 **Decision.** (1) In-session subagents are always Claude on this session's
 `~/.claude`; the `subagents` path therefore serves Claude lanes only
@@ -1660,3 +1714,425 @@ without checking for a surviving run dispatches the same task twice.
 **Consequences.** `goal/EXECUTION.md` §1, §2, §3 table, §4, §5, §6;
 `goal/PREFLIGHT.md` §1; `GOAL.md` prompt; `ROADMAP.md` M1-13;
 `analysis/roles/operator-needs.md` §8 wording.
+
+## D-083 — 2026-08-27 — The `/goal` argument carries the terminal facts; BLOCKED needs a quiet run and ends on script output
+
+Adopted under D-053 (bulletproofing round 2). Amends D-069 and D-070.
+
+**Decision.** The invocation is no longer `/goal Follow GOAL.md` but the
+one-line argument printed in `GOAL.md`: the goal is reached only when the
+current turn ends with (A) the literal output of `sh verify.sh` whose last
+line is `status: DONE`, or (B) a final message whose first line is `GOAL
+BLOCKED`, followed by the open `PREFLIGHT-DEFECTS.md` rows and the literal
+`sh verify.sh` output (`status: PENDING <n> remaining`); any other turn end
+is not the goal. (B) additionally requires that no row is `in-progress` or
+`waiting` — the session waits on those with a Monitor loop until each
+reaches `done` or `blocked` — and that no row is runnable. If the runner
+re-prompts after a BLOCKED end, the session repeats `goal/EXECUTION.md` §1
+steps 1–4 (proof commands may now pass; an `exhausted:` row opens a new
+epoch, D-084) and continues if anything became runnable; otherwise it
+prints the same `GOAL BLOCKED` block again and ends the turn. The session
+is not required to keep a turn open through a quota wait: with a
+fact-based condition a mid-wait turn end is safe because the judge cannot
+accept it and re-prompts.
+
+**Rationale.** The runner's stop condition is the argument text judged
+against the transcript; "Follow GOAL.md" is satisfiable by any turn that
+reads like a summary, so the loop could stop with containers still
+running, and if the judge did not accept a BLOCKED statement the old
+"repeat the statement and do nothing" rule looped without bound. Putting
+both outcomes on script output makes either verdict a fact, and requiring
+a quiet run keeps D-071 true (a quota wait or a live container is never a
+reason to end).
+
+**Consequences.** `GOAL.md` invocation line, prose, and prompt (B);
+`goal/EXECUTION.md` §1 step 6, §6, §7; `goal/PREFLIGHT.md` line 3 and §6;
+`ROADMAP.md` §6 entry point; `README.md`; `PREFLIGHT-DEFECTS.md` header.
+Every document says "the invocation line of `GOAL.md`" instead of copying
+it, so the text cannot drift.
+
+## D-084 — 2026-08-27 — Attempt epochs; `exhausted:` rows have no proof command; `blocked` never propagates
+
+Adopted under D-053 (bulletproofing round 2). Amends D-070.
+
+**Decision.** (1) An `exhausted: <id>` row carries `re-run` in its proof
+cell instead of a proof command: `sh tasks/<id>/verify.sh` cannot pass
+until the task is re-executed, so it could never clear the row. At the
+next session start, if the row's task is still `blocked` and `Resolved` is
+empty, the session fills `Resolved` with its start timestamp, sets the task
+to `ready`, and opens a new attempt epoch recorded in the `PROGRESS.md`
+result cell (`epoch 2: 0/3`); `limits.attempts` applies per epoch; a
+second exhaustion files a new row. If the human finished the task by hand
+(`verify.sh host` already passes), the session closes it instead. The
+crash-resume protection of D-070 is untouched: an interrupted `in-progress`
+task never passes through an `exhausted:` row and keeps its count. (2) A
+dependent of a `blocked` task keeps its own status (`ready`) and is merely
+not runnable; only a row with its own open `PREFLIGHT-DEFECTS.md` row is
+ever `blocked`, so the singular reset of §1 step 2 is correct by
+construction, and a `blocked` row whose id appears in no open row is
+reset to `ready` at session start.
+
+**Rationale.** With the verify script as proof and a counter at its cap
+that never resets, every exhaustion was a permanent stall across every
+resume. With propagation, resolving one row un-blocked only the task named
+in it, leaving dependents `blocked` with no open row — a state that is
+neither (A) nor (B), on which the loop would spin.
+
+**Consequences.** `goal/EXECUTION.md` §1 step 2, §3, §6; `GOAL.md` prompt
+clause (b); `PROGRESS.md` and `PREFLIGHT-DEFECTS.md` headers;
+`tasks/README.md` status legend; `goal/PREFLIGHT.md` §6.
+
+## D-085 — 2026-08-27 — A lane is a template merged into a per-task saved workspace `task-<id>`
+
+Adopted under D-053 (bulletproofing round 2). Amends D-078 (1) and D-082
+(1)–(2).
+
+**Decision.** `jackin load` resolves a saved workspace only when it is
+named as `TARGET` (`jackin load <role> <name>`) or when the current
+directory equals the profile's `workdir` exactly; `LoadArgs` has no
+`--workspace` flag; the account folder comes only from
+`resolve_sync_source_dir` (workspace × role → workspace → global config),
+and jackin reads `CLAUDE_CONFIG_DIR`/`CODEX_HOME` of the launching process
+nowhere. One profile per lane therefore cannot serve many task checkouts.
+Instead: before every container launch the host session registers the
+saved workspace `task-<id>` (`jackin workspace create task-<id> --workdir
+~/.jackin/managed/<id> --mount ~/.jackin/managed/<id>`) and merges the
+lane's template into `~/.config/jackin/workspaces/task-<id>.toml`. Before
+M1-13 the template is `tasks/M1-02a/lanes/L<n>.toml`, written by M1-02a
+(host, wave 2) and holding only `[claude]`/`[codex] sync_source_dir` — the
+sole account selector for the multi-Codex waves 3 and 5; from M1-13 on it
+is `tasks/M1-13/lanes/L<n>.toml` with `sync_source_dir`, `[env]` (model
+id, effort), and `[docker.grants]`. The launch is `jackin load <role>
+task-<id> --agent <runtime>` from `$HOME` (the name `task-<id>` cannot
+collide with a directory the target classifier would pick), and
+`--dry-run --format json` must report `.data.workspace == "task-<id>"`; an
+ad-hoc load is a plan defect. Host `CODEX_HOME`/`CLAUDE_CONFIG_DIR`
+prefixes are dropped from the container command and remain only for the
+`codex exec` interim (argv) and the host-side login probes. M1-13's verify
+proves one throwaway per-task-style workspace per lane (account, model,
+and, for builder lanes, the DinD grant in the plan) instead of `jackin
+workspace show <lane>`. The workspace is deleted after the `PROGRESS.md`
+row.
+
+**Rationale.** Without this, waves 2–3 ran three tasks on one Codex
+account, fallback hops landed on the exhausted account, and after M1-13
+every lane's model, account, and DinD setting was silently absent for
+every container-path task.
+
+**Consequences.** `goal/EXECUTION.md` §2, §3 table, §4 container row and
+lane rule; `ROADMAP.md` §2 intro, M1-02a, M1-13, §5 prose; `SPEC.md` §9c;
+`GOAL.md` prompt.
+
+## D-086 — 2026-08-27 — Container-path mechanics: staged task folder, two-part `verify.sh`, one-line prompt, eject by name, host build refresh, single writer
+
+Adopted under D-053 (bulletproofing round 2). Amends D-074 (push protocol
+for this repository), D-081 (1), D-082 (2)–(3).
+
+**Decision.** (1) The container never sees this repository, so the host
+session stages `tasks/<id>/TASK.md`, `task.toml`, `verify.sh`, the
+`## References` files (under `refs/`), and for reviews `pr.txt` into
+`<workspace>/.jackin/task/` (excluded through `.git/info/exclude`) before
+the launch; `TASK.md` is authored container-relative
+(`.jackin/task/refs/<name>`); M1-12 embeds the full `TASK.md` text in the
+issue description; M4-04 pre-fetches into the same `.jackin/task/` layout,
+so both paths share one prompt shape. (2) `verify.sh` is POSIX `sh`
+(`dash -n`, `shellcheck -s sh`), takes `container` or `host` as `$1`, and
+when a container part exists the host part first asserts that
+`verify.container.out` ends with `status: DONE`; `verify.out` is the
+concatenation and the task is verified only when its last line is
+`status: DONE`. The container part runs through `docker exec -u agent -w
+/workspace <container> sh .jackin/task/verify.sh container` (from M4-03
+`jackin daemon exec`), never as keystrokes into the runtime TUI;
+`capture-pane` serves progress reading only. (3) The prompt is one line
+sent with `send-keys -l` and confirmed in the input box before `Enter`:
+for `goal` delivery the `/goal Read this file: .jackin/task/TASK.md …`
+line, for `prompt` delivery `Read .jackin/task/TASK.md and follow it as
+your task prompt`; a multi-line `TASK.md` is never typed (the first
+newline submits, the rest lands as stray turns). (4) After the runtime
+prompt appears the session records the container name in
+`tasks/<id>/container.txt`; eject is always `jackin eject "$(cat
+tasks/<id>/container.txt)"`, never by role class (which errors when two
+instances of the role run) and never `--all`. Before any re-launch of the
+same id the previous attempt is torn down (`tmux kill-session`, then
+`jackin eject` by name); a surviving tmux session whose runtime is idle
+with the prompt answered is a finished attempt and goes straight to
+verify. (5) For every task whose `repos` include `jackin`, the host build
+is refreshed before the host part (`git checkout --detach
+origin/feat/managed-execution` in the checkout recorded in
+`tasks/M1-02/checkout.txt`, `CI=1 cargo install --path crates/jackin
+--locked --force` and the same for `jackin-capsule`, sha assertion, daemon
+restart plus D-073 reconciliation); a stale binary consumes no attempt.
+(6) This repository has one writer: the host session. Container, subagent,
+and daemon tasks leave ecosystem changes in their managed checkout or emit
+files (`tasks/M1-12/issues.json`), the session imports and commits them,
+and before every edit of `tasks/README.md`, `PROGRESS.md`, or
+`PREFLIGHT-DEFECTS.md` it runs `git fetch origin && git rebase origin/main`
+(replace-by-id for the README, append for the ledgers, never `--force`).
+
+**Rationale.** Each item removes a proven stall: an absent `tasks/<id>/`
+inside the container, a host verdict masking a failed container part,
+bash-isms passing macOS `sh -n` and failing dash, a multi-line prompt
+submitting on its first newline, `jackin eject <role>` erroring on two
+concurrent the-architect instances, `tmux new-session` failing on a
+duplicate name, host parts calling daemon features the stale binary lacks,
+and two writers racing on `tasks/README.md`.
+
+**Consequences.** `goal/EXECUTION.md` §1 step 2, §2, §4 container row and
+rules, §5 steps 0, 4a, 5, 6a, 7; `concept/task-format.md` `TASK.md` and
+`verify.sh` contracts; `ROADMAP.md` M1-01, M1-02, M1-12, M4-04;
+`tasks/README.md` header; `goal/PREFLIGHT.md` §1 (`dash`, `shellcheck`);
+`GOAL.md` prompt.
+
+## D-087 — 2026-08-27 — Linear mechanics: client-credentials tokens everywhere, daemon-created sessions, one document per tick, rate-limit handling, `pre-read` tag, host closes every issue
+
+Adopted under D-053 (bulletproofing round 2). Amends D-073 and D-081
+(3)–(4).
+
+**Decision.** (1) Tokens: the M1-10 authorization-code exchange installs
+the app; every consumer then uses a `grant_type=client_credentials` token
+(30 days, same scopes). The host session stores its token as `access
+token` plus `expires at` in `op://jackin/linear-workspace-<org>` and
+re-mints when fewer than 48 hours remain; each daemon instance (laptop,
+M11, M12) mints its own in memory at start and at the threshold. Nobody
+uses the refresh-token grant and nothing is written back, so no consumer
+can invalidate another's token (Linear rotates refresh tokens on every use
+with a 30-minute grace). (2) Sessions: Linear documents no agent session
+for an `issueUpdate(delegateId)` made with the app token, so the daemon
+treats a delegated issue in an active state with no non-terminal session
+of the app user as a candidate and calls `agentSessionCreateOnIssue`
+itself (skipped when a session exists); the host delegation step is the
+one `issueUpdate`. M1-11 records whether API delegation creates a session
+(a finding either way), and M2-07 and M3-05 exercise one host-delegated
+scratch issue. A `response` activity is posted only when a session exists.
+(3) Rate budget: Linear's 5,000 requests per hour is per app user per
+workspace, shared by every poller and writer. All reads of a tick are
+aliased root fields of one GraphQL document (one request per tick, about
+720 per hour); `RATELIMITED` arrives as HTTP 400 with
+`errors[].extensions.code` and `X-RateLimit-Requests-Reset`, and the tick
+pauses until that reset, logs `poll ratelimited until <t>`, and queues
+heartbeats and writes; in M12 only the manager host polls. (4) Log tags:
+`poll`, `issue.read`, `pre-read` (the M6-02 pre-write description read),
+and `write`, one `write` line per logical write with a `kind` even when a
+tick issues several mutations; proof-run verifies count these tags and
+treat `poll ratelimited` as a `poll` line. (5) Closing: the host session
+moves every finished task's issue to the `completed`-type state on every
+path for the whole run; M9-01's Done-on-merge serves scratch issues only,
+because D-074 keeps `feat/managed-execution` unmerged and a roadmap issue
+is never moved to `merging`; the D-073 reconciliation also runs at every
+daemon restart and at §5 step 9.
+
+**Rationale.** The 24-hour access token would 401 the first host write
+after M1-10; a single rotating refresh token cannot be shared by four
+consumers; a session-first daemon never dispatched a host-delegated issue;
+a literal "nothing else" log assertion was unsatisfiable next to `poll`
+lines and heartbeats; and after M9-01 nothing closed roadmap issues, so
+their `blocks` relations never resolved.
+
+**Consequences.** `ROADMAP.md` M1-10, M1-11, M2-01, M2-02, M2-03, M2-07,
+M3-05, M5-06, M6-03, M12-02, §1 M5/M6 proof cells, §6 item 8;
+`goal/EXECUTION.md` §4 daemon row and Linear-token rule, §5 steps 7 and 9;
+`concept/credentials.md` row 3 and §5.4; `SPEC.md` §5, §6 step 12, §10c;
+`GOAL.md` prompt.
+
+## D-088 — 2026-08-27 — Graph amendments: M11-01a; M1 wave 5 split; M2+ tasks wait for M1-12; M11-01 starts with M11; M10-02 owns the CONTRIBUTING clause; M1-01's verify is state-independent
+
+Adopted under D-053 (bulletproofing round 2). Amends D-054, D-072, D-073.
+
+**Decision.** (1) New task M11-01a "Merge jackin `feat/managed-execution`
+to `main` and republish the preview validator" (the-architect, L2,
+`depends_on` M10-05), and M11-02 gains `depends_on` M11-01a: the
+`jackin-role-action` validator used by every role `ci.yml` and by
+`publish.yml` is built by jackin's `preview.yml` from `main` only, `main`
+knows manifests up to `v1alpha6`, and the crew manifests are `v1alpha7`
+from M3-02a, so without the merge M11-02 could never publish (a missing
+edge; the branch-artifact alternative fails `publish.yml`'s attestation
+check against `refs/heads/main`). D-055 forbids releases and tap
+publishes, which this merge is not. Role `ci.yml` is expected red from
+M3-02a until M11-01a and is never a stuck signal. The task count is 81.
+(2) M1 wave 5 splits into {M1-06, M1-08} then {M1-03, M1-13}, because a
+throwaway `jackin load` inside a task is lane use (Codex-home cap 1,
+`crew-operator` cap 1): M1-06's operator load ejects before M1-03 starts,
+and M1-13's per-lane loads run one at a time, each only when that lane's
+account home has no running container. (3) Every M2+ task except M3-01,
+M3-03, M4-02, M4-03 is runnable only when the M1-12 row is `done` (an
+implicit dependency, so no `depends_on` cell changes); those four may run
+before their issues exist, on the `subagents` or `container` path only,
+and M1-12 creates their issues afterwards in the state matching the row
+(its scope covers every non-`planned` M2+ row). No M6..M12 authoring
+begins before M1-12 is `done`; an authoring step that fails its check
+three times is filed `exhausted: <milestone>-00`. A runnable task of the
+lowest unfinished milestone always takes a free slot before an early-start
+task. (4) M11-01 is not an early-start task: it starts with M11 after
+M10-05, and its scope records the per-role `op://` mapping without
+switching any configuration (the switch lives in M11-03, server config
+only). (5) M10-02's first commit writes the termrock `CONTRIBUTING.md`
+agent-authored-changes clause; M10-03 starts once that commit is on
+`origin/feat/managed-execution` (a prose gate on the same lane pair, no
+new edge). (6) M1-01's verify no longer asserts `PENDING <total − 1>`:
+its row is `in-progress` when step 5 runs, so the clause was false by
+construction; it now asserts `tasks: <total> expected, <d> done` with `d`
+the count of `done` rows, a `status: PENDING` last line, and no missing
+row or script for any M1..M5 id, and no task verify ever asserts the
+remaining count or its own row status.
+
+**Rationale.** D-054 allows graph changes only through a decision; each
+item removes a proven stall (an unpublishable image, a violated cap, an
+M1-12 re-run demanded before M1-12 could exist, a laptop config switch
+that would break every later forwarded login, an unowned gate, and a
+deterministic first-task failure).
+
+**Consequences.** `ROADMAP.md` M1-01, M1-06, M1-13, M3-02, M3-02a, M10
+milestone row, M10-02, M11 preflight, M11-01, M11-01a, M11-02, counts, §3
+wave table, §5 lane table; `goal/EXECUTION.md` §3, §5 step 1;
+`concept/roles.md` §4, §7, §8; `GOAL.md` prompt.
+
+## D-089 — 2026-08-27 — GitHub mechanics: the-architect CI switch in M1-13, three repositories keep the branch, merge protocol, DCO hook, named workflows, scratch repository under `jackin-project`, App on all repositories
+
+Adopted under D-053 (bulletproofing round 2). Amends D-064, D-065, D-074,
+D-076 (1).
+
+**Decision.** (1) `jackin-project/jackin-the-architect` `main` requires
+`ci-required` and `DCO` with no bypass actors, and its `ci.yml` routes
+`pull_request` to an offline velnor runner; the switch to GitHub-hosted
+runners therefore happens in the first the-architect PR of the run
+(M1-13), in the same PR as the manifest change, before `gh pr checks
+--watch` and `gh pr merge --squash`; M3-02 inherits it. (2)
+`delete_branch_on_merge` is turned off in preflight on `jackin`,
+`jackin-the-architect`, and `termrock`; the merging task still merges
+`origin/main` back and confirms the branch exists. (3) Merges to a
+protected `main` use only `gh pr merge --squash` after the required checks
+are green; `--admin` never works; a check pending on a self-hosted label
+is the task's own CI defect. (4) DCO: the role images install a
+`prepare-commit-msg` sign-off hook (template `githooks/` via
+`core.hooksPath`; the-architect in M1-13), every `TASK.md` says `git
+commit -s`, and a pre-push gate counts trailers; the single exception to
+"never `--force`" is `git rebase --signoff` plus `--force-with-lease` on
+the-architect's single-writer branch to add missing trailers. (5) M1-04a
+ships exactly three named workflows on `ubuntu-latest`, never the velnor
+fleet templates; `publish.yml` of `jackin-role-action` defaults every
+runner input to `velnor-target-mvp`, so every caller passes GitHub-hosted
+labels explicitly (M11-02). (6) The scratch repository is
+`jackin-project/jackin-managed-scratch`, created by M3-07 with no branch
+protection and recorded in `tasks/M3-07/scratch-repo.txt`, which every
+later scratch issue reads; the `jackin-daemon` App is installed with
+`repository_selection == all` in both organizations and not on the
+`donbeave` account, so no `donbeave/*` repository is ever a daemon target;
+M8-01 asserts the scratch repository is reachable with the `jackin-project`
+installation token; M9 merges use that token. D-065's "every repository we
+create is public" now includes this organization-owned one.
+
+**Rationale.** Verified live: the M1-13 merge would wait forever on an
+offline runner, the first squash would delete the pinned branch, one
+unsigned Codex commit would make the merge unreachable, and a scratch
+repository created under `donbeave` would 404 every App-token push.
+
+**Consequences.** `goal/PREFLIGHT.md` §2; `goal/EXECUTION.md` §4 branch
+and DCO rules; `ROADMAP.md` M1-04a, M1-13, M3 preflight, M3-02, M3-07,
+M4-06, M6-03, M7/M9 preflights, M8-01, M8-03, M9-02, M11-02, M11-04,
+M12-03, §6 step 6; `concept/roles.md` §4, §7; `concept/task-format.md`
+template.
+
+## D-090 — 2026-08-27 — Operator and host facts: auto-lock Never is mandatory, corrected tool commands, runtimes in use, server host contract, M11-01 verifies and M11-03 wires, `op` by direct download, session reserve rule
+
+Adopted under D-053 (bulletproofing round 2). Amends D-071, D-076 (3) and
+(5), D-077, D-078 (4).
+
+**Decision.** (1) 1Password auto-lock Never (and lock-on-sleep off) is a
+hard precondition with no fallback: the host session's `op read` of the
+operator binding in `tailrocks` and of every Linear token in `jackin`
+need the unlocked desktop app, and a service account cannot serve
+`tailrocks` or `Private`; if the policy forbids Never the run cannot be
+unattended and is not started; a lock during the run is a preflight
+defect. (2) agent-browser 0.35.1: the login commands are `agent-browser
+--headed --profile … --session operator open <url>` for Linear and GitHub
+(a bare invocation does nothing), the standing proof reads `agent-browser
+state --help`, `close --all` names the session, and a cookie count on
+`state.json` proves the state is not empty; the same commands are the
+M1-06 re-login. (3) The operator config file is
+`${JACKIN_CONFIG_DIR:-$HOME/.config/jackin}/config.toml`; `~/.jackin/` is
+state only and `~/.jackin/config.toml` is never created; M1-05d's verify
+is authoritative on `jackin config env list --format json`, with the grep
+as a secondary check. (4) Runtimes in use = `claude`, `codex`, plus every
+runtime whose `tasks/M4-05/` matrix row is not `skipped`; M11-01 verifies
+exactly that set and files no defect for others. The server host contract
+(`goal/PREFLIGHT.md` §5): SSH user in the `docker` group, passwordless
+`apt-get`, `git`, `curl`, `build-essential`, `clang`, `pkg-config`,
+outbound HTTPS, the `arch` field; the host session materialises the SSH
+key from 1Password; the branch build is compiled on the server (no release
+exists for the branch and this Mac cross-compiles nothing); the human
+never runs `jackin daemon install`. M11-01 records the per-role `op://`
+mapping and changes nothing; M11-03 writes it into the server daemon's
+config only; the laptop keeps `auth_forward = "sync"` for the whole run,
+and early-started tasks never touch `~/.config/jackin/config.toml`. D-055's
+"no release before M11" reads "no release or tap publish in this run; M11
+uses branch builds". (5) `op` 2.39.0 is installed in the operator image by
+direct download of the versioned zip from `cache.agilebits.com` with
+per-arch sha256 (`concept/roles.md` §3.1 records the values), because the
+apt repository keeps only the current version. The operator manifest
+sketch drops `[claude] model` and the `[env.OP_SERVICE_ACCOUNT_TOKEN]`
+table (`EnvVarDecl` has no `secret` key; an interactive declaration would
+raise a launch prompt) and gains `AGENT_BROWSER_EXECUTABLE_PATH`. (6) The
+host session's own `~/.claude` budget: before dispatching anything that
+draws on it the session reads `jackin usage host snapshot --agent claude
+--format json` (there is no `jackin usage host accounts`) and shrinks the
+caps at 40 % and 20 % remaining; Claude Code's "Continue automatically at
+usage limit" setting is a preflight item, because a limited session cannot
+run a poll; time spent limited counts against no task's stuck clock.
+
+**Rationale.** Each item was verified on the host or in the code: the
+failing `--help` grep would have filed a defect at every start, the wrong
+config path would have exhausted M1-03 on the critical path, the
+service-account fallback covered only the daemon, the apt pin fails on the
+next `op` release, and the polled recovery from a session limit was
+impossible by construction.
+
+**Consequences.** `goal/PREFLIGHT.md` §1, §2, §5; `goal/EXECUTION.md` §1
+step 4, §4 reserve and login rules, §6; `ROADMAP.md` M1 and M2 preflight
+paragraphs, M1-05b, M1-05d, M1-06, M11 and M12 preflights, M11-01, M11-03,
+§6 step 6; `concept/roles.md` §3.1, §3.2, §5, §7; `concept/task-format.md`
+example; `analysis/roles/operator-needs.md` §2 and install list;
+`DECISIONS.md` D-078 (4) text.
+
+## D-091 — 2026-08-27 — Verify contracts: launch-based checks are host parts, temporal checks assert on snapshots, `lanes.json`, reviews pin the SHA in `pr.txt`
+
+Adopted under D-053 (bulletproofing round 2). Amends D-058, D-078 (3),
+D-079, D-081 (1).
+
+**Decision.** (1) Any verify that launches a jackin instance, calls
+`jackin hardline`, or asserts on a real container is a `host (D-061):`
+part run by the host session from the checkout in
+`tasks/M1-02/checkout.txt`: jackin never mounts the host Docker socket,
+the DinD sidecar shares only the TLS certs volume with the role container,
+and a nested `jackin load` bind-mounts paths from the launcher's own
+filesystem, so the capsule sockets never reach a test inside the sidecar.
+The `container:` sentences of M3-01, M3-04, M3-05, M4-02, M4-04 name
+fakes or in-process capsule sessions; the DinD grant serves `docker
+build`/`docker run` work only, and no DinD volume persists for nested
+launches. (2) A verify that asserts a transient live state is written
+against a snapshot the task files while the state holds (M5-06
+`view-during.json`/`view-after.json`, M1-11 `issue.json`/`session.json`,
+M3-04 `status-before/after.json`), never against the live query at verify
+time, so a resume cannot fail a finished proof. (3) M1-13 records the lane
+facts in `tasks/M1-13/lanes.json` (`L1..L6` → `runtime`, `model_id`,
+`effort`, `label` = `model:<model_id>`, `account_home`); M1-09 and M1-12
+compare label sets with `jq -r '.[].label'`; the `model:*` label value is
+the exact model id, never a short name. (4) Reviews: `pr.txt` is three
+lines (URL, head SHA to review, previous review SHA), never rewritten on a
+retry; the reviewer receives it staged in `.jackin/task/`, reviews `git
+diff <line 3>..<line 2>`, and posts one JSON payload with `commit_id` =
+line 2 (`gh api --input -`, since `-f` cannot be mixed with `--input`);
+the verify accepts that `commit_id` or a later head that has it as an
+ancestor, so concurrent pushes to the rolling branch cannot fail eleven
+review tasks.
+
+**Rationale.** Each unfixed item was a deterministic three-attempt
+exhaustion: nested launches under DinD, "exactly three issues" asserted
+after the task itself cleared one, an unnamed record that two verifies
+grep for weeks before it exists, and a `commit_id` compared with a head
+that moves before the review is posted.
+
+**Consequences.** `ROADMAP.md` M1-09, M1-11, M1-12, M1-13, M3-01, M3-04,
+M3-05, M4-02, M4-04, M5-06, all eleven review rows; `goal/EXECUTION.md`
+§4 subagents row, §5 steps 5 and 6a; `concept/task-format.md` model row
+and `verify.sh` contract; `concept/roles.md` §3.2 verdict flow; `SPEC.md`
+§4 model row; `analysis/roles/jackin-dev-needs.md` §3; `GOAL.md` prompt.

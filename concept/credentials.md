@@ -130,7 +130,7 @@ Derived from `SPEC.md` §5, §6, §9a, §10; D-032, D-035; `concept/workflow.md`
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Linear OAuth agent app identity (`actor=app`, `app:assignable`, `app:mentionable`) | client id + client secret | `linear-agent-app` fields `client id`, `client secret`, `app url`, `redirect uri` (= `http://localhost:53682/callback`, loopback, D-080) | `op://jackin/linear-agent-app/client id`, `…/client secret` | runtime (refresh, client-credentials) | **CREATE** — no OAuth app item exists |
 | 2 | Linear webhook verification (`Linear-Signature` HMAC) | signing secret | `linear-agent-app` field `webhook signing secret` | `op://jackin/linear-agent-app/webhook signing secret` | runtime (relay or daemon) | **CREATE** in M1-07 (stored, unused until a relay exists; webhook enabled on the unreachable placeholder `https://jackin-webhook.invalid/linear`, D-080; row 18 stays DEFER) |
-| 3 | Linear per-workspace installation token | access token + refresh token + expires_at + app_user_id + organization_id | `linear-workspace-<org-slug>` fields `access token`, `refresh token`, `expires at`, `app user id`, `organization id` | `op://jackin/linear-workspace-<org>/access token`, `…/refresh token` | runtime; daemon must **write back** the rotated refresh token | **CREATE** — produced by the authorize flow after #1 |
+| 3 | Linear per-workspace installation token | client-credentials access token (30 days, D-087) + expires_at + the authorization-code refresh token kept only as `installation seed` + app_user_id + organization_id | `linear-workspace-<org-slug>` fields `access token`, `expires at`, `installation seed`, `app user id`, `organization id` | `op://jackin/linear-workspace-<org>/access token`, `…/expires at` | runtime; the host session re-mints when fewer than 48 h remain and `op item edit`s both fields; daemons mint their own in memory and write nothing back | **CREATE** — produced by the authorize flow after #1 |
 | 4 | Linear workspace human login (browser profile, D-032) | Google SSO | existing `Private/Linear` (SSO marker) + Google account | none (interactive SSO; profile persists the session) | setup | **EXISTS** (`Private/Linear`, login = Google SSO `alexey@chainargos.com`) |
 | 5 | GitHub: push branches, open/update PRs, read repos | GitHub App installation (preferred) or fine-grained PAT with `contents:write`, `pull_requests:write`, `metadata:read` | `github-app-jackin-daemon` (same field shape as `GitHub App — jackin-package-updater`) | `op://jackin/github-app-jackin-daemon/PEM private key`, `…/App ID`, `…/Installation ID` | runtime | **PARTIAL** — `tailrocks/GitHub App — jackin-package-updater` and `…tailrocks-package-updater` exist but are scoped to package-update repos and permissions; a daemon app (or widened installation) is needed. Repo-scope PATs on `Private/GitHub` are tap-publisher/renovate/read-only, not PR-management |
 | 6 | GitHub human login for browser profile (D-032) | LOGIN with TOTP | existing `Private/GitHub` (2011 item, has `Key` OTP + recovery codes) | `op://Private/GitHub/Key` for OTP during first login only | setup | **EXISTS** (`Private/GitHub`) |
@@ -209,13 +209,19 @@ key-based signing is chosen).
 
 ### 5.4 Rotation
 
-- Linear access tokens last 24 h and refresh tokens rotate on every
-  refresh; the daemon writes the new refresh token back to
-  `linear-workspace-<org>` immediately (`op item edit`), keyed by
-  `organization id`. A missed write-back loses the installation; the
-  recovery is re-authorising through the browser profile.
+- Linear authorization-code access tokens last 24 h and their refresh
+  tokens rotate on every use with a 30-minute replay grace, which no set
+  of independent consumers (host session, laptop daemon, M11 and M12
+  server daemons) can share safely. Therefore nothing uses the refresh
+  grant (D-087): the authorization-code exchange in M1-10 only installs
+  the app, and every consumer holds a `grant_type=client_credentials`
+  token (30 days, up to 1,000 in parallel, same scopes) — the host
+  session's in `linear-workspace-<org>` (re-minted when fewer than 48 h
+  remain, `goal/EXECUTION.md` §4), each daemon's in memory (M2-01).
+  Re-authorising through the browser profile is needed only if the app
+  is uninstalled from the workspace.
 - Rotating the Linear client secret invalidates all client-credentials
-  tokens; rotate #1 and re-run the authorise flow for #3 in one step.
+  tokens; rotate #1 and re-mint every token (no re-authorise needed).
 - GitHub App private keys can have two active keys; rotate by adding the
   new key to the item as a new field, switching, then removing the old.
 - Provider API keys: 90-day rotation, one item each, so a leak of one

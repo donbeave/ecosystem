@@ -16,7 +16,7 @@ authors in git.
 | base branch for a new branch | no, default `main` | `base: <name>` line in the description (D-014) |
 | jackin role to spawn | yes | label `role:<selector>`, e.g. `role:the-architect`, `role:donbeave/crew-builder` (D-012) |
 | agent runtime inside the role | yes | label `agent:<runtime>`, e.g. `agent:claude`; until per-launch account selection exists, the lane value, e.g. `agent:codex-chainargos` (Q-024) |
-| model | yes, lane default if absent | label `model:<name>`, e.g. `model:opus-5` (D-043) |
+| model | yes, lane default if absent | label `model:<model_id>`, the exact identifier from `tasks/M1-13/lanes.json`, never a short name (D-043, D-058, D-091) |
 | effort | default medium | label `effort:<level>` (D-043) |
 | delivery | default `goal` | label `delivery:goal` or `delivery:prompt` (D-044) |
 | prompt handed to the agent | yes | the issue description, verbatim; rendered inside the repository's `.jackin/WORKFLOW.md` frame when one exists (D-012, D-018) |
@@ -44,7 +44,13 @@ into an issue with the convention above. It contains:
 
 - `TASK.md` — objective, scope, references, expected steps, definition of
   done, constraints; its first task list is the checklist that becomes the
-  issue's checklist.
+  issue's checklist. It is authored container-relative: the container never
+  sees this repository, so every reference to another file is written as
+  `.jackin/task/refs/<name>` and the host session stages `TASK.md`,
+  `task.toml`, `verify.sh`, the referenced files, and (for reviews)
+  `pr.txt` into `<workspace>/.jackin/task/` before the launch (D-086); the
+  same path is what M4-04 pre-fetches on the daemon path. Its Constraints
+  section says `git commit -s` (D-089).
 - `task.toml` — machine-readable fields mirroring the issue: `repo`,
   `branch`, `base`, `role`, `runtime`, `model`, `effort`, `delivery`,
   `depends_on`, `lane`, `fallback_lane` (the lane the daemon re-launches
@@ -52,19 +58,37 @@ into an issue with the convention above. It contains:
   D-057; quota exhaustion follows the per-account-home chain of D-071),
   `limits` (`attempts`, default 3, the exhaustion cap of D-070).
 - `verify.sh` — the task's verification (D-003); for repositories with
-  `.jackin/workflow.toml`, `[verify] command` points at it. For `host`
-  rows it is run by the host Claude Code session and its output is filed
-  in the folder (D-061); any check that needs the Linear token, `op`, the
-  host daemon socket, or host `docker` is a host part (`host (D-061):`
-  sentence of the roadmap verify column) run by the host session whatever
-  the task's role, and only unit or fixture checks stay in-container
-  (D-081). A verify column that names a review or a manual check becomes
+  `.jackin/workflow.toml`, `[verify] command` points at it. It is POSIX
+  `sh` (`#!/bin/sh`, `set -u`; checked by M1-01 with `dash -n` and
+  `shellcheck -s sh`, because the container `sh` is dash) and takes one
+  argument, `container` or `host`, running only that part through
+  `case "$1"`; a single-part task accepts both. The container part ends
+  with `status: DONE` or `status: FAILED` and is filed as
+  `verify.container.out`; the host part, whenever a container part exists,
+  first asserts `tail -n1 tasks/<id>/verify.container.out` is
+  `status: DONE` and otherwise prints `status: FAILED` and exits 1, so a
+  passing host part can never mask a failed container part (D-086). For
+  `host` rows it is run by the host Claude Code session and its output is
+  filed in the folder (D-061); any check that needs the Linear token,
+  `op`, the host daemon socket, host `docker`, or that launches or
+  attaches to a jackin instance is a host part (`host (D-061):` sentence
+  of the roadmap verify column) run by the host session whatever the
+  task's role, and only unit or fixture checks stay in-container (D-081,
+  D-091). A verify column that names a review or a manual check becomes
   a checklist item whose written result is filed in the folder;
-  `verify.sh` checks the filed text, never a transcript. `verify.sh` never
-  runs with `set -x`, never uses `curl -v`/`--trace`, and passes secrets
-  only via `-H @-`/`--config -` from stdin; field non-emptiness is
-  `jq -e '(.value // "") | length > 0'`; the host session scans the
-  folder with `gitleaks` before committing any evidence (D-081).
+  `verify.sh` checks the filed text, never a transcript, and a verify that
+  asserts a transient live state (a view, a session state) is written
+  against a snapshot the task files at the moment the state holds, never
+  against the live query at verify time (D-091). It never asserts on its
+  own `tasks/README.md` row or on the root `verify.sh` remaining count
+  (D-088). Evidence another task's verify consumes is named in the
+  producing row (`tasks/M1-13/lanes.json`, `dind.out`, `pr.txt`,
+  `scratch-repo.txt`) and M1-01 copies the name verbatim into both
+  folders. `verify.sh` never runs with `set -x`, never uses `curl -v`/
+  `--trace`, and passes secrets only via `-H @-`/`--config -` from stdin;
+  field non-emptiness is `jq -e '(.value // "") | length > 0'`; the host
+  session scans the folder with `gitleaks` before committing any evidence
+  (D-081).
 - "When stuck" section in `TASK.md` — the stuck rule (D-063), present in
   every task: when the task stalls or takes too long, spawn subagents to
   analyze why and to find a solution before escalating anything.
@@ -85,10 +109,11 @@ Example `preflight` block:
 ## Preflight (D-050)
 
 - op://tailrocks/op-service-account-jackin-operator/credential — operator
-  service account token; verify: `grep -E 'OP_SERVICE_ACCOUNT_TOKEN *= *\{.*on_demand *= *true' ~/.jackin/config.toml`
-  matches under `[roles."donbeave/crew-operator".env]` (`jackin config env
-  list --role donbeave/crew-operator` lists the key but never the flag,
-  D-078).
+  service account token; verify: `jackin config env list --role
+  donbeave/crew-operator --format json` lists `OP_SERVICE_ACCOUNT_TOKEN`
+  with its on-demand marker, and `grep -E 'OP_SERVICE_ACCOUNT_TOKEN *= *\{.*on_demand *= *true' "${JACKIN_CONFIG_DIR:-$HOME/.config/jackin}/config.toml"`
+  matches under `[roles."donbeave/crew-operator".env]` (the file jackin
+  reads; `~/.jackin/` holds state only, D-078, D-090).
 - Trust: `jackin config trust grant donbeave/crew-operator` on this host.
 - Browser state `~/.jackin/agent-browser-profile/state.json` saved from
   the host login (M1-06, D-077); verify: inside `crew-operator`,
@@ -154,6 +179,7 @@ Template:
 - [ ] ...
 ## Definition of done
 ## Constraints
+Always `git commit -s` (DCO is a required check, D-089).
 ## Preflight (D-050)
 ## Authorization (D-055, D-079)
 
@@ -186,7 +212,8 @@ limits = { attempts = 3, minutes = 90 }   # attempts = exhaustion cap (D-070)
 
 ### `verify.sh`
 
-Runs inside the task's environment. Exit code is informational; the manager
+Runs inside the task's environment with the argument `container` or
+`host` (D-086). Exit code is informational; the manager
 reads the last line and accepts only `status: DONE`. Anything else is a
 failure with the script output as evidence. Who authors this script and how
 it is trusted: the verify command is repository-owned on the base branch,

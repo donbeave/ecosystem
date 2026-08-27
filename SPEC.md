@@ -62,7 +62,7 @@ unless overridden by a line in the description.
 | base branch | no, default `main` | `base: <name>` line in the description | Where a new branch is created from. (D-014) |
 | role | yes | label `role:<selector>` (for example `role:the-architect`, `role:donbeave/crew-builder`) | jackin agent role to spawn, resolvable by name to a local build or a published image. (D-012) |
 | runtime | yes | label `agent:<runtime>` (until M3-01 the lane value, for example `agent:codex-chainargos`; Q-024 adopted) | Agent runtime inside the role. (D-012) |
-| model | yes, lane default if absent | label `model:<name>` | Model the runtime uses; a defaulted value is reported on the issue. (D-043) |
+| model | yes, lane default if absent | label `model:<model_id>`, the exact identifier recorded in `tasks/M1-13/lanes.json` (D-058, D-091) | Model the runtime uses; a defaulted value is reported on the issue. (D-043) |
 | effort | yes, default medium | label `effort:<level>` | Reasoning effort level; a defaulted value is reported. (D-043) |
 | prompt | yes | issue description verbatim | Text passed to the agent, rendered inside the repository's prompt frame when one exists. (D-012, D-018) |
 | delivery | no, default `goal` | label `delivery:goal` or `delivery:prompt` | `goal` = deliver as `/goal <prompt>` (iterate until verified); `prompt` = plain first message. (D-044) |
@@ -90,8 +90,10 @@ Assignment of the issue to the jackin Linear agent app (scope
 
 Polling is the correctness path (Q-015 adopted, D-053): the daemon polls
 Linear every tick, 5 s for pending agent sessions and delegated issues and
-30 s for reconciliation refresh, and never depends on a webhook to be
-correct. No public HTTPS endpoint is required, which is what a daemon
+30 s for reconciliation refresh — all reads of one tick aliased into one
+GraphQL document, a rate limit (`RATELIMITED`, HTTP 400) pausing the tick
+until the reset, and in M12 only the manager host polling (D-087) — and
+never depends on a webhook to be correct. No public HTTPS endpoint is required, which is what a daemon
 behind NAT needs (D-017). A webhook relay may be added later as a latency
 accelerator that only requests an immediate tick. The acknowledgement
 `thought` is posted within Linear's 10 s window from the poll that first
@@ -185,7 +187,10 @@ sees a pending session.
     PR titled with the issue identifier, links it on the issue, and marks
     it ready after verification. (D-014)
 12. **Merge.** The issue is moved to the repository's merging state (by
-    the human, or by the agent whose roadmap work needs the merge, D-055);
+    the human, or by the agent whose roadmap work needs the merge, D-055;
+    during this roadmap only proof tasks on scratch issues enter it, since
+    D-074 keeps the rolling PRs open and roadmap issues are completed by
+    the host session, D-087);
     the daemon dispatches one `merge` attempt per repository at a time
     (same role, runtime, workspace; prompt frame section "land"); the agent
     updates the branch, resolves conflicts, repairs CI, addresses review
@@ -310,11 +315,13 @@ the provider accounts on the machine (`~/.claude`; `~/.codex`,
 support. Models: Fable 5, Opus 5, Sonnet 5, GPT-5.6 Sol, GPT-5.6 Terra,
 GPT-5.6 Luna, all at medium reasoning. Tasks are assigned across agents,
 models, and account lanes. Until per-launch selection exists (`LoadOptions`
-gains `account`, `model`, `effort` in M3-01; Q-024 adopted) one jackin
-workspace profile per lane carries the account (`sync_source_dir`), and
-model and effort are set by workspace env for Claude lanes and by a role
-hook writing `$CODEX_HOME/config.toml` for Codex lanes; manifests carry no
-`[claude].model`. (D-039, D-043, D-078)
+gains `account`, `model`, `effort` in M3-01; Q-024 adopted) the account
+is carried by `sync_source_dir` of a per-task saved workspace `task-<id>`
+that the host session creates from the lane's template before every
+launch (a saved workspace is selected only by name and has one fixed
+`workdir`, D-085), and model and effort are set by workspace env for
+Claude lanes and by a role hook writing `$CODEX_HOME/config.toml` for
+Codex lanes; manifests carry no `[claude].model`. (D-039, D-043, D-078)
 
 ## 9d. Involved projects and branches
 
@@ -463,7 +470,7 @@ There is no separate product name: the feature is the jackin daemon's
 "managed execution" (D-066). Roadmap issues are created by M1-12 under
 label `auto-dispatch` without a delegate; the host session delegates each
 issue to jackin when the daemon can serve it and closes the issue of every
-finished task until M9-01 does (D-067, D-073); agent-created follow-ups
+finished task for the whole run (D-067, D-073, D-087); agent-created follow-ups
 dispatch only when the parent carries that label (D-067). Escalation is
 Linear-only; the host session is first responder during the roadmap
 (D-068).

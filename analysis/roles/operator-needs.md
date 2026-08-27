@@ -49,7 +49,7 @@ so the role needs a write path into vault `jackin` from inside the container.
 | `agent-browser` | 0.35.1 (host version and latest release, 2026-08-26 [host; doc: https://github.com/vercel-labs/agent-browser/releases/latest]) | D-032 visual verification; only browser driver the effort standardises on | npm package `agent-browser` (100 % Rust CLI + Rust daemon speaking CDP since 0.20; `bin/agent-browser.js` is a Node launcher that execs the platform binary) [code: `/opt/homebrew/Cellar/agent-browser/0.35.1/libexec/lib/node_modules/agent-browser/bin`; doc: CHANGELOG] |
 | Chrome for Testing | whatever `agent-browser install` resolves (host has 152.0.7977.64 [host: `agent-browser doctor`]) | the daemon speaks CDP to a real Chrome; "No Playwright or Node.js required for the daemon" [doc: package `README.md:79`] | `agent-browser install --with-deps` at image build, run as `agent` so the cache lands in `/home/agent/.agent-browser/browsers` |
 | Node | 24.x via mise, same pin as agent-smith (`24.19.0`) [code: `jackin-agent-smith/Dockerfile:12`] | the npm launcher needs `node` on `PATH`; package `engines.node >= 24` [code: `package.json`] | mise, as in agent-smith |
-| `op` | 2.39.0 (host version and current release, 2026-08-14 [host; doc: https://app-updates.agilebits.com/product_history/CLI2]) | M1-03, M1-07, M1-10, M7-01, M10-01 item writes; `op read` for verification | 1Password apt repository (`downloads.1password.com/linux/debian/<arch> stable main`, keyring `1password.asc`, debsig policy) [doc: https://www.1password.dev/cli/get-started/] |
+| `op` | 2.39.0 (host version and current release, 2026-08-14 [host; doc: https://app-updates.agilebits.com/product_history/CLI2]) | M1-03, M1-07, M1-10, M7-01, M10-01 item writes; `op read` for verification | direct download of the versioned zip `https://cache.agilebits.com/dist/1P/op2/pkg/v2.39.0/op_linux_<arch>_v2.39.0.zip` with a per-arch sha256 (`concept/roles.md` §3.1), because the apt repository keeps only the current version and a pinned `1password-cli=2.39.0` fails once 2.39.1 ships (D-090) [doc: https://www.1password.dev/cli/get-started/] |
 | `gh` | construct base (host has 2.98.0) | M7-01 verification (`gh api /installation/repositories`), PR checks in proof runs | already in `projectjackin/construct` [code: `jackin/docker/construct/Dockerfile:137-143`] |
 | `jq`, `curl` | construct base | every `verify.sh` in ROADMAP pipes `op … --format json` through `jq`; GraphQL through `curl` [`ROADMAP.md:54,58,61`] | construct apt list [code: `construct/Dockerfile:35,42`] |
 | `openssl` | Debian package | mint the GitHub App JWT (RS256) for the M7-01 verification; `gh` has no built-in App JWT support and GitHub's reference example is bash + openssl [doc: https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-json-web-token-jwt-for-a-github-app] | apt (already a dependency of `ca-certificates`) |
@@ -246,8 +246,9 @@ Base: `projectjackin/construct:0.36-trixie` digest-pinned, to match
 `the-architect`; construct already carries `gh`, `jq`, `curl`, `git`,
 `ripgrep`, `mise`, and runs as `agent` [code: `construct/Dockerfile:30-50,137-143,169`].
 
-Dockerfile install list, in order: apt `unzip openssl` plus the 1Password
-apt repository and `1password-cli`; mise `node@24.19.0` pinned as in
+Dockerfile install list, in order: apt `unzip openssl`, then `op` 2.39.0
+from the versioned `cache.agilebits.com` zip with sha256 check (D-090, no
+apt repository); mise `node@24.19.0` pinned as in
 agent-smith [code: `jackin-agent-smith/Dockerfile:12-20`]; `npm i -g
 agent-browser@0.35.1`; `agent-browser install --with-deps` (needs root for
 the library step, so split: `USER root` for `--with-deps` libraries via apt,

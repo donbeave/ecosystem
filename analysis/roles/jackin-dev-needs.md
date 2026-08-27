@@ -100,19 +100,29 @@ it to the operator's `[docker.grants]` (`jackin/docs/content/(public)/(role-auth
 
 Recommendation: the manifest sets `min_profile = "standard"` (cargo needs
 open network to crates.io and github.com for the termrock git dependency) and
-omits `dind`; the six jackin workspace profiles of M1-13 set
-`[docker.grants] dind = "privileged"` so every lane can run the e2e lane, and
-the daemon's `LoadOptions` (M3-01) passes the same grant. Rootless would be
+omits `dind`; the builder-lane templates of M1-13 set
+`[docker.grants] dind = "privileged"`, and the daemon's `LoadOptions`
+(M3-01) passes the same grant. The grant serves `docker info`, `docker
+build`, `docker run`, and testcontainers-style tests only: the sidecar
+shares only the TLS certs volume with the role container
+(`launch_dind.rs:213-222`), while `jackin load` bind-mounts
+`~/.jackin/sockets/<container>` (with `agent.toml`), extrausers, and the
+workspace from the launching process's own filesystem
+(`launch_runtime.rs:878`), so a nested `jackin load` against the sidecar
+creates empty directories in the sidecar's namespace and the capsule
+sockets never reach the test. Consequently `dind_e2e`, `pty_runner`, and
+every `jackin load`/`hardline`/`daemon exec` check run on the host only
+(D-061, D-081, D-091); in-container agents run `cargo xtask ci` (the
+non-Docker gate) and never `--e2e`, and report e2e as host-verified. Rootless would be
 preferable because the tests only need a daemon, not host-level
 capabilities, but jackin's sidecar `ContainerSpec` exposes only `privileged`
 (no `security_opt`/`cap_add`), the upstream image documents `--privileged`
 as required, and jackin's own matrix cell is `TODO(WP0-tier2)`; M1-13 proves
 the tier on this host and its `dind.out` is the tier of record (D-078). A
 `security_opt`/`cap_add` knob for the sidecar is a non-gating jackin
-follow-up so rootless can be retried later. Note the cost: the e2e `jackin load` inside DinD pulls
-`projectjackin/construct:0.36-trixie` and builds a fixture role image on every
-fresh sidecar, so the DinD data volume should persist across the lane's
-instances. The macOS OrbStack usage-broker lane (`TESTING.md` "Mandatory macOS
+follow-up so rootless can be retried later. No nested `jackin load` runs
+inside the sidecar, so no DinD data volume needs to persist for that
+purpose. The macOS OrbStack usage-broker lane (`TESTING.md` "Mandatory macOS
 OrbStack usage-broker lane") cannot run in any container and stays a host-side
 operator step; no M-task touches the usage broker.
 
