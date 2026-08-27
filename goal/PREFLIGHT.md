@@ -30,8 +30,11 @@ run in any case.
       Screen: start screen saver Never, "Require password after screen
       saver begins or display is turned off" Never; Energy: prevent
       automatic sleeping on power adapter. Proof: `defaults -currentHost
-      read com.apple.screensaver idleTime` prints `0` (the session may set
-      it: `defaults -currentHost write com.apple.screensaver idleTime 0`).
+      read com.apple.screensaver idleTime` prints `0` or the key is unset
+      (the command then fails with "does not exist", which is equally
+      correct); unset or `0` both mean the screen saver never starts. The
+      session may write it: `defaults -currentHost write
+      com.apple.screensaver idleTime 0`.
 - [ ] 1Password desktop app unlocked, CLI integration on, and Security
       settings human-only: Auto-lock "Never" and "Lock on sleep,
       screensaver, or switching users" unchecked. Proof: `op whoami`
@@ -57,9 +60,9 @@ run in any case.
       exec --help` accepts `-c model_reasoning_effort=medium`. A login
       that expires mid-run is a preflight defect only when this host-side
       probe fails (D-082).
-- [ ] `tmux` installed (`brew install tmux`; container path of
-      `goal/EXECUTION.md` §4). Proof: `tmux -V` (not yet installed on this
-      host at the time of writing).
+- [ ] `tmux` installed (container path of `goal/EXECUTION.md` §4).
+      Installed by the session, never a defect (the session runs
+      `brew install tmux` itself). Proof: `tmux -V`.
 - [ ] `dash` and `shellcheck` installed (`brew install dash shellcheck`):
       every `tasks/<id>/verify.sh` is POSIX `sh` checked with `dash -n`
       and `shellcheck -s sh` because the container `sh` is dash (D-086).
@@ -77,8 +80,9 @@ run in any case.
       shows the `session` bucket with `remaining_percent` above 40;
       below that the session applies the reserve rule of
       `goal/EXECUTION.md` §4 before dispatching anything on `~/.claude`.
-- [ ] `gitleaks` installed on the host (`brew install gitleaks`; evidence
-      scan, D-081). Proof: `gitleaks version`.
+- [ ] `gitleaks` installed on the host (evidence scan, D-081).
+      Installed by the session, never a defect (the session runs
+      `brew install gitleaks` itself). Proof: `gitleaks version`.
 - [ ] `~/.jackin/managed` on a disk with room for one checkout per issue
       (M3). Proof: `df -h ~/.jackin` shows tens of GiB free.
 - [ ] Every ref the roles pin resolves (D-078): `gh api
