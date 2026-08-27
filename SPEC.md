@@ -2,9 +2,11 @@
 
 Status: **draft, living document**. This specification is improved in every
 conversation that reaches agreement. It states only what is decided in
-`DECISIONS.md`; undecided points are marked *open (Q-NNN)* and link to
-`OPEN-QUESTIONS.md`. Proposals not yet accepted live in
-`concept/borrowed-from-symphony.md` and are not part of this specification.
+`DECISIONS.md`. Under D-050 and D-053 every recommended answer that existed
+on 2026-08-27 is a decided default and is stated here as such; the three
+questions that remain in `OPEN-QUESTIONS.md` (Q-002, Q-005, Q-009) block
+nothing. The Symphony-derived rules D-018..D-031 are adopted as written in
+`concept/borrowed-from-symphony.md` (D-053) and are cited by their numbers.
 
 ## 1. Purpose
 
@@ -13,13 +15,14 @@ with Linear + jackin (D-041).
 
 Turn "work with an agent" into "assign an issue". A human creates a Linear
 issue that names a repository, a branch, a jackin agent role, an agent
-runtime, a prompt, and a checklist, then assigns it to jackin. A jackin
-daemon on a host with Docker picks the issue up, prepares the branch, starts
-the role in an isolated container with the prompt, mirrors the checklist
-locally, pushes progress back to the issue as items complete, verifies the
-result, and manages the pull request on GitHub. The human watches through
-the Linear issue, the jackin terminal interface, or by attaching to the
-container, and answers only when asked. (D-002, D-005, D-010..D-014)
+runtime, a model, an effort level, a prompt, and a checklist, then assigns
+it to jackin. A jackin daemon on a host with Docker picks the issue up,
+prepares the branch, starts the role in an isolated container with the
+prompt, mirrors the checklist locally, pushes progress and live status back
+to the issue, verifies the result, and manages the pull request on GitHub.
+The human watches through the Linear issue, the jackin terminal interface,
+or by attaching to the container, and answers only when asked. (D-002,
+D-005, D-010..D-014, D-043, D-049)
 
 ## 2. Non-goals
 
@@ -38,100 +41,208 @@ container, and answers only when asked. (D-002, D-005, D-010..D-014)
 | Linear | Source of truth for issues, their fields, status, comments, and agent sessions. | exists |
 | GitHub | Hosts repositories and pull requests. | exists |
 | jackin CLI | Interactive sessions; unchanged. | exists |
-| jackin daemon | Long-running per host. Monitors every agent container on the host (CLI- or daemon-started); listens to Linear for issues assigned to jackin; prepares workspaces; spawns roles through the same container mechanism as the CLI; pushes progress; runs verification; manages pull requests. | to build (D-008, D-009) |
-| jackin capsule | In-container PID 1; the attach point for live visibility. | exists (D-016) |
-| jackin agent roles | Dockerfile + `jackin.role.toml`: environment, skills, plugins. Selected per issue. jackin development itself always uses `jackin-the-architect` (D-048); other work uses new `donbeave` roles (D-045, set pending). | exists (D-012) |
-| termrock TUI | Fleet, issue, log, and attach surface for the daemon. | to build (D-006) |
-
-Placement of the manager logic (in the daemon binary or beside it) is
-*open (Q-001)*.
+| jackin daemon | Long-running per host. Monitors every agent container on the host (CLI- or daemon-started); polls Linear for issues assigned to jackin; prepares workspaces; spawns roles through the same container mechanism as the CLI; pushes progress and status; runs verification; manages pull requests. The manager logic (scheduler, retry policy, escalation, state snapshot) is compiled into the daemon binary for the prototype; whether it splits out is revisited at M12 (Q-001 adopted (a), D-053; D-026). | to build (D-008, D-009) |
+| jackin capsule | In-container PID 1; the attach point for live visibility; source of the agent-state signal (working, blocked, idle, exit) the daemon reads. | exists (D-016), extended (D-051) |
+| jackin agent roles | Dockerfile + `jackin.role.toml`: environment, skills, plugins. Selected per issue. Roles for this build: `the-architect` for every jackin and jackin-project task (D-048, used as is); `donbeave/crew-builder` for termrock, ecosystem, and the role repositories; `donbeave/crew-operator` for Linear, GitHub settings, 1Password items, and every browser proof; `donbeave/crew-reviewer` for pull-request reviews; `host` names a step the human performs on the developer machine. All three `crew` roles are built from `donbeave/jackin-role-template`, load from their default branch with trust pre-granted per host, and stay unpublished until M11. (D-045, D-053; `concept/roles.md`) | `the-architect` exists; `crew` roles to build |
+| termrock TUI | Fleet, issue, log, and attach surface for the daemon; a client of the daemon snapshot, never on the correctness path. | to build (D-006, D-025) |
 
 ## 4. Issue contract
 
-An issue that jackin executes must define:
+An issue that jackin executes must define the fields below. The convention
+(Q-013, adopted by D-053) is: Linear label groups for the enumerated
+fields, the description for the prompt, the first task list in the
+description for the checklist, and Linear's own branch name for the branch
+unless overridden by a line in the description.
 
-| Field | Required | Meaning |
+| Field | Required | Where on the issue | Meaning |
+| --- | --- | --- | --- |
+| repository | yes | label `repo:<owner/name>` | GitHub repository the work is done in. (D-014; Q-023 adopted: explicit label, no team default) |
+| branch | yes | Linear `branchName`, overridden by a `branch: <name>` line in the description | Branch to work on. Reused (pulled) if it exists on the remote; created otherwise. (D-014) |
+| base branch | no, default `main` | `base: <name>` line in the description | Where a new branch is created from. (D-014) |
+| role | yes | label `role:<selector>` (for example `role:the-architect`, `role:donbeave/crew-builder`) | jackin agent role to spawn, resolvable by name to a local build or a published image. (D-012) |
+| runtime | yes | label `agent:<runtime>` (until M3-01 the lane value, for example `agent:codex-chainargos`; Q-024 adopted) | Agent runtime inside the role. (D-012) |
+| model | yes, lane default if absent | label `model:<name>` | Model the runtime uses; a defaulted value is reported on the issue. (D-043) |
+| effort | yes, default medium | label `effort:<level>` | Reasoning effort level; a defaulted value is reported. (D-043) |
+| prompt | yes | issue description verbatim | Text passed to the agent, rendered inside the repository's prompt frame when one exists. (D-012, D-018) |
+| delivery | no, default `goal` | label `delivery:goal` or `delivery:prompt` | `goal` = deliver as `/goal <prompt>` (iterate until verified); `prompt` = plain first message. (D-044) |
+| checklist | yes | first Markdown task list in the description | The unit of progress; mirrored locally and written back per item. (D-013) |
+| references | recommended | links or paths in the description | Schemas, contracts, designs the result must satisfy. (D-003) |
+| verification | daemon-run | `.jackin/workflow.toml` `[verify] command` on the base branch | Executable check whose last line `status: DONE` is the only proof of completion. (D-003, D-018, D-030) |
+| dependencies | when relevant | Linear blocking relations | Gate dispatch through `dispatchable`. (D-004, D-020) |
+
+Daemon-maintained fields, written by the daemon and never by a human
+(D-049, D-052, D-053):
+
+| Field | Where on the issue | Meaning |
 | --- | --- | --- |
-| repository | yes | GitHub repository the work is done in. (D-014) |
-| branch | yes | Branch to work on. Reused (pulled) if it exists on the remote; created otherwise. (D-014) |
-| base branch | no, default `main` | Where a new branch is created from. (D-014) |
-| role | yes | jackin agent role to spawn, resolvable by name to a published image. (D-012) |
-| runtime | yes | Agent runtime inside the role. (D-012) |
-| model | yes, lane default if absent | Model the runtime uses. (D-043) |
-| effort | yes, default medium | Reasoning effort level. (D-043) |
-| prompt | yes | Text passed to the agent. (D-012) |
-| delivery | no, default `goal` | `goal` = deliver as `/goal <prompt>` (iterate until verified); `prompt` = plain first message. (D-044) |
-| checklist | yes | Markdown task list of the work; the unit of progress. (D-013) |
-| references | recommended | Schemas, contracts, designs the result must satisfy. (D-003) |
-| verification | recommended | Executable check whose last line `status: DONE` is the only proof of completion. (D-003) |
-| dependencies | when relevant | Linear blocking relations. (D-004) |
+| run state | exactly one label from the group `run:*` (`run:starting`, `run:working`, `run:waiting`, `run:blocked`, `run:stuck`, `run:failed`, `run:verifying`, `run:done`), cleared on terminal states | The state of the current run, filterable in project views. (D-049, D-051) |
+| container identity | session `externalUrls` entry naming host, jackin instance name, container id, attempt, and attach command; one entry per attempt, replaced on re-dispatch; the ledger holds the machine-readable binding | Which container works on the issue, from launch to removal, across retries. (D-052, D-019) |
 
-How each field is expressed on a Linear issue is *open (Q-013)*. A missing
-required field is a validation failure reported on the issue; the issue is
-not started.
+A missing required field is a validation failure reported on the issue as
+one `error` activity naming the field; the issue is not started and the
+condition is re-evaluated every tick. (D-012, D-020)
 
 ## 5. Trigger
 
 Assignment of the issue to the jackin Linear agent app (scope
-`app:assignable`) starts work. Creation alone does not. (D-011) The event
-path for a daemon behind NAT is *open (Q-015)*; direct webhooks to the
-laptop are excluded for the prototype. (D-017)
+`app:assignable`) starts work. Creation alone does not. (D-011)
+
+Polling is the correctness path (Q-015 adopted, D-053): the daemon polls
+Linear every tick, 5 s for pending agent sessions and delegated issues and
+30 s for reconciliation refresh, and never depends on a webhook to be
+correct. No public HTTPS endpoint is required, which is what a daemon
+behind NAT needs (D-017). A webhook relay may be added later as a latency
+accelerator that only requests an immediate tick. The acknowledgement
+`thought` is posted within Linear's 10 s window from the poll that first
+sees a pending session.
 
 ## 6. Execution
 
-1. The daemon validates the issue contract (section 4).
-2. The daemon prepares the workspace: clone or reuse the repository, pull
-   and reuse the branch if it exists on the remote, otherwise create it from
-   the base branch. The agent never chooses branches. (D-014)
-3. The daemon reads the issue once and stores the checklist Markdown in the
-   workspace. (D-013)
-4. The daemon spawns the named role with the named runtime through the same
-   container mechanism the CLI uses, under the capsule, and hands the agent
-   the prompt via `/goal`, pointing at the local checklist. (D-009, D-012,
-   D-016)
-5. The agent works one checklist item at a time, using research and
-   verification subagents. (D-007) It updates the local checklist only when
-   an item is finished; the daemon pushes each such update to the issue. No
-   other tracker traffic occurs while working. (D-013)
-6. Verification runs when the checklist is complete; relation of
-   verification to items is *open (Q-014)*. Failure policy is
-   *open (Q-008)*.
-7. The daemon opens or updates the pull request on GitHub from the branch.
-   Merge strategy is *open (Q-007)*.
+1. **Eligibility.** The Linear adapter derives one boolean `dispatchable`
+   per issue: delegate is the jackin app user; workflow state type
+   `unstarted` or `started` and neither the repository's review nor
+   merging state; every `blocks` relation resolved (`completed` or
+   `canceled`); required fields valid. Terminal (`completed`, `canceled`)
+   stops the run and removes the workspace; any other state, or removal of
+   the delegate, stops the run and keeps the workspace. A held issue gets
+   one comment saying why. (D-020)
+2. **Caps and order.** Slots are enforced per host, per repository, per
+   repository state (`merging = 1`), and per provider account. Candidates
+   sort by Linear priority, then oldest `createdAt`, then identifier; when
+   every host is at capacity the daemon waits. Laptop defaults (Q-010
+   adopted): `max_concurrent_agents = 2`, per Codex account home 1, for
+   `~/.claude` 2, and a per-role cap of 1 for `donbeave/crew-operator`
+   (one Chrome profile). (D-022, D-039, D-053)
+3. **Workspace.** Clone or reuse under the daemon's workspace root keyed by
+   the sanitized issue identifier; fetch; pull and reuse the branch if it
+   exists on the remote, otherwise create it from the base branch. The
+   agent never chooses branches. The repository may carry
+   `.jackin/workflow.toml` (`[hooks]`, `[verify]`, `[limits]`,
+   `[defaults]`, `[states]`) and `.jackin/WORKFLOW.md` (strict prompt frame
+   ending in the completion bar), both read from the base branch at every
+   dispatch; a file that fails validation holds that repository's issues.
+   Hooks run inside the container. (D-014, D-018)
+4. **Pre-fetch.** The daemon reads the issue once and stores
+   `.jackin/issue/ISSUE.md` and the checklist file in the workspace. The
+   Linear token never enters the container; the daemon is the only tracker
+   writer. (D-013, D-023)
+5. **Launch.** The daemon spawns the named role with the named runtime,
+   model, effort, and account home through the same non-TTY entry the CLI
+   path shares, under the capsule, as an ordinary interactive session on
+   the capsule PTY; it never uses a harness's print or exec mode. The
+   rendered prompt is delivered into the session at start per the delivery
+   mode; later text (continuation guidance, Linear replies) is injected
+   into the same PTY. Containers are labeled with issue id, identifier,
+   and attempt. (D-009, D-012, D-024, D-043, D-044)
+6. **Working.** The agent works one checklist item at a time with research
+   and verification subagents (D-007, D-036), updates the local checklist
+   only when an item is finished, and the daemon pushes each tick to the
+   issue. (D-013)
+7. **Verification.** When the local checklist is complete the daemon runs
+   the repository's `[verify] command` inside the same container through
+   exec-with-result and accepts only a final line `status: DONE`; only then
+   is the PR marked ready and the issue moved to the review state. The
+   agent's own completion bar (checklist done, tests green, branch pushed,
+   PR open, review comments addressed) is a separate gate it must satisfy
+   first. Checklist items carry no individual verification. (D-030; Q-014
+   closed; Q-006: the verify command lives on the base branch and
+   `crew-reviewer` signs off when an agent authored it)
+8. **Retry and failure.** Clean exit with an incomplete checklist starts a
+   `continuation` attempt after 1 s, up to 20. A failure retries after
+   `min(10 s * 2^(attempt-1), 5 min)`, up to 3 attempts; only agent-class
+   failures (exit, stall, timeout, blocked past deadline) consume attempts.
+   Config and workspace failures hold the issue with a comment; tracker
+   failures skip the tick; observability failures never stop the daemon.
+   No capsule activity for 5 min is `stuck`: surfaced first (D-049), then
+   killed and retried. A capsule `Blocked` state is surfaced (D-051) and
+   escalated rather than retried. Each attempt is a new container session
+   in the same workspace; `rework` (closed or merged PR) resets to the base
+   branch; the workspace is removed only on terminal state. Exhausted
+   attempts enter `blocked` with a blocker brief. (D-021, D-027; Q-008
+   closed)
+9. **Escalation.** A blocker brief (what is missing, why it blocks, the
+   exact human action) is posted as a Linear `elicitation`; the human's
+   reply arrives as a `prompted` event and is sent into the same PTY; a
+   `stop` signal ends the run. The prompt frame lists what may not be
+   escalated. (D-029)
+10. **Follow-ups.** Issues an agent proposes are created unassigned in a
+    backlog state and become work only when a human assigns them. (D-028)
+11. **Pull request.** The daemon pushes the branch and opens or updates the
+    PR titled with the issue identifier, links it on the issue, and marks
+    it ready after verification. (D-014)
+12. **Merge.** A human moves the issue to the repository's merging state;
+    the daemon dispatches one `merge` attempt per repository at a time
+    (same role, runtime, workspace; prompt frame section "land"); the agent
+    updates the branch, resolves conflicts, repairs CI, addresses review
+    comments, and merges with the forwarded GitHub credential; the daemon
+    confirms the merge through GitHub, moves the issue to `Done`, and
+    removes the workspace. No integration branch and no merge queue in the
+    first version. (D-031; Q-007 narrowed)
 
 Independent issues run in parallel, each in its own container. (D-004)
-Resource limits for the prototype are per local machine; details
-*open (Q-010)*.
 
 ## 7. Visibility
 
 A human can attach to any managed container at any time and see the exact
 prompt and the live session. Programmatic launch must preserve this; runs
 that only capture stdout are not acceptable. The TUI lists running
-containers and offers attach. (D-016)
+containers and offers attach. (D-016, D-024)
 
 Linear shows the live status of every run: who (role, runtime, model,
 account), where (host, container, attach target), since when, and the
 state — starting, working, waiting for input, blocked, stuck, failed,
 verifying, done — through daemon-driven agent-session activities, the
-session plan, external URLs, heartbeats, and filterable labels or states.
-A stuck or blocked agent is visible at a glance in the issue and project
-views. The daemon reads the issue once at pickup; it writes on checklist
-completion, on every status change, and on heartbeat. (D-013, D-049)
+session plan, external URLs, a heartbeat every 10 minutes carrying "last
+progress at", and the `run:*` label group. (D-049)
+
+Three distinct non-working states are visible without a terminal:
+
+- **waiting for input** — the daemon posted an elicitation (blocker brief)
+  and awaits the human's reply (D-029);
+- **blocked** — the agent inside the container stopped on something the
+  daemon did not cause: a permission prompt, a tool refusal, a
+  confirmation, any wait for input. The daemon detects it through the
+  capsule's agent state for every runtime, sets `run:blocked` with the
+  reason as far as known and the attach target, and clears it automatically
+  when the agent resumes (D-051);
+- **stuck** — no capsule activity within the stall window (D-021, D-049).
+
+Every issue being worked shows the identity of its container — container
+id, jackin instance name, host — kept current by the daemon from launch to
+removal and across retries, in the session `externalUrls` (human) and the
+ledger (machine). (D-052)
+
+The daemon reads the issue once at pickup; it writes on checklist
+completion, on every state transition (exactly one write per transition),
+and on heartbeat. (D-013, D-049)
+
+The daemon answers a synchronous state snapshot over its socket (`running`,
+`retrying`, `blocked`, `stuck`, totals, rate limits, attach target per row)
+and structured logs carrying issue, attempt, host, container, and session.
+The termrock TUI and later surfaces read this; the daemon is correct with
+none of them present. (D-025)
 
 ## 8. State
 
 Linear is the only authority for what work exists and its status. The
 daemon holds no authoritative task state and rebuilds its view from Linear
-and local workspaces after restart. (D-010) Whether it keeps a local
-non-authoritative ledger is proposed, not decided.
+and local workspaces after restart. (D-010) It keeps a local,
+non-authoritative ledger per host (claims, attempts with kind and terminal
+reason, blocked entries with their blocker brief, retry due times,
+container-to-issue bindings); on restart it adopts running containers
+labeled with an issue identifier and reloads attempt counts and blocked
+entries from the ledger, never treating the ledger as proof that an issue
+is active. Internal claim states: `unclaimed`, `claimed`, `running`,
+`retry_queued`, `blocked`, `released`. (D-019, D-020)
 
 ## 9. Deployment
 
 Prototype: everything on the developer's computer with local Docker.
-Then one server host with Docker. Then several hosts, one daemon each.
+Then one server host with Docker. Then several hosts, one daemon each, one
+manager placing runs by `(issue, host, attempt)` with least-loaded
+placement, previous-host preference on retry, and no duplicate execution.
 No decision may bake in single-host assumptions that block the move.
-(D-017)
+(D-017, D-026)
 
 ## 9a. Credentials
 
@@ -139,16 +250,30 @@ Every credential is created into 1Password and referenced as `op://`;
 none lives in files, images, documents, or chat. The daemon resolves
 credentials from 1Password at runtime. (D-035)
 
+Writing to 1Password from a container (Q-018 adopted, D-053): a 1Password
+service account scoped to vault `jackin` (read + write), its token stored
+in vault `tailrocks` as `op://tailrocks/op-service-account-jackin-operator`,
+delivered per invocation by an on-demand `jackin-exec` binding that
+resolves the `op://` value on the host and injects it into the one
+in-container `op` command with redacted output. The daemon's separate
+read-only service account (`op-service-account-jackin-daemon`) arrives at
+M11. Tracker credentials never enter a container (D-023).
+
 Inventory of what exists and what must be created is in
 `concept/credentials.md` (metadata only, never values). Summary as of
 2026-08-27: Linear workspace login exists (Google SSO,
-alexey@chainargos.com); no Linear OAuth agent app yet; two GitHub Apps
-exist with the wrong scope for PR management; provider runtimes use
-jackin's host login forwarding (`auth_forward = "sync"`), fine for the
-laptop prototype, to be replaced by `op://` provider keys at the server
-step; no `jackin` vault yet. Proposed: vault `jackin`, one item per
-rotation unit (`linear-agent-app`, `github-app-jackin-daemon`,
-`<runtime>-daemon`, ...).
+alexey@chainargos.com); the existing workspace is used (Q-019 adopted); no
+Linear OAuth agent app yet; two GitHub Apps exist with the wrong scope for
+PR management, so one App per organization (`jackin-project`, `tailrocks`)
+is created for the daemon (M8); provider runtimes use jackin's host login
+forwarding (`auth_forward = "sync"`), fine for the laptop prototype, to be
+replaced by `op://` provider keys at the server step; vault `jackin` is
+created in M1, one item per rotation unit (`linear-agent-app`,
+`linear-workspace-<org>`, `github-app-jackin-daemon`, `<runtime>-daemon`,
+...). The `agent-browser` profile directory
+(`~/.jackin/agent-browser-profile`, Q-017 adopted) is a secret on the host,
+mounted read-write only into `donbeave/crew-operator`, never committed or
+backed up to 1Password.
 
 ## 9b. Delegation
 
@@ -166,7 +291,10 @@ the provider accounts on the machine (`~/.claude`; `~/.codex`,
 `~/.codex-chainargos`, `~/.codex-chainargos2`) using jackin's multi-account
 support. Models: Fable 5, Opus 5, Sonnet 5, GPT-5.6 Sol, GPT-5.6 Terra,
 GPT-5.6 Luna, all at medium reasoning. Tasks are assigned across agents,
-models, and account lanes. (D-039)
+models, and account lanes. Until per-launch selection exists (`LoadOptions`
+gains `account`, `model`, `effort` in M3-01; Q-024 adopted) one jackin
+workspace profile per lane carries the account and model, and effort is
+pinned to medium by lane profile environment. (D-039, D-043)
 
 ## 9d. Involved projects and branches
 
@@ -174,6 +302,28 @@ Any repository under github.com/jackin-project or github.com/tailrocks is
 changed when this effort needs it; defects are bugs to fix there, gaps are
 extensions (D-046). All such changes land on `feat/managed-execution` in
 each repository; this repository commits directly to `main` (D-047).
+Manifest schema bumps are one per PR; `default_agent` and the launch
+prompt field land together as `v1alpha7` when M3-02 and M4-01 ship
+together, otherwise as two consecutive versions (Q-021 adopted). termrock's
+trunk-only `CONTRIBUTING.md` is amended on `feat/managed-execution` with an
+agent-authored-changes clause: branch, PR to `main`, `crew-reviewer`
+review, human merges (D-047, D-053).
+
+## 9e. Unattended execution and operator preflight
+
+The whole implementation runs without asking the operator for anything
+mid-way. Every milestone and every task begins with a preflight that
+determines exactly what must come from the operator — credentials and
+logins (`op://` references), consents, trust grants, accounts, physical
+steps on the host — and obtains all of it before the task starts. Each
+milestone's items are collected into one operator preflight list in
+`ROADMAP.md`, executed by the human in one sitting before that milestone's
+agents start; task folders carry a `preflight` section
+(`concept/task-format.md`). An agent that discovers a missing operator
+input mid-task records it as a preflight defect, completes everything not
+depending on it, and marks the task blocked with the exact missing item.
+Open design questions never stop work: recommended answers are adopted by
+default and may be overridden later. (D-050, D-053)
 
 ## 10. How the product is built
 
@@ -182,8 +332,14 @@ pull requests (D-033). Work targets the latest jackin, installed locally
 from the working branch; local build and verification are the default and
 CI is confirmation, not a gate (D-034). Every milestone is verified visually
 in the real Linear and GitHub UIs with `agent-browser` on one persistent
-logged-in profile (D-032). The end-to-end workflow is written out in
-`concept/workflow.md`.
+logged-in profile; the proof is a checklist item executed by
+`donbeave/crew-operator` in the milestone's proof-run task, never by the
+implementing role (D-032 as amended by D-053). The end-to-end workflow is
+written out in `concept/workflow.md`. Until a host bridge exists, host-side
+evidence in proof runs (`docker ps`, `hardline` captures, daemon logs) is
+collected by the human into the proof-run folder; a
+`jackin daemon evidence <instance>` command is planned with M10-01 (Q-025
+adopted).
 
 ## 10a. Linear project
 
@@ -194,15 +350,34 @@ branch build (`feat/managed-execution`) runs on the machine. (D-042)
 
 ## 10b. Milestones
 
-Ordered proofs (D-037): (1) Linear setup verified; (2) daemon listens and
-reacts to Linear; (3) an assigned issue spawns a local jackin agent in
-Docker; (4) the capsule delivers a prompt into a specific agent's session.
-Then checklist write-back, verification, pull requests, merge, TUI, server
-host, multi-host. Details and tasks: `ROADMAP.md`; task folders: `tasks/`
-(D-038).
+Ordered proofs (D-037, extended by D-049 and D-053; details and tasks in
+`ROADMAP.md`, task folders in `tasks/`, D-038):
+
+1. **M1 Linear setup verified** — agent app, credentials in 1Password,
+   browser profile, branch-built jackin, the three `crew` roles; a test
+   issue assigned and observed.
+2. **M2 Daemon listens and reacts to Linear** — polling, acknowledgement
+   within 10 s, contract validation, failures reported on the issue.
+3. **M3 Issue spawns a local agent** — workspace prepared, role launched
+   with runtime, model, effort, and account in local Docker, attachable.
+4. **M4 Capsule passes prompts to a specific agent** — prompt delivered at
+   start, text injected later, exec-with-result; block detection per
+   runtime (D-051).
+5. **M5 Live status in Linear** — run state machine, heartbeat, stuck and
+   blocked visible, `run:*` labels, container identity in `externalUrls`
+   (D-049, D-051, D-052).
+6. **M6 Checklist mirrored and written back.**
+7. **M7 Verification by verify command** — retry, ledger, escalation.
+8. **M8 Pull request opened and updated** — GitHub App per organization.
+9. **M9 Merge.**
+10. **M10 termrock TUI: fleet and attach** — daemon snapshot, fleet route,
+    one-key attach.
+11. **M11 Server host** — `op://` runtime credentials, published role
+    images, daemon installed on a Docker server.
+12. **M12 Multi-host** — remote daemon transport, placement, no duplicate
+    execution.
 
 ## 11. Open questions
 
-See `OPEN-QUESTIONS.md`. Highest impact for the prototype: Q-013 (issue
-field convention), Q-015 (event path), Q-014 (checklist versus
-verification), Q-008 (retry), Q-007 (merge).
+See `OPEN-QUESTIONS.md`: Q-002 (name), Q-005 (planner approval detail),
+Q-009 (delivery beyond Linear). None blocks execution (D-050, D-053).

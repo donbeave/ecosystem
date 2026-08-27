@@ -2,20 +2,29 @@
 > existing `jackin-the-architect` role. In this document, `crew-builder`'s
 > scope is therefore termrock, ecosystem authoring, and the role
 > repositories — not jackin. Read "builder serves jackin tasks" below as
-> "the-architect serves jackin tasks". The role-set proposal number is
-> D-050 (D-046..D-049 were taken while this was drafted).
+> "the-architect serves jackin tasks".
+>
+> **Adopted by D-053 (2026-08-27):** the role set proposed here (family
+> `crew`: `crew-builder`, `crew-operator`, `crew-reviewer`; template
+> repository; local-only builds until the server milestone; role `host` for
+> human steps) and the D-032 amendment (browser proof by the operator role)
+> are the working decision. The proposal text in §8 was drafted as "D-046"
+> and later referred to as "D-050"; neither number was recorded for it —
+> D-046..D-052 were taken by other decisions — and the role set is adopted
+> under D-053 instead. §8 is kept as the record of what was adopted.
 
 # Roles that build this product (Q-016, D-045)
 
-Status: **PROPOSAL, 2026-08-27**. Consolidates the four analyses under
-`analysis/roles/` into one role set, one naming scheme, one spec per role,
-and the decision text for D-046. Nothing here is decided until D-046 is
-recorded in `DECISIONS.md`. Sources are cited as `dev §n`
+Status: **ADOPTED (D-053), 2026-08-27**. Consolidates the four analyses
+under `analysis/roles/` into one role set, one naming scheme, one spec per
+role, and the decision text that D-053 adopted. Any item may be overridden
+by a later decision in `DECISIONS.md`. Sources are cited as `dev §n`
 (`analysis/roles/jackin-dev-needs.md`), `tr §n`
 (`analysis/roles/termrock-and-docs-needs.md`), `op §n`
 (`analysis/roles/operator-needs.md`), and `rev A.n` / `conv B.n`
-(`analysis/roles/review-role-and-conventions.md`). Q-017..Q-024 are the
-proposed questions in `ROADMAP.md` §7; `OPEN-QUESTIONS.md` stops at Q-016.
+(`analysis/roles/review-role-and-conventions.md`). Q-017..Q-024 were the
+questions in `ROADMAP.md` §7; their recommended answers, including those in
+§6 below, are adopted (D-053).
 
 ## 1. The set: three roles
 
@@ -243,7 +252,7 @@ Claude the reviewer runs the official plugins plus `tailrocks-review-pr`.
   `published_image` and always raises the branch-trust dialog, which needs
   the rich renderer the daemon lacks (`launch_pipeline.rs:614-640`,
   `progress.rs:212-222`). There is no local-path role loading. So the roles
-  work on `main`, and Q-020's "roles use `feat/agent-browser`" is dropped.
+  work on `main`, and the earlier "roles use `feat/agent-browser`" wording is dropped (D-047).
   This changes Q-022's answer (§6).
 - **Trust** is per selector, no wildcard (conv B.4): `jackin config trust
   grant donbeave/crew-builder`, `…-operator`, `…-reviewer`, once per host.
@@ -281,7 +290,7 @@ for one session must be logged as a deviation (op §9).
 
 | # | Conflict | Recommended answer |
 | --- | --- | --- |
-| 1 | termrock `CONTRIBUTING.md` is trunk-only (never a branch, never a PR) vs Q-020 `feat/managed-execution` and D-034 PRs; D-030 also wants a reviewer sign-off on agent-authored code (tr §1) | Amend `CONTRIBUTING.md` with an "agent-authored changes" clause: branch, PR to `main`, `crew-reviewer` review, human merges. Trunk push from an agent bypasses the only review gate and hands the builder a `main` push credential on a shared design system. Human decision; Q-020 stands. |
+| 1 | termrock `CONTRIBUTING.md` is trunk-only (never a branch, never a PR) vs D-047 `feat/managed-execution` and D-034 PRs; D-030 also wants a reviewer sign-off on agent-authored code (tr §1) | Amend `CONTRIBUTING.md` with an "agent-authored changes" clause: branch, PR to `main`, `crew-reviewer` review, human merges. Trunk push from an agent bypasses the only review gate and hands the builder a `main` push credential on a shared design system. Adopted (D-053); D-047 stands. |
 | 2 | D-032 consequence "roles used to implement … must ship `agent-browser`" vs D-045 and least privilege (dev §5) | Amend as in §1: the operator role performs the browser proof as a checklist item; the six builder tasks' browser lines move to the corresponding proof runs (M2-07, M5-03, M6-04, M7-03, M8-02, M10-03). |
 | 3 | Q-022 assumes `--role-branch` loads for the daemon (conv B.3, B.8) | Rewrite: roles load from their default branch with trust pre-granted per host by `jackin config trust grant`; `--role-branch` is unusable non-interactively; the daemon reports a missing grant as a validation failure. |
 | 4 | Q-018 says "host-side `op`" (op §4) | Rewrite: 1Password service account scoped to vault `jackin`, delivered per invocation by a `jackin-exec` on-demand binding into the in-container `op`; daemon read-only account from M10. |
@@ -325,10 +334,10 @@ respectively; M3-05 gains the per-role cap (§6 item 8); all role columns
 renamed per §6 item 6; §8 delivery lists gain M1-04a, M1-05a..c as `goal`
 and M1-05d as `prompt`.
 
-## 8. Proposed decision text
+## 8. Decision text (adopted under D-053)
 
 ```markdown
-## D-046 — 2026-08-27 — PROPOSED — Three `crew` roles under `donbeave` build this product
+## Three `crew` roles under `donbeave` build this product (adopted by D-053; drafted as "D-046")
 
 **Decision.** The product is built by exactly three jackin roles in the
 `donbeave` GitHub account, family name `crew`: `donbeave/crew-builder`

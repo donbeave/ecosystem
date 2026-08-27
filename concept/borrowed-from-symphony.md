@@ -10,8 +10,15 @@ Every claim about Symphony cites a SPEC section. A few items the prompt asked ab
 `elixir/WORKFLOW.md` and `.codex/skills/` and are treated in a separate section at the end of the
 walk.
 
-Proposed decisions (D-018 onward) and question closures are collected at the end, ready to paste.
-Nothing in this document is decided until it is in `DECISIONS.md`.
+> **Status (D-053, 2026-08-27): ADOPTED.** Every proposal below, D-018..D-031, is adopted as
+> written by D-053 (`DECISIONS.md`), keeping its number as the reference; the question closures and
+> narrowings for Q-004..Q-015 are adopted with them. The polling answer for Q-015 is the adopted
+> event path. "PROPOSED" wording that survives in the walk is historical; the headings under
+> "Consolidated proposals" carry the adopted status. Any item may be overridden by a later decision
+> in `DECISIONS.md`.
+
+Decisions D-018 onward and question closures are collected at the end; they were drafted here
+before D-053 adopted them.
 
 ## Fixed differences from Symphony
 
@@ -548,9 +555,9 @@ which Linear renders natively; a free-form workpad would be a second progress re
 
 ### New decisions (draft text for `DECISIONS.md`)
 
-All dated 2026-08-27, marked PROPOSED. Numbering continues from D-014.
+All dated 2026-08-27, adopted by D-053 with these numbers as references. Numbering continues from D-017.
 
-**D-018 — 2026-08-27 — PROPOSED — Each repository carries a managed-work workflow file**
+**D-018 — 2026-08-27 — ADOPTED (D-053) — Each repository carries a managed-work workflow file**
 
 Decision. A repository worked on by the manager may contain `.jackin/workflow.toml` and an optional
 `.jackin/WORKFLOW.md`. The TOML holds machine settings for managed runs in that repository: `[hooks]`
@@ -571,7 +578,7 @@ only repository-specific policy is left, and git provides the reload.
 Consequences. Closes the "per-repository equivalent of WORKFLOW.md" question. Q-014 gets its
 verification command location. Symphony's `required_labels` stays daemon-level.
 
-**D-019 — 2026-08-27 — PROPOSED — The daemon keeps a local, non-authoritative run ledger**
+**D-019 — 2026-08-27 — ADOPTED (D-053) — The daemon keeps a local, non-authoritative run ledger**
 
 Decision. The tracker remains the only authority for what work exists and its state (D-010). The
 daemon additionally persists a local ledger (per host, SQLite or equivalent) of claims, attempts with
@@ -587,7 +594,7 @@ blocked state, which their own §18.2 marks TODO. Bounded retries (D-021) and du
 Consequences. D-010 wording "holds no authoritative task state" stands; the ledger is a cache with
 extras. The termrock TUI reads history from the ledger.
 
-**D-020 — 2026-08-27 — PROPOSED — Dispatchability and issue states on Linear**
+**D-020 — 2026-08-27 — ADOPTED (D-053) — Dispatchability and issue states on Linear**
 
 Decision. The Linear adapter derives one boolean `dispatchable` per issue. It is true only when: the
 issue's `delegate` is the jackin app user (D-011); the workflow state has type `unstarted` or
@@ -606,7 +613,7 @@ everything else, blockers as a dispatch-time gate re-evaluated each poll.
 Consequences. Closes Q-004. `Human Review`-style states are simply non-dispatchable, so no agent
 burns tokens while a human reviews.
 
-**D-021 — 2026-08-27 — PROPOSED — Retry, backoff, stall, and workspace reuse**
+**D-021 — 2026-08-27 — ADOPTED (D-053) — Retry, backoff, stall, and workspace reuse**
 
 Decision. After a clean agent exit with an incomplete checklist the daemon starts a `continuation`
 attempt after 1 s, up to `max_continuations` (default 20). After a failure the delay is
@@ -625,7 +632,7 @@ possible; D-014 already reuses the branch.
 Consequences. Closes Q-008. Supersedes the fresh-container-per-attempt lean in
 `analysis/symphony.md` §10.
 
-**D-022 — 2026-08-27 — PROPOSED — Concurrency caps and dispatch order**
+**D-022 — 2026-08-27 — ADOPTED (D-053) — Concurrency caps and dispatch order**
 
 Decision. Slots are enforced at four levels, all from configuration: per host
 (`max_concurrent_agents`, daemon), per repository (`[limits].max_concurrent`), per repository state
@@ -639,7 +646,7 @@ Rationale. Symphony §8.2, §8.3, Appendix A.2.
 Consequences. Narrows Q-010 to "which per-container resource limits to pass to jackin", which is
 jackin's `[docker.grants]` surface.
 
-**D-023 — 2026-08-27 — PROPOSED — Tracker credentials never enter the container; the daemon is the only tracker writer**
+**D-023 — 2026-08-27 — ADOPTED (D-053) — Tracker credentials never enter the container; the daemon is the only tracker writer**
 
 Decision. The Linear token is held by the daemon only. The daemon pre-fetches everything the agent
 needs from the issue into the workspace (`.jackin/issue/ISSUE.md`, the checklist file, linked
@@ -655,7 +662,7 @@ tools host-side; D-013 already made the daemon the writer.
 Consequences. The Linear adapter gains a small write surface. GitHub credentials are unchanged:
 jackin forwards them so the agent can push and open or merge PRs.
 
-**D-024 — 2026-08-27 — PROPOSED — Managed runs are ordinary attachable jackin sessions**
+**D-024 — 2026-08-27 — ADOPTED (D-053) — Managed runs are ordinary attachable jackin sessions**
 
 Decision. The daemon starts every managed run as a jackin instance whose agent runs interactively
 on the capsule PTY with the rendered prompt delivered into that session at start. The daemon never
@@ -669,7 +676,7 @@ the capsule, which already exists.
 
 Consequences. jackin needs prompt delivery and text injection into a session (see the gap list).
 
-**D-025 — 2026-08-27 — PROPOSED — The daemon exposes a state snapshot; no UI is on the correctness path**
+**D-025 — 2026-08-27 — ADOPTED (D-053) — The daemon exposes a state snapshot; no UI is on the correctness path**
 
 Decision. The daemon answers a synchronous state query over its socket returning `running`,
 `retrying`, `blocked`, per-host totals, provider rate limits, and `generated_at`; each row carries
@@ -683,7 +690,7 @@ Rationale. Symphony §13.1, §13.3, §13.4, §13.7.
 
 Consequences. Fixes the daemon side of Q-011; the product-side scope of the TUI stays open.
 
-**D-026 — 2026-08-27 — PROPOSED — Multi-host: one manager, one jackin daemon per host**
+**D-026 — 2026-08-27 — ADOPTED (D-053) — Multi-host: one manager, one jackin daemon per host**
 
 Decision. The manager talks to one jackin daemon per host. A run's identity is
 `(issue, host, attempt)`. Placement picks the least-loaded host with capacity; retries prefer the
@@ -698,7 +705,7 @@ problems. Roles remove the environment-drift problem SSH workers have.
 Consequences. Narrows Q-001: the manager is a client of N daemon interfaces; whether it ships in the
 same binary as the daemon on the first host remains open.
 
-**D-027 — 2026-08-27 — PROPOSED — Failure classes decide recovery**
+**D-027 — 2026-08-27 — ADOPTED (D-053) — Failure classes decide recovery**
 
 Decision. Failures are classified as workflow/config, workspace (git preparation, hooks), agent
 (exit, stall, timeout, blocked past deadline), tracker, or observability. Agent failures retry with
@@ -710,7 +717,7 @@ Rationale. Symphony §14.1, §14.2, §11.4.
 
 Consequences. Part of Q-008's closure.
 
-**D-028 — 2026-08-27 — PROPOSED — Agent-proposed follow-up issues never dispatch by themselves**
+**D-028 — 2026-08-27 — ADOPTED (D-053) — Agent-proposed follow-up issues never dispatch by themselves**
 
 Decision. A role may propose follow-up work. The daemon creates such issues in Linear on the
 agent's behalf, unassigned, in a backlog state, linked as related (and `blocks` when stated) to the
@@ -722,7 +729,7 @@ Rationale. Symphony's reference workflow files follow-ups into a non-active stat
 Consequences. Narrows Q-005: planner roles are allowed; their output is issues awaiting human
 assignment.
 
-**D-029 — 2026-08-27 — PROPOSED — Escalation is a blocker brief delivered as a Linear elicitation**
+**D-029 — 2026-08-27 — ADOPTED (D-053) — Escalation is a blocker brief delivered as a Linear elicitation**
 
 Decision. When a run reaches capsule state `Blocked`, exhausts attempts, or the prompt frame's
 escape-hatch conditions are met, the daemon posts a Linear `elicitation` activity containing a
@@ -738,7 +745,7 @@ indefinitely"; Linear's native elicitation and session states (`analysis/linear-
 Consequences. Narrows Q-009: the inbox is Linear's session UI first; the termrock TUI mirrors it
 from the ledger.
 
-**D-030 — 2026-08-27 — PROPOSED — Completion bar for the agent, verification command for the daemon**
+**D-030 — 2026-08-27 — ADOPTED (D-053) — Completion bar for the agent, verification command for the daemon**
 
 Decision. Two distinct gates. The prompt frame's completion bar (checklist done and mirrored, tests
 green, branch pushed, PR open and linked, review comments addressed) is what the agent must satisfy
@@ -755,7 +762,7 @@ D-003 contract is stronger and the two compose.
 Consequences. Closes Q-014. Narrows Q-006: the verification command is repository-owned and
 committed on the base branch, so the implementing agent cannot rewrite it on its task branch.
 
-**D-031 — 2026-08-27 — PROPOSED — Merge is a human-triggered, agent-executed, daemon-confirmed attempt**
+**D-031 — 2026-08-27 — ADOPTED (D-053) — Merge is a human-triggered, agent-executed, daemon-confirmed attempt**
 
 Decision. A human moves an issue to the repository's `merging` state. The daemon dispatches a
 `merge` attempt (same role and runtime, same workspace, prompt frame section "land"), capped at one
@@ -770,7 +777,7 @@ ownership; D-023's credential rule.
 Consequences. Narrows Q-007: no integration branch and no merge queue in the first version; the
 cap serializes merges per repository.
 
-### Closures and narrowings for Q-004..Q-015
+### Closures and narrowings for Q-004..Q-015 (adopted, D-053)
 
 - **Q-004 (dependencies): CLOSE with D-020.** Blocking relations gate dispatch; the daemon refuses
   to start a blocked issue, comments once, and re-evaluates every tick; running issues are not
