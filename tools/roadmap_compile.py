@@ -203,7 +203,11 @@ def bundles(tasks, root):
                     probs.append(f"task.toml: {e}")
             vs = os.path.join(d, "verify.sh")
             if have_sc:
-                p = subprocess.run(["shellcheck", "-s", "sh", vs],
+                # Severity floor `warning`: `style` and `info` hints are not
+                # bundle failures (R3-22); the same floor is what the
+                # M1-01 verify cell states.
+                p = subprocess.run(["shellcheck", "-s", "sh",
+                                    "-S", "warning", vs],
                                    capture_output=True, text=True)
                 if p.returncode:
                     first = (p.stdout.strip().splitlines() or [""])[0]

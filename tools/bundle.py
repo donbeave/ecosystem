@@ -162,6 +162,29 @@ def tlist(items, indent="  "):
 
 # ------------------------------------------------------------------ generator
 
+# Commands that exist only on the host: 1Password (the container's on-demand
+# binding is raised by the capsule picker, which a `docker exec` shell has no
+# tab for), the Docker CLI (the container talks to no host daemon), and `ssh`.
+# A verify cell that puts one of these in a container part would fail
+# deterministically on every attempt, so the generator refuses it and the cell
+# is rewritten with a `host (D-061):` marker instead (R3-16).
+HOST_ONLY_CMDS = {"op", "jackin-exec", "docker", "ssh"}
+
+
+def host_only_in_container(cmds):
+    """Host-only commands found in a container part, in source order."""
+    bad = []
+    for span in cmds:
+        words = span.split()
+        if words and words[0] == "!":
+            words = words[1:]
+        first = words[0].lstrip("!").strip() if words else ""
+        if first in HOST_ONLY_CMDS and first not in bad:
+            bad.append(first)
+    return bad
+
+
+
 def plan(tasks, lanes, tid):
     """Everything the four files are rendered from, derived once."""
     row = tasks[tid]
@@ -170,6 +193,12 @@ def plan(tasks, lanes, tid):
     cont_text, host_text = split_parts(row["verify"])
     cont_cmds = [] if is_none_part(cont_text) else commands_in(cont_text)
     host_cmds = [] if is_none_part(host_text) else commands_in(host_text)
+    bad = host_only_in_container(cont_cmds)
+    if bad:
+        raise SystemExit(
+            f"{tid}: verify container part uses host-only command(s) "
+            f"{', '.join(bad)}; move that sentence behind a "
+            f"`host (D-061):` marker in ROADMAP.md (R3-16)")
     has_container = bool(cont_text) and not is_none_part(cont_text)
     repos = [r.strip() for r in row["repos"].split(",") if r.strip()]
     repo = ""
