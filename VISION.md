@@ -112,7 +112,12 @@ questions. The system's job becomes everything else.
 ## Scope boundaries
 
 - The manager orchestrates; it is **not** another agent runtime and does not
-  compete with Claude Code, Codex, Amp, or any other.
+  compete with Claude Code, Codex, Amp, or any other. Neither jackin nor the
+  manager builds a harness: the vendors' harnesses are used as shipped, and
+  the ecosystem is built around all of them (D-015).
+- Live visibility is non-negotiable: every managed agent runs under the
+  jackin capsule so a human can attach to its container and watch the exact
+  prompt and the live session (D-016).
 - jackin remains the isolation and runtime layer. Changes to jackin are
   planned where the manager needs them; the manager does not reimplement
   jackin.

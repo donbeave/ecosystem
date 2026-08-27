@@ -255,3 +255,41 @@ removes any guessing about where a new branch starts.
   the agent starts on the right branch; the agent does not choose branches.
 - Pull request creation and updates are a daemon responsibility through
   GitHub; how this interacts with the merge strategy is Q-007.
+
+## D-015 — 2026-08-27 — Any agent runtime; jackin is an ecosystem, never a harness
+
+**Decision.** The manager works with any agent runtime jackin supports —
+Claude Code, Codex, Amp, Kimi, OpenCode, Grok, and future ones — and
+communicates with them only through jackin and jackin agent roles. Neither
+jackin nor the manager builds an agent harness of its own; the harnesses
+shipped by the agent vendors are used as they are, and the ecosystem is
+built around them.
+
+**Rationale.** This is the defining difference from openai/symphony, which
+drives Codex through its app-server protocol. Vendors' harnesses are good
+and keep improving; competing with them is wasted effort and locks the user
+to one model.
+
+**Consequences.** Nothing in the design may depend on a runtime-specific
+protocol. Anything the manager needs from an agent (prompt in, progress
+out, completion signal) must be expressible for every runtime through the
+role contract and the container, not through a vendor API. Runtime
+selection is per issue (D-012).
+
+## D-016 — 2026-08-27 — Live visibility through the jackin capsule is preserved
+
+**Decision.** Every agent the manager starts runs in a jackin container with
+the jackin capsule, so a human can attach to that specific container at any
+time and watch the live session: the exact prompt that was passed and what
+the agent is doing right now. The manager never launches agents in a way
+that removes this ability.
+
+**Rationale.** Seeing the real prompt and the real session is the most
+understandable form of observability and jackin provides it out of the box.
+Dashboards summarize; attach shows the truth.
+
+**Consequences.** "Detached" or programmatic launch (needed by the daemon,
+`analysis/linear-agents.md`) must keep a capsule session that supports
+attach; headless runs that only capture stdout are not acceptable. The
+manager's TUI lists running containers and offers attach as a first-class
+action (Q-011).
