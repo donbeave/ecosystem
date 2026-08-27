@@ -294,7 +294,7 @@ never lowers the bar. Clear those items in §1..§5 below and re-run it.
       `op://jackin/github-app-jackin-daemon-jackin-project` and
       `op://jackin/github-app-jackin-daemon-tailrocks`, each with fields
       `app id`, `client id`, `installation id`, `PEM private key`
-      (`concept/credentials.md` §5.1, §5.5), installed with repository
+      (`concept/credentials.md` §5.1), installed with repository
       access **All repositories** in both organizations because the
       scratch repository `jackin-project/jackin-managed-scratch` is created
       during the run (M3-07, D-089); the App is not installed on the

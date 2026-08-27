@@ -7,26 +7,6 @@ what still has to be created. Follows D-035 (every credential lives in
 metadata only: vault names, item titles, categories, field *names*, URLs,
 dates. No secret value appears here and none may be added.
 
-## 1. Method and what was accessible
-
-- `op` 2.39.0 at `/opt/homebrew/bin/op`, signed in to one account:
-  `zhokhov.1password.com` (user `alexey@zhokhov.com`). No sign-in was
-  attempted; the existing session was used.
-- 16 vaults visible: A Personal Checked, A TODO, AZ & DZ, AZ & Veronica,
-  Boris, ChainArgos, CS, Febos, Joyce, Kanargi, Private, Polusharie,
-  ruxel-test, Shared, tailrocks, Vestor. 2,173 items in total.
-- Only three vaults hold anything relevant: **tailrocks** (7 items),
-  **Private**, **ChainArgos**. `Shared` is empty. There is **no `jackin`
-  vault**.
-- Commands used: `op vault list`, `op item list --format json`, and
-  `op item get <id> --format json` piped through `jq` selecting
-  `.fields[] | {label, type, purpose}` only. `.value` was never read.
-- Code and config were grepped for `op://` in `jackin-project`, `termrock`,
-  `tailrocks-skills`, `~/.config/jackin`, `~/.jackin`.
-- Fact supplied by the coordinator, not visible in 1Password as a separate
-  item: the Linear workspace account exists and signs in with **Google SSO**
-  as `alexey@chainargos.com`; there is no separate Linear password.
-
 ## 2. Existing credentials
 
 Field names are listed as they appear in 1Password. `sign in with` is the
@@ -73,15 +53,6 @@ Field names are listed as they appear in 1Password. `sign in with` is the
 | ChainArgos | ruxel Hetzner Cloud | API_CREDENTIAL | credential, token, hostname, expires… | (none) | 2026-06-11 | Hetzner Cloud API token for `ruxel` | nothing |
 | ChainArgos | ruxel CI service account / Service Account Auth Token: ruxel-ci / ChainArgos op Service Account (lightdash-migration-agent) | API_CREDENTIAL | credential, hostname, expires… | (none) | 2026-06 .. 07 | **1Password service-account tokens** already used for headless `op` in CI/agents; pattern to copy for the daemon | nothing |
 | ChainArgos | ChainArgos GARM | LOGIN | username, password, PAT, secret, email, passphrase, name, current local URL | garm.chainargos.com | 2026-05-10 | Self-hosted GitHub runners manager | nothing |
-
-### 2.3 Present but not for this project
-
-- tailrocks: `holla-apt GPG Signing Key`, `velnor-apt GPG Signing Key`
-  (apt repo signing, not container/role signing), `Google`, `КриптоПро`.
-- Private: three `Cloudflare` logins (personal), `Hetzner` (personal),
-  `Z.ai` (personal), `Linode Singapore` SSH key.
-- Nothing titled `jackin`, `termrock`, `linear-agent`, `cosign`, `sigstore`,
-  `ghcr`, `agent-browser` exists anywhere.
 
 ## 3. Existing `op://` references in code and config
 
@@ -247,14 +218,3 @@ this set in the same edit.
 - The 1Password service-account token (#17) is itself a credential; store
   it in `tailrocks` (a vault the service account cannot read) and rotate
   when the daemon host changes.
-
-### 5.5 Open items feeding `OPEN-QUESTIONS.md`
-
-- #15/#16: whether role images pushed from a developer machine (D-034) are
-  signed at all; if yes, key-based or keyless. Affects whether a cosign key
-  item exists.
-- #18: relay choice (Q-015) determines which token is created.
-- `auth_forward = "sync"` remains the right mode for the laptop prototype;
-  the switch to `op://`-backed provider keys is required at the "one server
-  host" step of SPEC §9. Record that as the trigger, so the prototype is
-  not blocked on #8–#13.
