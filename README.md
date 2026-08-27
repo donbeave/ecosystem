@@ -22,6 +22,7 @@ reaches agreement on a point updates the relevant file.
 | [analysis/jackin.md](analysis/jackin.md) | What jackin is today, with citations, and its gaps for this goal. |
 | [analysis/termrock.md](analysis/termrock.md) | What termrock is today, with citations, and its gaps for this goal. |
 | [analysis/symphony.md](analysis/symphony.md) | openai/symphony: the closest existing execution concept, and what to adopt or reject. |
+| [analysis/linear-agents.md](analysis/linear-agents.md) | Linear Agents platform facts, jackin role contract facts, and a proposed issue convention. |
 | [AGENTS.md](AGENTS.md) | Rules for agents (and humans) editing this repository. |
 
 ## Working rules

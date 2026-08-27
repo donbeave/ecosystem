@@ -75,7 +75,11 @@ is listed in `analysis/termrock.md`; the product-side scope is undecided.
 D-012 requires all three. Options: labels (`role:the-architect`,
 `agent:claude`), issue template fields, a fenced block or front matter in
 the description, or a project-level default with per-issue override.
-Pending `analysis/linear-agents.md`.
+Facts from `analysis/linear-agents.md`: Linear has no custom fields and no
+structured checklist; labels are the only structured per-issue property a
+template can pre-set. Proposal on the table: label groups
+`role:<selector>` and `agent:<runtime>`, prompt = issue description
+verbatim, first `- [ ]` list = checklist. Awaiting decision.
 
 ## Q-014 — How do checklist items relate to verification scripts?
 
@@ -87,7 +91,11 @@ the end.
 
 ## Q-015 — Webhook or polling?
 
-A self-hosted daemon behind NAT cannot receive Linear webhooks without a
-public endpoint or a relay. Options: polling assigned issues and agent
-sessions; a small relay; a tunnel. Pending `analysis/linear-agents.md`.
+Facts from `analysis/linear-agents.md`: Linear delivers `AgentSessionEvent`
+webhooks only to a public HTTPS endpoint (HMAC-signed, 3 retries), requires
+HTTP 200 within 5 s and a first activity within 10 s, and marks sessions
+`stale` after 30 min idle; no long-poll or websocket exists; polling
+`issues(filter:{delegate})` works but `agentSessions` has no filter.
+Options: a small relay service that receives webhooks and lets daemons
+pull; a tunnel per host; polling only. Awaiting decision.
 
