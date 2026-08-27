@@ -80,6 +80,12 @@ anything. The whole state of the run is re-derived from `tasks/README.md`,
 memory, and never by re-reading `ROADMAP.md`, `SPEC.md`, or `DECISIONS.md`
 in this session (§8, D-092, D-093).
 
+Every agent runtime runs in its yolo mode — Claude Code with
+`--dangerously-skip-permissions`, Codex CLI with
+`--dangerously-bypass-approvals-and-sandbox` — on the host and in every
+container; isolation comes from the container, not from approvals, and no
+permission allowlist exists anywhere (D-121).
+
 ### Supervisor (K-29)
 
 Re-reading state survives a compaction but not the death of the process
@@ -109,14 +115,16 @@ session; `--coordinator-cmd` replaces the coordinator for tests
 (`sh tests/supervisor/test_resume.sh` kills a simulated coordinator and
 proves the resume). `tools/supervisor.sh status` prints the session and
 the run state, `stop` ends the session. Logs are host artifacts, not
-repository content: they live in `${TMPDIR:-/tmp}/ecosystem-run/` until
-`run/logs/` is added to `.gitignore` (D-059).
+repository content: they are written to `run/logs/`, which `.gitignore`
+ignores (D-059).
 
 ## 2. What "one task" means
 
 - Input: `tasks/<id>/TASK.md`, `task.toml`, `verify.sh`, and the task's
   `ROADMAP.md` row. M1-01 (wave 0) writes the three files for every M1..M5
-  id before any other task starts (D-072); no task runs from a bare row.
+  id before any other task starts (D-072); no task runs from a bare row —
+  which is why a row reaches `ready` only through arming or promotion, see
+  the arming rule under the runnable predicate in §3.
   `TASK.md` references other files container-relative as
   `.jackin/task/refs/<name>` (`concept/task-format.md`), because the
   container never sees this repository.
@@ -181,6 +189,18 @@ most three host subagents in flight (D-071) — plus the §4 reserve rule of
 M4-03, the M1-12 row is `done` (D-088). Rows `planned`, `blocked`,
 `waiting` or `in-progress` are not runnable and do not count as `done`
 (D-084).
+
+Arming and promotion. Nothing dispatches a `planned` row, so wave 0 is
+armed once, by `python3 tools/state.py arm`: it moves every task whose
+`depends_on` is empty from `planned` to `ready`, and is idempotent. D-072
+makes M1-01 author every task bundle before any other task starts, so
+`arm` promotes M1-01 alone; the other dependency-free ids (M1-02, M10-02,
+M10-03) are promoted when M1-01 turns `done`. From then on the promotion
+is automatic: `python3 tools/state.py transition <id> done` promotes every
+`planned` task whose dependencies are all `done` to `ready` in the same
+locked append. So a row is `ready` before it is ever dispatched, and "no
+task runs from a bare row" and "a runnable row is not `planned`" say the
+same thing rather than contradicting each other.
 
 A dependent of a `blocked` task keeps its own status (`ready`) and gets no
 row of its own in `PREFLIGHT-DEFECTS.md`. Tasks from a later milestone

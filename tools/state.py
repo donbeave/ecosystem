@@ -49,9 +49,11 @@ STATUSES = (
     "done",
 )
 
-# Statuses that neither satisfy a dependency nor allow a task to be dispatched.
+# Statuses that do not allow a task to be dispatched. `done` is here too: a
+# finished task is never dispatched again (a `runnable` list naming a `done`
+# task would re-run it).
 NOT_RUNNABLE = ("planned", "blocked", "waiting", "resource-waiting", "in-progress",
-                "leased", "failed-system")
+                "leased", "failed-system", "done")
 
 # D-088: every M2+ task except these four waits for M1-12.
 EARLY_START = ("M3-01", "M3-03", "M4-02", "M4-03")
@@ -331,6 +333,54 @@ def load_dag(path: str) -> dict:
     return data
 
 
+BOOTSTRAP = "M1-01"
+
+
+def promote(events: list, state: dict, only: str = None) -> list:
+    """Arming and auto-promotion (D-119).
+
+    A `planned` row is never dispatched, so something has to move it to
+    `ready`. Wave 0 — every task whose `depends_on` is empty, i.e. M1-01 — is
+    armed once by `arm`; afterwards every `done` transition promotes each
+    `planned` task whose dependencies are all `done`. Both are idempotent:
+    a row already past `planned` is left alone.
+
+    Four ids are dependency-free in the compiled DAG (M1-01, M1-02, M10-02,
+    M10-03), but D-072 makes M1-01 author every task bundle before any other
+    task starts, so `arm` promotes M1-01 alone (`only`); the other three are
+    promoted by the auto-promotion when M1-01 turns `done`.
+    """
+    tasks = state["tasks"]
+    promoted = []
+    for tid in state["order"]:
+        row = tasks[tid]
+        if only is not None and tid != only:
+            continue
+        if row["status"] != "planned":
+            continue
+        if any(tasks.get(d, {}).get("status") != "done" for d in row["depends_on"]):
+            continue
+        key = idempotency_key(state["run_id"], tid, 0, "promote")
+        if key in state["keys"]:
+            continue
+        append(events, {"type": "transition", "task": tid, "status": "ready",
+                        "lane": "", "path": "", "result": "promoted", "evidence": "",
+                        "attempt": 0, "token": None, "idempotency": key})
+        row["status"] = "ready"
+        state["keys"].add(key)
+        promoted.append(tid)
+    return promoted
+
+
+def cmd_arm(args) -> None:
+    """Arm wave 0: the dependency-free authoring task goes `planned` -> `ready`."""
+    with Lock():
+        events = read_events()
+        promoted = promote(events, project(events), only=BOOTSTRAP)
+        render(project(events))
+    print("armed: %s" % (", ".join(promoted) if promoted else "nothing to arm"))
+
+
 def cmd_init(args) -> None:
     dag = load_dag(args.dag)
     depends = {tid: [] for tid in dag["ids"]}
@@ -378,6 +428,8 @@ def cmd_transition(args) -> None:
                         "path": args.path or "", "result": args.result or "",
                         "evidence": args.evidence or "", "attempt": args.attempt,
                         "token": args.token, "idempotency": key})
+        if args.status == "done":
+            promote(events, project(events))
         render(project(events))
     print("%s -> %s" % (args.task, args.status))
 
@@ -511,6 +563,8 @@ def main() -> None:
     p.add_argument("--key")
     p.set_defaults(func=cmd_event)
 
+    sub.add_parser("arm", help="promote every dependency-free task to ready") \
+        .set_defaults(func=cmd_arm)
     sub.add_parser("render", help="regenerate the two Markdown projections") \
         .set_defaults(func=cmd_render)
     p = sub.add_parser("status", help="print the run state as JSON")
