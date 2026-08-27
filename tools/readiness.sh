@@ -115,6 +115,10 @@ static_gate() {
   ok     "lock check"         python3 tools/lock.py check
   ok     "finding disposition" python3 tools/check_disposition.py
   ok     "gate fixtures"      sh tools/gate_fixtures.sh
+  # A generated task verifier must actually pass its own host part, or wave 0
+  # cannot start: M1-01 is the seeding task and stands for the generator.
+  oksh   "M1-01 self-verify" \
+    "test \"\$(sh tasks/M1-01/verify.sh host 2>&1 | tail -1)\" = 'status: DONE'"
   oksh   "shellcheck"         "shellcheck -s sh verify.sh tools/*.sh tasks/*/verify.sh"
   # Row 4.5: no task verifier is interactive, mutating or transient.
   oksh   "verifiers durable" \

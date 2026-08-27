@@ -327,6 +327,145 @@ def check_clean_tree():
              "%d uncommitted path(s), first: %s" % (len(dirty), dirty[0][3:]))
 
 
+# --------------------------------------------------------------------------
+# 10. Amendments are reciprocal (D-107, D-116)
+# --------------------------------------------------------------------------
+
+def _decision_bodies():
+    """(id, body, first line number) per `## D-0xx` section of DECISIONS.md."""
+    text = read("DECISIONS.md")
+    heads = list(re.finditer(r"^## (D-\d{3})\b.*$", text, re.M))
+    out = []
+    for index, head in enumerate(heads):
+        end = heads[index + 1].start() if index + 1 < len(heads) else len(text)
+        out.append((head.group(1), text[head.end():end],
+                    text.count("\n", 0, head.start()) + 1))
+    return out
+
+
+EXPLICIT_AMEND = re.compile(
+    r"((?:`?D-\d{3}`?(?:,| and|,? and)?\s*)+)\s*(?:is|are) amended by\s+([^.]*)")
+
+
+def check_amendments_reciprocal():
+    bodies = _decision_bodies()
+    body_of = {ident: body for ident, body, _ in bodies}
+    line_of = {ident: line for ident, _, line in bodies}
+
+    # An explicit "D-046, D-047 and D-074 are amended by this decision" (or by
+    # a named decision) states both halves of the pair at once: it is a
+    # forward claim by the amending decision and the reciprocal note for each
+    # subject. Consume those spans first so the generic scans below never read
+    # them as a self-note in the wrong section.
+    explicit_forward = {}
+    explicit_reverse = {}
+    stripped = {}
+    for ident, body, _ in bodies:
+        forward, reverse = set(), set()
+        remainder = []
+        last = 0
+        for match in EXPLICIT_AMEND.finditer(body):
+            subjects = set(re.findall(r"\bD-\d{3}\b", match.group(1)))
+            agents = set(re.findall(r"\bD-\d{3}\b", match.group(2)))
+            if "this decision" in match.group(2):
+                agents.add(ident)
+            if not agents:
+                continue
+            for subject in subjects:
+                for agent in agents:
+                    if subject == agent:
+                        continue
+                    explicit_forward.setdefault(agent, set()).add(subject)
+                    explicit_reverse.setdefault(subject, set()).add(agent)
+            remainder.append(body[last:match.start()])
+            last = match.end()
+        remainder.append(body[last:])
+        stripped[ident] = "".join(remainder)
+        forward, reverse = forward, reverse
+    bodies = [(ident, stripped[ident], line) for ident, _, line in bodies]
+
+    # forward: what each decision claims to amend
+    amends = {}
+    for ident, body, _ in bodies:
+        targets = set()
+        # "Amends D-057 and the D-027 interpretation", "Amends the last
+        # sentence of D-071": every id in the sentence opened by "amends".
+        for match in re.finditer(r"\b[Aa]mends\b([^.]*)", body):
+            targets.update(re.findall(r"\bD-\d{3}\b", match.group(1)))
+        # passive form: "D-001 is amended", "D-013 is amended a second time"
+        for match in re.finditer(r"\b(D-\d{3}) is amended\b", body):
+            targets.add(match.group(1))
+        targets.update(explicit_forward.get(ident, set()))
+        targets.discard(ident)
+        amends[ident] = targets
+
+    # backward: what each decision is declared to be amended by
+    amended_by = {}
+    for ident, body, _ in bodies:
+        found = set()
+        for match in re.finditer(r"[Aa]mended by\b([^.(]*)", body):
+            # A quoted note about a third decision ("D-056 carries an
+            # \"Amended by D-071\" note") is prose, not this decision's note.
+            before = body[max(0, match.start() - 40):match.start()]
+            if '"' in before[-3:] or "carries" in before:
+                continue
+            found.update(re.findall(r"\bD-\d{3}\b", match.group(1)))
+        found.update(explicit_reverse.get(ident, set()))
+        found.discard(ident)
+        amended_by[ident] = found
+
+    for ident, targets in sorted(amends.items()):
+        for target in sorted(targets):
+            if target not in body_of:
+                continue  # the citation check already reports an unknown id
+            if ident not in amended_by[target]:
+                fail("amendments-reciprocal",
+                     "DECISIONS.md:%d" % line_of[target],
+                     "%s says it amends %s, but %s carries no "
+                     '"Amended by %s" note' % (ident, target, target, ident))
+
+    for target, sources in sorted(amended_by.items()):
+        for source in sorted(sources):
+            if source not in body_of:
+                continue
+            if target not in amends[source]:
+                fail("amendments-reciprocal",
+                     "DECISIONS.md:%d" % line_of[source],
+                     '%s carries "Amended by %s", but %s does not say it '
+                     "amends %s" % (target, source, source, target))
+
+
+# --------------------------------------------------------------------------
+# 11. Every task file claimed to exist NOW resolves (D-116)
+# --------------------------------------------------------------------------
+
+EXISTS_CLAIM = re.compile(r"\b(exists|existing|is committed|are committed|"
+                          r"is present|committed and pushed)\b")
+
+
+def check_existence_claims():
+    for path in ["AGENTS.md", "README.md", "SPEC.md"] + globbed("goal"):
+        if not os.path.exists(os.path.join(REPO, path)):
+            continue
+        text = read(path)
+        for match in re.finditer(r"`(tasks/[A-Za-z0-9][^`\s]*)`", text):
+            cited = match.group(1)
+            if "<" in cited or ">" in cited or "*" in cited:
+                continue  # a template, not a claim about one file
+            start = text.rfind("\n", 0, match.start()) + 1
+            end = text.find("\n", match.end())
+            end = len(text) if end < 0 else end
+            sentence = text[start:end]
+            if not EXISTS_CLAIM.search(sentence):
+                continue
+            if os.path.exists(os.path.join(REPO, cited)):
+                continue
+            line = text.count("\n", 0, match.start()) + 1
+            fail("existence-claims", "%s:%d" % (path, line),
+                 "claims `%s` exists now, but that path does not resolve"
+                 % cited)
+
+
 CHECKS = (
     ("d119-predicate", check_runnable_predicate),
     ("claude-cap", check_claude_cap),
@@ -336,6 +475,8 @@ CHECKS = (
     ("open-questions", check_no_open_questions),
     ("goal-size", check_goal_size),
     ("projections", check_projections),
+    ("amendments-reciprocal", check_amendments_reciprocal),
+    ("existence-claims", check_existence_claims),
     ("clean-tree", check_clean_tree),
 )
 
@@ -348,7 +489,7 @@ def main():
         before = len(findings)
         function()
         status = "ok" if len(findings) == before else "FAILED"
-        print("check %-16s %s" % (name, status))
+        print("check %-22s %s" % (name, status))
     print("")
     for line in findings:
         print(line)
