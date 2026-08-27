@@ -42,12 +42,14 @@ if STORE_DIR:
     LOCK_PATH = os.path.join(RUN_DIR, "events.lock")
     README_PATH = os.path.join(RUN_DIR, "tasks-README.md")
     PROGRESS_PATH = os.path.join(RUN_DIR, "PROGRESS.md")
+    AUDIT_PATH = os.path.join(RUN_DIR, "M1-12-audit.md")
 else:
     RUN_DIR = os.path.join(REPO, "run")
     LOG_PATH = os.path.join(RUN_DIR, "events.jsonl")
     LOCK_PATH = os.path.join(RUN_DIR, "events.lock")
     README_PATH = os.path.join(REPO, "tasks", "README.md")
     PROGRESS_PATH = os.path.join(REPO, "PROGRESS.md")
+    AUDIT_PATH = os.path.join(REPO, "tasks", "M1-12", "audit.md")
 
 GENESIS = "0" * 64
 
@@ -349,6 +351,31 @@ def load_dag(path: str) -> dict:
 
 BOOTSTRAP = "M1-01"
 
+AUDIT_PASS_LINE = "audit: PASS"
+
+
+def m1_audit_passed() -> bool:
+    """The M1 exit audit of D-123.
+
+    After the last M1 task turns `done`, the host session launches a fresh
+    audit subagent that re-runs every M1 `tasks/<id>/verify.sh host`, checks
+    the M1 exit gate, and writes `tasks/M1-12/audit.md` ending with the line
+    `audit: PASS`. Until that file exists and ends with that line, no M2+ row
+    may reach `ready`.
+
+    The audit gates every M2+ id without exception. The four early-start ids
+    of D-088 (M3-01, M3-03, M4-02, M4-03) are exempt from waiting for the
+    M1-12 *row* to be `done`, because they only need the task bundles; they
+    are not exempt from the audit, whose whole purpose is to prove that the
+    M1 foundation the rest of the run stands on actually holds.
+    """
+    try:
+        with open(AUDIT_PATH, "r", encoding="utf-8") as handle:
+            lines = [line.strip() for line in handle if line.strip()]
+    except OSError:
+        return False
+    return bool(lines) and lines[-1] == AUDIT_PASS_LINE
+
 
 def promote(events: list, state: dict, only: str = None) -> list:
     """Arming and auto-promotion (D-119).
@@ -363,14 +390,24 @@ def promote(events: list, state: dict, only: str = None) -> list:
     M10-03), but D-072 makes M1-01 author every task bundle before any other
     task starts, so `arm` promotes M1-01 alone (`only`); the other three are
     promoted by the auto-promotion when M1-01 turns `done`.
+
+    The M1 audit gate (D-123) is enforced here, and only here, because
+    promotion is the sole way a row leaves `planned`: while
+    `tasks/M1-12/audit.md` is missing or does not end with `audit: PASS`, no
+    M2+ id is promoted, so none can ever be `ready` and none can satisfy the
+    runnable predicate of §3. That covers `arm` (which promotes M1-01 alone)
+    and the auto-promotion of `transition <id> done` alike.
     """
     tasks = state["tasks"]
+    audit_ok = m1_audit_passed()
     promoted = []
     for tid in state["order"]:
         row = tasks[tid]
         if only is not None and tid != only:
             continue
         if row["status"] != "planned":
+            continue
+        if row["milestone"] != "M1" and not audit_ok:
             continue
         if any(tasks.get(d, {}).get("status") != "done" for d in row["depends_on"]):
             continue
