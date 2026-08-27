@@ -1228,9 +1228,14 @@ M1-13; M1-12 gains M1-13.*
 
 **Decision.** Agents merge pull requests to `main` themselves whenever the
 roadmap needs a merge, using the forwarded `gh` identity. Work that does not
-block the roadmap stays unmerged on `feat/managed-execution`. No jackin
-release and no Homebrew tap publish happens before M11; only branch builds
-run. There is no human review gate anywhere: `crew-reviewer` tasks run in
+block the roadmap stays unmerged on `feat/managed-execution`. No tag, no
+`release.yml` run and no stable Homebrew formula happens in this run; only
+branch builds run. The rolling `preview` release and the `jackin-preview`
+tap formula are refreshed automatically by jackin's `preview.yml` on the
+M11-01a merge to `main`, and that refresh is required rather than
+suppressed, because M11-01a's own verify and M11-02's validator both come
+from it; `jackin-preview` stays uninstalled on this host (M1-02a). There is
+no human review gate anywhere: `crew-reviewer` tasks run in
 parallel with the following work and never block the next task; their
 findings become follow-up checklist items on the issue they reviewed.
 
@@ -2296,6 +2301,18 @@ M3-05, M5-06, M6-03, M12-02, §1 M5/M6 proof cells, §6 item 8;
 
 *Amended by D-114: no `<milestone>-00 authoring` task remains in the graph.*
 
+*Amended 2026-08-28 (bulletproofing round 3, adopted under D-053): twelve
+edges are added to the frozen graph so that no proof run is runnable while
+its real input is `blocked` or `waiting`. `M3-05` gains `M2-03` (its host
+verify needs the polling tick to detect the delegated issue), and each of
+`M4-04`, `M4-06`, `M5-06`, `M6-03`, `M7-04`, `M8-03`, `M9-02`, `M10-05`,
+`M11-04`, `M12-03` gains `M3-07` (each needs a dispatchable scratch issue
+in the repository `tasks/M3-07/scratch-repo.txt` names). Task ids and the
+task count are unchanged. `ROADMAP.md` §2 `depends_on` cells, §3 mermaid
+graph (which draws each new edge unless another drawn edge already implies
+it) and the M6..M12 wave paragraph carry the edges; M1-01 copies the new
+`depends_on` values into each `task.toml`.*
+
 Adopted under D-053 (bulletproofing round 2). Amends D-054, D-072, D-073.
 
 **Decision.** (1) New task M11-01a "Merge jackin `feat/managed-execution`
@@ -2362,10 +2379,14 @@ runners therefore happens in the first the-architect PR of the run
 `origin/main` back and confirms the branch exists. (3) Merges to a
 protected `main` use only `gh pr merge --squash` after the required checks
 are green; `--admin` never works; a check pending on a self-hosted label
-is the task's own CI defect. (4) DCO: the role images install a
-`prepare-commit-msg` sign-off hook (template `githooks/` via
-`core.hooksPath`; the-architect in M1-13), every `TASK.md` says `git
-commit -s`, and a pre-push gate counts trailers; the single exception to
+is the task's own CI defect. (4) DCO: trailer injection is jackin's own
+feature, not a role hook. M1-02a runs `jackin config git dco enable` once
+on the host, so every container launched here carries `JACKIN_GIT_DCO=1`
+and the capsule's own `prepare-commit-msg` hook signs off; the role images
+and templates ship no sign-off hook of their own, because jackin sets
+`core.hooksPath` `--global` and that shadows any `--system` hook a role
+image installs. Every `TASK.md` still says `git commit -s`, and a pre-push
+gate counts trailers; the single exception to
 "never `--force`" is `git rebase --signoff` plus `--force-with-lease` on
 the-architect's single-writer branch to add missing trailers. (5) M1-04a
 ships exactly three named workflows on `ubuntu-latest`, never the velnor
@@ -2424,8 +2445,10 @@ never runs `jackin daemon install`. M11-01 records the per-role `op://`
 mapping and changes nothing; M11-03 writes it into the server daemon's
 config only; the laptop keeps `auth_forward = "sync"` for the whole run,
 and early-started tasks never touch `~/.config/jackin/config.toml`. D-055's
-"no release before M11" reads "no release or tap publish in this run; M11
-uses branch builds". (5) `op` 2.39.0 is installed in the operator image by
+"no release before M11" reads "no tag, no `release.yml` run and no stable
+Homebrew formula in this run; M11 uses branch builds, and the rolling
+`preview` release and the `jackin-preview` tap formula are refreshed by
+`preview.yml` on the M11-01a merge, a refresh M11-01a and M11-02 require". (5) `op` 2.39.0 is installed in the operator image by
 direct download of the versioned zip from `cache.agilebits.com` with
 per-arch sha256 (`concept/roles.md` §3.1 records the values), because the
 apt repository keeps only the current version. The operator manifest
@@ -2492,7 +2515,13 @@ grep for weeks before it exists, and a `commit_id` compared with a head
 that moves before the review is posted.
 
 **Consequences.** `ROADMAP.md` M1-09, M1-11, M1-12, M1-13, M3-01, M3-04,
-M3-05, M4-02, M4-04, M5-06, all eleven review rows; `goal/EXECUTION.md`
+M3-05, M4-02, M4-04, M5-06, all eleven review rows; and, under item (2),
+M2-06, M3-06, M4-03, M4-06 and M12-01, whose verifies read a snapshot the
+task files while the state holds (`tasks/M2-06/status.json`,
+`tasks/M3-06/cancel.json` with `docker-ps-after.txt` and
+`workspace-after.txt`, `tasks/M4-03/exec.json`,
+`tasks/M4-06/workspace-ls.txt`, `tasks/M12-01/status.json`) instead of
+querying the live daemon at verify time; `goal/EXECUTION.md`
 §4 subagents row, §5 steps 5 and 6a; `concept/task-format.md` model row
 and `verify.sh` contract; `concept/roles.md` §3.2 verdict flow; `SPEC.md`
 §4 model row; `analysis/roles/jackin-dev-needs.md` §3; `GOAL.md` prompt.
@@ -3040,3 +3069,35 @@ and the crates.io token sentence is removed there and from the `ROADMAP.md`
 M10 preflight. A later run that wants the publish records a new decision
 and adds the token item to `concept/credentials.md` §4 then.
 
+
+## D-123 — 2026-08-28 — M1 is independently audited before M2 is activated
+
+**Decision.** M1 is independently audited before M2 is activated. After the
+last M1 task is `done`, the host session launches a fresh audit subagent
+(`claude-opus-5`, no state from the tasks it audits) that re-runs every M1
+`tasks/<id>/verify.sh host`, checks the M1 exit gate of `ROADMAP.md` §1
+against the CREATE set, and writes `tasks/M1-12/audit.md` in normal English
+ending with the verdict line `audit: PASS`; `tools/state.py` refuses to
+promote any M2 or later row to `ready` until that file exists and its last
+non-empty line is `audit: PASS`.
+
+**Rationale.** Every M2 and later task builds on the credentials, the roles,
+the branch build, and the Linear workspace that M1 produces, and each M1
+verify was written and run by the same agent that did the work, on a host
+whose state keeps moving. A row that passed hours earlier can be false by
+the time M2 starts — an uninstalled binary is back on `PATH`, a mount was
+dropped, a token was rotated — and the failure would then surface deep in
+M2 or M3 as an unexplained exhaustion far from its cause. Re-running the M1
+host verifies once, in one place, with an agent that carries none of the
+authors' assumptions, is the cheapest point at which the whole foundation is
+either true or visibly false. Making it a gate in `tools/state.py` rather
+than a paragraph means no session can start M2 by forgetting it.
+
+**Consequences.** `SPEC.md` §10b M1 carries the same sentence.
+`goal/EXECUTION.md` §3 adds the audit as the step between the last M1 task
+and the first M2 promotion, and names the subagent model. `tools/state.py`
+gains the `ready` gate for M2 and later rows and reports the missing or
+failing `tasks/M1-12/audit.md` as the reason a row stays `planned`. A
+`audit: FAIL` verdict is not a preflight defect: the audit names the M1 rows
+to re-run, those rows go back to `ready`, and the audit is repeated after
+they are `done` again.

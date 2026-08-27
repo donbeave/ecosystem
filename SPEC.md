@@ -540,7 +540,14 @@ overlap in execution; review tasks never gate the next milestone (D-055).
 
 1. **M1 Linear setup verified** — agent app, credentials in 1Password,
    browser profile, branch-built jackin, the three `crew` roles; a test
-   issue assigned and observed.
+   issue assigned and observed. M1 is independently audited before M2 is
+   activated: after the last M1 task is `done`, the host session launches a
+   fresh audit subagent (`claude-opus-5`) that re-runs every M1
+   `tasks/<id>/verify.sh host`, checks the M1 exit gate of `ROADMAP.md` §1
+   against the CREATE set, and writes `tasks/M1-12/audit.md` ending with the
+   verdict line `audit: PASS`; `tools/state.py` refuses to promote any M2 or
+   later row to `ready` until that file exists and its last non-empty line
+   is `audit: PASS` (D-123).
 2. **M2 Daemon listens and reacts to Linear** — polling, acknowledgement
    within 10 s, contract validation, failures reported on the issue.
 3. **M3 Issue spawns a local agent** — workspace prepared, role launched
