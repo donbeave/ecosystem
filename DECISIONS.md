@@ -2881,3 +2881,31 @@ tooling exist.
 `concept/task-format.md` names `expected-evidence.toml` and
 `evidence.json`. A machine file at any other path is a defect. No
 binaries, archives, or generated artifacts (D-059).
+
+## D-119 — 2026-08-28 — One runnable predicate, quoted verbatim wherever it is stated
+
+**Decision.** Whether a `tasks/README.md` row may be dispatched is decided
+by a single predicate paragraph, headed `Runnable predicate (D-119)`. Its
+text is: a row is runnable iff its status is `ready`; every `depends_on`
+id is `done`; a lane slot is free under the caps — at most two host
+subagents drawing on `~/.claude` and at most three host subagents in
+flight (D-071) — plus the §4 reserve rule of `goal/EXECUTION.md`; and, for
+M2+ ids other than M3-01, M3-03, M4-02, M4-03, the M1-12 row is `done`
+(D-088); rows `planned`, `blocked`, `waiting` or `in-progress` are not
+runnable and do not count as `done` (D-084). `GOAL.md` "Task loop" and
+`goal/EXECUTION.md` §3 carry that paragraph byte-identically, and
+`tools/roadmap_compile.py` and the state store cite it rather than
+restating it. Wave order, milestone priority, and early starts are
+scheduling policy in `goal/EXECUTION.md` §3, not part of the predicate.
+
+**Rationale.** `GOAL.md` gated M2+ tasks on `depends_on`, caps, and M1-12
+only, while `goal/EXECUTION.md` §3 added a status condition, a
+lowest-unfinished-milestone priority, and a closed early-start set, and
+`AGENTS.md` gave no precedence between the two files — two schedulers for
+one run (K-14). `GOAL.md` also stated no host-subagent cap, so the D-071
+reserve was invisible at the entry point (I-22).
+
+**Consequences.** Any change to runnability edits the paragraph in both
+files in one commit; the cross-document invariant lint (D-116) compares
+them byte for byte. D-084 and D-088 are cited by the predicate and
+unchanged.

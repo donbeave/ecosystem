@@ -119,7 +119,9 @@ sees a pending session.
    `max_concurrent_agents = 6`, per Codex account home 1, for `~/.claude`
    2 (D-071: the host session is a permanent consumer of that home), and a
    per-role cap of 1 for `donbeave/crew-operator` (one Chrome profile).
-   (D-022, D-039, D-053, D-056, D-071)
+   (D-022, D-039, D-053, D-056, D-071) The host session's own dispatch of
+   `tasks/README.md` rows follows the one runnable predicate of D-119,
+   quoted byte-identically in `GOAL.md` and `goal/EXECUTION.md` §3.
 3. **Workspace.** Clone or reuse under the daemon's workspace root keyed by
    the sanitized issue identifier; fetch; pull and reuse the branch if it
    exists on the remote, otherwise create it from the base branch. The

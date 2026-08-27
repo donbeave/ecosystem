@@ -141,19 +141,21 @@ lane or the operator role holds that resource for the load's duration, and
 before every load the session checks `docker ps` for a live container on
 the same account home or role.
 
-Runnable means: every `depends_on` row is `done`; the id has a
-`tasks/README.md` row that is not `planned`; for M2+ ids other than M3-01,
-M3-03, M4-02, M4-03, the M1-12 row is `done` (D-088, so every issue exists
-before its task runs); and the caps allow it. `blocked`, `waiting`, and
-`in-progress` rows are not runnable and do not count as `done`, so a
-blocked upstream simply keeps its dependents waiting; a dependent of a
-`blocked` task keeps its own status (`ready`) and gets no row of its own in
-`PREFLIGHT-DEFECTS.md` (D-084: only rows with an open defect row are ever
-`blocked`). Tasks from a later milestone start early where `ROADMAP.md`
-§3 says they may (M3-01, M3-03, M4-02, M4-03 after their `depends_on`;
-M6-01, M8-01, M10-02, M10-03 after M1-12 is `done` and their milestone is
-authored). Priority: within a wave the critical-path task first
-(`ROADMAP.md` §3 "Critical path"); across milestones, a runnable task of
+Runnable predicate (D-119). A `tasks/README.md` row is runnable iff: its
+status is `ready`; every `depends_on` id is `done`; a lane slot is free
+under the caps — at most two host subagents drawing on `~/.claude` and at
+most three host subagents in flight (D-071) — plus the §4 reserve rule of
+`goal/EXECUTION.md`; and, for M2+ ids other than M3-01, M3-03, M4-02,
+M4-03, the M1-12 row is `done` (D-088). Rows `planned`, `blocked`,
+`waiting` or `in-progress` are not runnable and do not count as `done`
+(D-084).
+
+A dependent of a `blocked` task keeps its own status (`ready`) and gets no
+row of its own in `PREFLIGHT-DEFECTS.md`. Tasks from a later milestone
+start early where `ROADMAP.md` §3 says they may (M3-01, M3-03, M4-02,
+M4-03 after their `depends_on`; M6-01, M8-01, M10-02, M10-03 after M1-12
+is `done` and their milestone is authored). Priority: within a wave the
+critical-path task first (`ROADMAP.md` §3 "Critical path"); across milestones, a runnable task of
 the lowest unfinished milestone always takes a free slot before an
 early-start task of a later milestone, and early-start tasks fill only
 slots that would otherwise idle (L4 stays free for M1-04a, M1-05a, M1-08
