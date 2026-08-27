@@ -3,9 +3,10 @@
 Status: **draft, living document**. This specification is improved in every
 conversation that reaches agreement. It states only what is decided in
 `DECISIONS.md`. Under D-050 and D-053 every recommended answer that existed
-on 2026-08-27 is a decided default and is stated here as such; the three
-questions that remain in `OPEN-QUESTIONS.md` (Q-002, Q-005, Q-009) block
-nothing. The Symphony-derived rules D-018..D-031 are recorded in full in
+on 2026-08-27 is a decided default and is stated here as such; no question
+remains open (`OPEN-QUESTIONS.md`), and `QUESTIONS.md` is the record of
+Q-001..Q-025 with the decision that closed each — Q-002 by D-066, Q-005 by
+D-067, Q-009 by D-068. The Symphony-derived rules D-018..D-031 are recorded in full in
 `DECISIONS.md` (D-053, D-103) and are cited by their numbers; no normative
 decision text lives outside `DECISIONS.md`.
 

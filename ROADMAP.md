@@ -696,4 +696,6 @@ the only reasons the run ends BLOCKED (D-070).
 
 ## 7. Open questions
 
-None block any task; the remaining items (Q-002, Q-005, Q-009) are in `OPEN-QUESTIONS.md`.
+None. Every question raised so far is closed (`OPEN-QUESTIONS.md`); `QUESTIONS.md` holds
+Q-001..Q-025 with the decision that closed each — Q-002 by D-066, Q-005 by D-067, Q-009 by
+D-068.
