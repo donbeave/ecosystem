@@ -66,7 +66,7 @@ Container part (run inside the task container):
 
 Host part (run by the host Claude Code session, D-061):
 
-> `python3 tools/roadmap_compile.py --bundles 2>&1 | grep -q '81/81 bundles valid'` matches; `python3 tools/bundle.py verify --all` exits 0, so no bundle has drifted from this document; `dash -n tasks/M1-01/verify.sh` exits 0 and `shellcheck -s sh -S warning tasks/M1-01/verify.sh` exits 0 (severity floor "warning": "style" and "info" hints never fail a bundle, D-114); `grep -qE '^ *echo "?status: DONE' tasks/M1-01/verify.sh`, `grep -qE '^ *echo "?status: FAILED' tasks/M1-01/verify.sh` and `grep -q 'case "$1"' tasks/M1-01/verify.sh` all match; the run state store lists one entry per id and `tasks/README.md` has one row per id (state-independent: this row is still in progress when its verify runs, D-088; a task verify never asserts the remaining count or its own row status)
+> `python3 tools/roadmap_compile.py --bundles 2>&1 | grep -q '81/81 bundles valid'` matches; `python3 tools/bundle.py verify --all` exits 0, so no bundle has drifted from this document; `dash -n tasks/M1-01/verify.sh` exits 0 and `shellcheck -s sh -S warning tasks/M1-01/verify.sh` exits 0 (severity floor "warning": "style" and "info" hints never fail a bundle); `grep -qE '^ *echo "?status: DONE' tasks/M1-01/verify.sh`, `grep -qE '^ *echo "?status: FAILED' tasks/M1-01/verify.sh` and `grep -q 'case "$1"' tasks/M1-01/verify.sh` all match; the run state store lists one entry per id and `tasks/README.md` has one row per id (state-independent: this row is still in progress when its verify runs, D-088; a task verify never asserts the remaining count or its own row status)
 
 ## Evidence expected (D-118)
 
