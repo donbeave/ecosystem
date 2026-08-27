@@ -14,6 +14,51 @@ run: each undone §3..§5 item is one guaranteed BLOCKED stop and re-run
 cycle (`PREFLIGHT-DEFECTS.md`, D-070). §2 is mandatory before the first
 run in any case.
 
+## 0. Readiness gates (run these first, D-109)
+
+Two scripts decide whether the run may start. Both print one line per
+diagnostic, then the hash of the locked plan they were taken against,
+then a final `status: READY` or `status: NOT READY`. They print the same
+`lock_hash`, read from `[run].lock_hash` in `run/LOCK.toml`, so a static
+pass and a live pass can be shown to belong to the same plan.
+
+- `sh tools/readiness.sh static` — everything decidable from this
+  repository alone, with no network and no host state: the roadmap
+  compiles to `81 tasks, 0 cycles, 0 unproduced artifacts, 0 prose
+  gates`, `--bundles` reports `81/81 bundles valid`, `tools/bundle.py
+  verify --all`, `tools/lock.py check`, `tools/check_disposition.py`,
+  `tools/gate_fixtures.sh`, `shellcheck -s sh` over `verify.sh`,
+  `tools/*.sh` and every `tasks/<id>/verify.sh`, no task verifier
+  containing `hardline`, `tmux attach`, `--latest` or `newest` (durable
+  evidence only), `tools/invariant_lint.py`, and `tools/state.py verify`.
+- `sh tools/readiness.sh live` — this host: the §1 standing items as
+  commands (Docker, `gh auth status`, `op whoami`, `tmux`, `dash`,
+  `shellcheck`, `gitleaks`, the `claude-yolo` launcher function, the
+  `claude` and `codex` runtimes, `caffeinate` running, the screen saver
+  off, `autoContinueAtUsageLimit`), plus `sh tools/probe_permissions.sh`,
+  which launches one real `claude -p` to prove the pinned permission mode
+  never prompts (D-120; it carries its own 120-second timeout).
+
+`tools/invariant_lint.py` is the cross-document lint (D-116): it fails
+when two authoritative documents disagree — the D-119 runnable predicate
+stated differently in `GOAL.md` and `goal/EXECUTION.md`, a `~/.claude`
+concurrency cap other than 2 (D-071), a retired `v1alpha8`, an
+unexpanded `<org>`, a `jackin workspace delete` outside the analysis
+archive, a cited `D-0nn`/`D-1nn` with no heading in `DECISIONS.md` or a
+`Q-0nn` with no heading in `QUESTIONS.md`, a claim that open questions
+remain, a `GOAL.md` over its 4000-byte prompt cap, a `tasks/README.md` or
+`PROGRESS.md` that differs from what `tools/state.py render` produces
+(rendered into a temporary copy of the store, so the real projections are
+never rewritten), or an unclean git tree. Run it alone with
+`python3 tools/invariant_lint.py`; pass check names to run a subset.
+
+A live check the human alone can repair — the 1Password sign-in, the
+operator browser profile, the `jackin-daemon` GitHub App,
+`delete_branch_on_merge`, the-architect ruleset, a pinned role ref — is
+printed as `blocked-on-human: <PREFLIGHT-DEFECTS.md row>` and still makes
+the live gate `status: NOT READY`. The gate reports what is true; it
+never lowers the bar. Clear those items in §1..§5 below and re-run it.
+
 ## 1. Standing items (checked at every session start)
 
 - [ ] OrbStack running, Docker context `orbstack`, no Docker Desktop
