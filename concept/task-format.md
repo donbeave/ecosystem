@@ -57,6 +57,15 @@ into an issue with the convention above. It contains:
   on after a stuck run, from the `fallback` column of `ROADMAP.md` §5,
   D-057; quota exhaustion follows the per-account-home chain of D-071),
   `limits` (`attempts`, default 3, the exhaustion cap of D-070).
+- `expected-evidence.toml` — the evidence the task must produce, declared
+  before it runs: one row per artefact with its path and the check that
+  accepts it. `verify.sh` reads it and fails when a declared artefact is
+  missing (D-118).
+- `evidence.json` — the machine record of what the run actually produced
+  for the task, written by `verify.sh` and read by the run state store
+  when the task's terminal class is derived (D-110, D-111, D-118).
+- `refs/` — the files `TASK.md` references, staged into
+  `<workspace>/.jackin/task/refs/` before the launch (D-086, D-118).
 - `verify.sh` — the task's verification (D-003); for repositories with
   `.jackin/workflow.toml`, `[verify] command` points at it. It is POSIX
   `sh` (`#!/bin/sh`, `set -u`; checked by M1-01 with `dash -n` and
@@ -152,6 +161,9 @@ system and this layout is only the local mirror the daemon creates.
         TASK.md                  # what to build, how, definition of done
         task.toml                # id, dependencies, role, runtime hints, limits
         verify.sh                # prints "status: DONE" on success
+        expected-evidence.toml   # evidence the task must produce (D-118)
+        evidence.json            # what it actually produced (D-110, D-118)
+        refs/                    # files TASK.md references (D-086)
       020-api-contract/
         ...
       030-tui-screen/
@@ -214,7 +226,10 @@ limits = { attempts = 3, minutes = 90 }   # attempts = exhaustion cap (D-070)
 
 Runs inside the task's environment with the argument `container` or
 `host` (D-086). Exit code is informational; the manager
-reads the last line and accepts only `status: DONE`. Anything else is a
+reads the last line and accepts only `status: DONE`. The run-level
+`verify.sh` derives one of four terminal classes — `DONE`,
+`BLOCKED HUMAN`, `FAILED SYSTEM`, `PENDING` — from the run state store
+(D-110). Anything else is a
 failure with the script output as evidence. Who authors this script and how
 it is trusted: the verify command is repository-owned on the base branch,
 run by the daemon, and reviewed by `crew-reviewer` when an agent authored

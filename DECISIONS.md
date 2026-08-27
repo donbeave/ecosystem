@@ -787,6 +787,10 @@ is ready to execute.
 
 ## D-038 — 2026-08-27 — Tasks live in `tasks/`, indexed by a README with status
 
+*Amended by D-111: `tasks/README.md` and `PROGRESS.md` are generated
+projections of the state store, never hand-edited. Amended by D-118: the
+permitted task-folder files are listed there.*
+
 **Decision.** This repository has a `tasks/` folder. `tasks/README.md` is
 the index: a list of every task subfolder with its status. Each subfolder
 is one task, containing what an agent needs to do it (description,
@@ -969,6 +973,9 @@ M1-04/M1-05 are replaced accordingly once the set is decided.
 
 ## D-046 — 2026-08-27 — Any jackin-project or tailrocks repository may be changed to make this work
 
+*Amended by D-112: work reaches an involved repository through a per-task
+worktree and branch and one integrator lease per repository.*
+
 **Decision.** Whenever this effort needs something from an involved
 project, the project is changed to provide it. This applies to every
 repository under https://github.com/jackin-project and every repository
@@ -992,6 +999,9 @@ would hit.
 - Q-020 is closed by D-047 for branch naming.
 
 ## D-047 — 2026-08-27 — One branch everywhere: `feat/managed-execution`; ecosystem on `main`
+
+*Amended by D-112: each task uses its own branch `managed/<run-id>/<task-id>`
+from the locked base SHA; workers never push `feat/managed-execution`.*
 
 **Decision.** In every involved repository that receives changes for this
 effort (jackin-project and tailrocks organizations, and the new role
@@ -1332,6 +1342,9 @@ socket, host `docker`) runs in the host session whatever the task's role.*
 
 ## D-062 — 2026-08-27 — Task folders for M1..M5 now; later milestones when reached
 
+*Amended by D-114: all 81 task bundles are materialised before any product
+task runs; there is no runtime authoring phase.*
+
 **Decision.** Task folders are authored now for M1..M5 (task M1-01); M6..M12
 folders are authored when those milestones are reached. Milestones may
 overlap in execution; operator preflights are merged per sitting rather
@@ -1461,6 +1474,9 @@ that the host session is the first responder to escalations.
 
 ## D-069 — 2026-08-27 — One root `verify.sh` and a `goal/` package drive the unattended run
 
+*Amended by D-110: the root `verify.sh` derives four terminal classes, not
+two. Amended by D-118: the permitted machine files are listed there.*
+
 **Decision.** D-001 is amended a second time: besides the task-level
 `tasks/<id>/verify.sh` (D-038), exactly one more runnable file is permitted
 in this repository — `verify.sh` at the repository root. It is the gate of
@@ -1581,6 +1597,9 @@ tests assert the per-account-home chain and an unchanged attempt counter.
 
 ## D-072 — 2026-08-27 — Graph amendments: M1-01 is wave 0; M1-09 and M1-12 depend on M1-13; M1-09 depends on M1-10
 
+*Amended by D-114: M1-01 is no longer an authoring task; every task bundle
+exists before the run starts.*
+
 Adopted under D-053 (bulletproofing round 1). Amends D-054. Amended by
 D-088: M1 wave 5 is split because throwaway loads count as lane use, and
 M1-01's verify clause "n = total − 1" is replaced by a state-independent
@@ -1661,6 +1680,9 @@ issues need a re-run.
 `GOAL.md` prompt.
 
 ## D-074 — 2026-08-27 — Role repositories are effective on `main`; jackin and termrock PRs stay open during the run
+
+*Amended by D-112: a change to a role repository is still made in a per-task
+worktree and branch and integrated under the repository's integrator lease.*
 
 Adopted under D-053 (bulletproofing round 1). Amends D-047, D-048, D-055,
 D-058. Amended by D-088 (M11-01a merges jackin `feat/managed-execution`
@@ -2134,6 +2156,9 @@ lane rule; `ROADMAP.md` §2 intro, M1-02a, M1-13, §5 prose; `SPEC.md` §9c;
 
 ## D-086 — 2026-08-27 — Container-path mechanics: staged task folder, two-part `verify.sh`, one-line prompt, eject by name, host build refresh, single writer
 
+*Amended by D-111: the single-writer rule applies to the state store; the
+Markdown ledgers are generated projections.*
+
 Adopted under D-053 (bulletproofing round 2). Amends D-074 (push protocol
 for this repository), D-081 (1), D-082 (2)–(3).
 
@@ -2244,6 +2269,8 @@ M3-05, M5-06, M6-03, M12-02, §1 M5/M6 proof cells, §6 item 8;
 `GOAL.md` prompt.
 
 ## D-088 — 2026-08-27 — Graph amendments: M11-01a; M1 wave 5 split; M2+ tasks wait for M1-12; M11-01 starts with M11; M10-02 owns the CONTRIBUTING clause; M1-01's verify is state-independent
+
+*Amended by D-114: no `<milestone>-00 authoring` task remains in the graph.*
 
 Adopted under D-053 (bulletproofing round 2). Amends D-054, D-072, D-073.
 
@@ -2648,3 +2675,209 @@ now read `model: "claude-opus-5"` where they read `model: "opus"`. D-092
 is amended by this decision. A tool the run needs that the allowlist does
 not cover is added to `.claude/settings.json` in the same commit as the
 task that needs it, never answered by a prompt.
+
+## D-109 — 2026-08-28 — A readiness-hardening run precedes the implementation run (plan proposal D-096)
+
+**Decision.** A readiness-hardening run precedes the implementation run.
+The implementation `/goal` is armed only after a static readiness gate and
+a live host readiness gate both print `status: READY` for the same lock
+hash. The static gate reads the committed plan, the compiled graph, and
+the task bundles; the live gate runs on the host that will execute the
+run and proves the tools, credentials, accounts, and permission profile
+are actually present. Either gate printing anything other than
+`status: READY`, or the two naming different lock hashes, leaves the
+implementation run unarmed.
+
+**Rationale.** The previous arrangement had the implementation run compile
+its own plan and write its own oracle inside the same run, so a defect in
+the plan could not be distinguished from a defect in the work, and nothing
+proved the host was capable before the first product task started (K-03).
+
+**Consequences.** `SPEC.md` §9e states the two gates and the shared lock
+hash. `run/LOCK.toml` carries the lock hash both gates print. No product
+task of M1..M12 runs during the readiness-hardening run.
+
+## D-110 — 2026-08-28 — Four machine terminal classes derived by `verify.sh` (plan proposal D-097)
+
+**Decision.** The run has four machine terminal classes, replacing the two
+current ones: `DONE`, `BLOCKED HUMAN`, `FAILED SYSTEM`, and `PENDING`.
+Each is derived by `verify.sh` from the state store, never asserted by the
+model. `DONE` means every task is `done` with its evidence; `BLOCKED
+HUMAN` means the only open reason is a `PREFLIGHT-DEFECTS.md` row naming
+an input only a human can provide; `FAILED SYSTEM` means a plan, tool, or
+environment defect stopped the run and no human input would unblock it;
+`PENDING` means work remains and is runnable. `verify.sh` prints the class
+as its last line.
+
+**Rationale.** With only `DONE` and `PENDING`, a plan defect could be
+filed as a human prerequisite and end the run as BLOCKED, so a defect in
+the plan masqueraded as a missing operator input (K-27).
+
+**Consequences.** D-069 is amended by this decision: the root `verify.sh`
+gate has four outcomes, not two. `SPEC.md` §9e and `GOAL.md`'s termination
+text name the four classes; `README.md` "Start the run" keeps COMPLETE and
+BLOCKED as the human-facing names of `DONE` and `BLOCKED HUMAN` and adds
+`FAILED SYSTEM`. A model may not write a terminal class into any file.
+
+## D-111 — 2026-08-28 — Run state is an atomic store; the ledgers are generated projections (plan proposal D-098)
+
+**Decision.** Authoritative run state lives in an atomic state store under
+`run/` — `run/state.db` or `run/events.jsonl`, text preferred. Its records
+carry, per task, the status, the `leased`, `resource-waiting`, and
+`failed-system` flags, the lease owner, the epoch, the fencing token, and
+the attempt history. `tasks/README.md` and `PROGRESS.md` are generated
+projections of that store and are never hand-edited; regenerating them
+from the store is the only way their content changes.
+
+**Rationale.** A task transition previously required editing several files
+by hand in one commit, so an interruption left the repository in a state
+no rule described, and restart reconciliation depended on reading prose
+(K-26).
+
+**Consequences.** D-038 and D-086 are amended by this decision:
+`tasks/README.md` and `PROGRESS.md` become generated, and the single-writer
+rule applies to the state store rather than to the Markdown ledgers.
+`SPEC.md` §8 describes the store and its fields; `AGENTS.md` names the
+three added statuses. A hand edit to a projection is a defect, not a
+transition.
+
+## D-112 — 2026-08-28 — One worktree and branch per task; one integrator lease per repository (plan proposal D-099)
+
+**Decision.** Each task works in its own git worktree on its own branch
+`managed/<run-id>/<task-id>`, created from the base SHA locked in
+`run/LOCK.toml`. Workers never push the integration branch
+`feat/managed-execution`; they push only their own task branch. Merging a
+task branch into the integration branch is done by an integrator that
+holds the single integrator lease for that repository, one lease per
+repository at a time. Verification runs against the integrated SHA, not
+against a worker's branch tip.
+
+**Rationale.** D-046, D-047, and D-074 permit several concurrent writers
+on one shared branch, so two tasks running in parallel in the same
+repository could rebase, force, or clobber each other, and a verify could
+pass on a tree nobody ever integrated (K-16).
+
+**Consequences.** D-046, D-047, and D-074 are amended by this decision.
+`SPEC.md` §9d states the worktree, the branch name, the lease, and the
+integrated-SHA rule; `AGENTS.md` "Repositories, branches, commits" says
+the same. Role repositories keep `main` as their effective branch (D-074),
+but a task that changes one still works in its own worktree and branch and
+reaches `main` through the integrator lease.
+
+## D-113 — 2026-08-28 — Idempotency keys on external mutations; leases carry fencing tokens (plan proposal D-100)
+
+**Decision.** Every external mutation — a push, a merge, a pull request, a
+Linear write, a release — carries an idempotency key equal to
+`hash(run, task, attempt, operation)`. Every runnable task holds a lease
+recorded in the state store with an owner, an epoch, and a monotonically
+increasing fencing token; a mutation whose fencing token is lower than the
+one the store holds for that task is refused.
+
+**Rationale.** Nothing prevented a superseded agent — one whose lease had
+expired after a stall, a compaction, or a container restart — from pushing,
+merging, or writing to Linear after its replacement had started, and a
+retried mutation could take effect twice (K-28).
+
+**Consequences.** `SPEC.md` §8 and §9d state the key and the fencing rule.
+The state store fields of D-111 hold the lease owner, epoch, and fencing
+token. An operation that cannot carry an idempotency key must be made
+naturally idempotent before it is used.
+
+## D-114 — 2026-08-28 — All 81 task bundles are content-addressed and materialised before any product task runs (plan proposal D-101)
+
+**Decision.** All 81 task bundles are content-addressed, materialised in
+full before any product task runs, and their hashes recorded in
+`run/LOCK.toml`. There is no runtime task-authoring phase: no task
+authors another task's bundle while the run is under way.
+
+**Rationale.** M1-01 and the `<milestone>-00 authoring` tasks made the run
+compile parts of its own plan mid-flight, so the plan the gate checked was
+not the plan that ran, and a bundle could change under a task that had
+already read it (K-01, K-05).
+
+**Consequences.** D-062, D-072, and D-088 are amended by this decision:
+task folders for every milestone exist before the run starts, M1-01 is no
+longer an authoring task, and no `<milestone>-00 authoring` task remains
+in the graph. `SPEC.md` §10b drops the "materialises them for M1..M5
+first" clause. A bundle whose hash does not match `run/LOCK.toml` fails
+the static readiness gate of D-109.
+
+## D-115 — 2026-08-28 — Every `analysis/` findings archive needs a disposition file (plan proposal D-102)
+
+**Decision.** Every findings archive under `analysis/` must have a
+disposition file, `findings/disposition.toml`, with one row per finding —
+the finding id, its disposition (`fixed`, `superseded`, `rejected`,
+`open`), and the evidence for that disposition — before any run that
+touches the archive may start.
+
+**Rationale.** 71 of the 76 R3 findings had no traceable disposition, so
+"probably fixed" was indistinguishable from "never looked at", and a run
+could start on top of an unreviewed defect list (K-47).
+
+**Consequences.** `findings/disposition.toml` is a permitted machine file
+(D-118). The static readiness gate of D-109 fails when an archive a run
+touches has no disposition file or has a finding with no row.
+
+## D-116 — 2026-08-28 — A cross-document invariant lint runs in CI (plan proposal D-105)
+
+**Decision.** A cross-document invariant lint runs in CI and fails when
+two authoritative documents disagree. It checks at least: the status of
+every question in `OPEN-QUESTIONS.md` against `DECISIONS.md`; every
+concurrency cap stated in more than one file; every existence claim about
+a file or a repository; and every decision citation, including that each
+cited id exists and that amendments carry both notes (D-107).
+
+**Rationale.** The precedence rules of `AGENTS.md` alone did not prevent
+K-40, K-41, K-45, or K-46: a reader following them still reached the wrong
+number, because nothing mechanically compared the documents.
+
+**Consequences.** The lint is a CI job of this repository. A disagreement
+is a CI failure, fixed by correcting the documents, never by relaxing the
+lint.
+
+## D-117 — 2026-08-28 — `main` is protected; volatile run state is published as generated snapshots (plan proposal D-106)
+
+**Decision.** `main` of this repository is protected by a GitHub ruleset.
+Volatile run state — the projections of D-111 and the run ledgers — is
+published as generated snapshots rather than committed to `main` after
+every task transition. The plan of record on `main` changes only through
+a reviewed, rule-checked change.
+
+**Rationale.** The plan of record and the mutable ledger shared one
+unprotected branch, so the record a gate reads could be rewritten by any
+routine ledger write (K-22).
+
+**Consequences.** The `AGENTS.md` rule "commit and push this repository
+after every task transition" applies to the state store and its published
+snapshots, not to a `main` commit per transition. The ruleset itself is a
+human prerequisite and is filed in `goal/PREFLIGHT.md`.
+
+## D-118 — 2026-08-28 — The Execution mode permits machine files at exactly these paths
+
+**Decision.** The `AGENTS.md` "Two modes" Execution row is amended: machine
+files are permitted at exactly these paths and nowhere else —
+
+- `tools/` — the DAG compiler, the state store, the supervisor, and the
+  fixture runner, written in POSIX `sh` or Python 3 standard library only;
+- `tests/fixtures/` — the fixtures the fixture runner accepts and rejects;
+- `run/LOCK.toml` — the lock the readiness gates of D-109 share;
+- `run/state.db` or `run/events.jsonl` — the state store of D-111, text
+  preferred;
+- `findings/disposition.toml` — the disposition file of D-115;
+- `.claude/settings.json` — the permission profile of D-095;
+- the root `verify.sh` (D-069);
+- under `tasks/<id>/`: `TASK.md`, `task.toml`, `verify.sh`,
+  `expected-evidence.toml`, `evidence.json`, `refs/`, and text evidence
+  (`.out`, `.log`, `.json`, `.toml`, `.txt`, `.cast`).
+
+**Rationale.** D-109 through D-117 require runnable tooling and machine
+state that the previous Execution row did not permit, and an open-ended
+permission would return this repository to being a codebase. An exact list
+keeps the planning character of the repository while letting the readiness
+tooling exist.
+
+**Consequences.** D-038, D-069, and D-095 are amended by this decision.
+`AGENTS.md` "Two modes" and `README.md` "Working rules" carry the list;
+`concept/task-format.md` names `expected-evidence.toml` and
+`evidence.json`. A machine file at any other path is a defect. No
+binaries, archives, or generated artifacts (D-059).

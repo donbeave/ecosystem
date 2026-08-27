@@ -7,7 +7,7 @@ Rules for any agent or person working here. `CLAUDE.md` symlinks to this file; r
 | Mode | Scope | Rule |
 | --- | --- | --- |
 | Planning | `VISION.md`, `SPEC.md`, `DECISIONS.md`, `OPEN-QUESTIONS.md`, `ROADMAP.md`, `concept/`, `analysis/`, `README.md` | Markdown only. No source code, build files, scaffolding, or prototypes. |
-| Execution | `GOAL.md`, `goal/`, `tasks/`, `PROGRESS.md`, `PREFLIGHT-DEFECTS.md`, root `verify.sh`, `.claude/` | Runnable and machine files allowed, and only here: the root `verify.sh` (D-069), `.claude/settings.json` (D-095), and everything under `tasks/<id>/` — `verify.sh`, `task.toml`, and evidence (`.out`, `.log`, `.json`, `.toml`, `.txt`, `.cast`) (D-038, D-059). |
+| Execution | `GOAL.md`, `goal/`, `tasks/`, `tools/`, `tests/fixtures/`, `run/`, `findings/`, `PROGRESS.md`, `PREFLIGHT-DEFECTS.md`, root `verify.sh`, `.claude/` | Machine files allowed at exactly these paths and nowhere else (D-118): `tools/` (DAG compiler, state store, supervisor, fixture runner — POSIX `sh` or Python 3 stdlib only), `tests/fixtures/`, `run/LOCK.toml`, `run/state.db` or `run/events.jsonl` (state store; text preferred), `findings/disposition.toml`, `.claude/settings.json` (D-095), the root `verify.sh` (D-069), and under `tasks/<id>/` — `TASK.md`, `task.toml`, `verify.sh`, `expected-evidence.toml`, `evidence.json`, `refs/`, and text evidence (`.out`, `.log`, `.json`, `.toml`, `.txt`, `.cast`) (D-038, D-059). |
 
 Execution edits a planning document only to record a decision (`DECISIONS.md` + `SPEC.md`,
 same commit) or a graph amendment. The host session never makes that edit itself: it
@@ -75,6 +75,12 @@ before anything else. Binds the host session and every container agent. After
 - Branches: involved projects on `feat/managed-execution`; role repositories on `main`
   (jackin loads the default branch, D-074); this repository on `main`, never a feature
   branch (D-047).
+- One worktree and branch per task, `managed/<run-id>/<task-id>` from the base SHA locked
+  in `run/LOCK.toml`. Workers push only their own task branch and never push
+  `feat/managed-execution`; one integrator lease per repository merges task branches, and
+  verification runs on the integrated SHA (D-112). Every external mutation carries the
+  idempotency key `hash(run, task, attempt, operation)` and is refused when its fencing
+  token is stale (D-113).
 - `git commit -s` always (DCO); `git fetch && git rebase` before every push; never
   `--force` (one sanctioned exception, `goal/EXECUTION.md` §4 DCO rule); push at once,
   nothing stays local. Commit and push this repository after every task transition
@@ -94,8 +100,14 @@ credential to rotate, and blocks the commit.
 - One row per roadmap task id (81, D-088). Columns `Task` and `Status` must keep those
   header names; extra columns (a Linear URL) are fine — `verify.sh` parses by header name.
 - Statuses, lowercase, exactly these: `planned`, `ready`, `in-progress`, `waiting`,
-  `blocked`, `done`. Only a row with its own open `PREFLIGHT-DEFECTS.md` row is ever
-  `blocked`; dependents stay `ready` and are simply not runnable (D-084).
+  `blocked`, `leased`, `resource-waiting`, `failed-system`, `done`. Only a row with its own
+  open `PREFLIGHT-DEFECTS.md` row is ever `blocked`; dependents stay `ready` and are simply
+  not runnable (D-084).
+- `tasks/README.md` and `PROGRESS.md` are generated projections of the run state store
+  (`run/state.db` or `run/events.jsonl`) and are never hand-edited; a transition is written
+  to the store and the projections are regenerated (D-111). The run's terminal class is one
+  of `DONE`, `BLOCKED HUMAN`, `FAILED SYSTEM`, `PENDING`, derived by `verify.sh` from the
+  store, never asserted by an agent (D-110).
 - A row is `done` only when `tasks/<id>/verify.out` ends with `status: DONE`,
   `tasks/<id>/verify.sh` exists, and every touched repository is committed and pushed.
   Written by the host session only, then committed and pushed at once.

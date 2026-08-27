@@ -205,7 +205,10 @@ sees a pending session.
     removes the workspace. No integration branch and no merge queue in the
     first version. (D-031; Q-007 narrowed)
 
-Independent issues run in parallel, each in its own container. (D-004)
+Independent issues run in parallel, each in its own container (D-004), each
+in its own worktree and branch, and each holding a lease with a fencing
+token in the run state store; a slot is only granted to a task whose lease
+the store records as held (D-111, D-112, D-113).
 
 ## 7. Visibility
 
@@ -263,6 +266,18 @@ labeled with an issue identifier and reloads attempt counts and blocked
 entries from the ledger, never treating the ledger as proof that an issue
 is active. Internal claim states: `unclaimed`, `claimed`, `running`,
 `retry_queued`, `blocked`, `released`. (D-019, D-020)
+
+Authoritative state of a `/goal` run is separate from the daemon's view and
+lives in an atomic store under `run/` — `run/state.db` or
+`run/events.jsonl`, text preferred. Per task it records the status, the
+flags `leased`, `resource-waiting`, and `failed-system`, the lease owner,
+the epoch, the fencing token, and the attempt history. `tasks/README.md`
+and `PROGRESS.md` are generated projections of that store and are never
+hand-edited (D-111). Every runnable task holds a lease; every external
+mutation (push, merge, pull request, Linear write, release) carries an
+idempotency key equal to `hash(run, task, attempt, operation)`, and a
+mutation whose fencing token is lower than the token the store holds for
+that task is refused (D-113).
 
 ## 9. Deployment
 
@@ -342,12 +357,24 @@ allowlist is committed in `.claude/settings.json`, which also pins the
 host model and denies `git push --force` and `git push -f`. `README.md`
 "Start the run" names the launcher flags. (D-095)
 
+Parallel work in one repository is serialised by leases, not by a shared
+branch: each task runs in its own worktree and branch, and one integrator
+lease per repository admits merges (D-112, D-113).
+
 ## 9d. Involved projects and branches
 
 Any repository under github.com/jackin-project or github.com/tailrocks is
 changed when this effort needs it; defects are bugs to fix there, gaps are
 extensions (D-046). All such changes land on `feat/managed-execution` in
 each repository; this repository commits directly to `main` (D-047).
+Each task works in its own git worktree on its own branch
+`managed/<run-id>/<task-id>`, created from the base SHA locked in
+`run/LOCK.toml`. Workers push only their task branch and never push the
+integration branch `feat/managed-execution`; a task branch is merged into
+it by the holder of the single integrator lease for that repository, one
+lease at a time. Verification runs against the integrated SHA, never
+against a worker's branch tip (D-112). A change to a role repository is
+made the same way and reaches `main` under that lease.
 Role repositories are the exception: jackin loads a role from its default
 branch only, so `donbeave/jackin-crew-*` and `jackin-role-template` commit
 directly to `main` and `jackin-the-architect` merges its PR in the same
@@ -394,7 +421,19 @@ agents start; task folders carry a `preflight` section
 input mid-task records it as a preflight defect, completes everything not
 depending on it, and marks the task blocked with the exact missing item;
 a task whose verify still fails after the attempt cap is `exhausted` and
-filed the same way, and the run ends COMPLETE or BLOCKED (D-070). The host
+filed the same way (D-070). The run's terminal class is one of four,
+derived by `verify.sh` from the state store and never asserted by the
+model: `DONE`, `BLOCKED HUMAN`, `FAILED SYSTEM`, `PENDING` (D-110);
+COMPLETE and BLOCKED are the human-facing names of the first two.
+
+A readiness-hardening run precedes the implementation run. The
+implementation `/goal` is armed only after a static readiness gate (the
+committed plan, the compiled graph, the task bundle hashes) and a live
+host readiness gate (tools, credentials, accounts, permission profile)
+both print `status: READY` for the same lock hash, recorded in
+`run/LOCK.toml` (D-109). Every `analysis/` findings archive a run touches
+must carry `findings/disposition.toml` with one row per finding before
+that run may start (D-115). The host
 session is Fable and spends its context on coordination only: every
 subagent it spawns runs on Opus (`model: "opus"`) and returns at most 15
 lines, and the session never reads `ROADMAP.md`, `SPEC.md`, `DECISIONS.md`,
@@ -441,7 +480,12 @@ in the real Linear and GitHub UIs with `agent-browser` on one persistent
 logged-in profile; the proof is a checklist item executed by
 `donbeave/crew-operator` in the milestone's proof-run task, never by the
 implementing role (D-032 as amended by D-053). The end-to-end workflow is
-written out in `concept/workflow.md`. Until a host bridge exists, host-side
+written out in `concept/workflow.md`. A cross-document invariant lint runs
+in CI and fails when two authoritative documents disagree about a question
+status, a cap, an existence claim, or a decision citation, reciprocal
+amendment notes included (D-116). `main` of this repository is protected by
+a ruleset, and volatile run state is published as generated snapshots
+rather than committed per task transition (D-117). Until a host bridge exists, host-side
 evidence in proof runs (`docker ps`, `hardline` captures, daemon logs) is
 collected by the human into the proof-run folder; a
 `jackin daemon evidence <instance>` command is planned with M10-01 (Q-025
@@ -458,10 +502,11 @@ branch build (`feat/managed-execution`) runs on the machine. (D-042)
 ## 10b. Milestones
 
 Ordered proofs (D-037, extended by D-049 and D-053; details and tasks in
-`ROADMAP.md`, final under D-054). Task folders live in `tasks/<id>/`: the
-run materialises them for M1..M5 first and for later milestones when each
-is reached (D-038, D-062); this document makes no claim about which
-folders exist at any moment — `tasks/README.md` is the record. Milestones may
+`ROADMAP.md`, final under D-054). Task folders live in `tasks/<id>/`: all 81
+bundles are content-addressed and materialised in full before any product
+task runs, and their hashes are recorded in `run/LOCK.toml`; there is no
+runtime task-authoring phase (D-114, amending D-038, D-062, D-072,
+D-088). `tasks/README.md` is the generated record (D-111). Milestones may
 overlap in execution; review tasks never gate the next milestone (D-055).
 
 1. **M1 Linear setup verified** — agent app, credentials in 1Password,

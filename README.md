@@ -38,7 +38,14 @@ and denies `git push --force` and `git push -f`, so an unattended run never stop
 permission prompt. A tool the run needs that the allowlist does not cover is added to that
 file in the same commit as the task that needs it.
 
-The run has exactly two outcomes (D-069, D-070, D-083). COMPLETE: `./verify.sh` prints
+The run's terminal class is derived by `verify.sh` from the run state store, never
+asserted by an agent, and is one of `DONE`, `BLOCKED HUMAN`, `FAILED SYSTEM`, `PENDING`
+(D-110). COMPLETE and BLOCKED below are the human-facing names of the first two;
+`FAILED SYSTEM` means a plan, tool, or environment defect that no human input would
+unblock. The implementation run is armed only after a static and a live readiness gate
+both print `status: READY` for the same lock hash (D-109).
+
+The run has exactly two good outcomes (D-069, D-070, D-083). COMPLETE: `./verify.sh` prints
 `status: DONE` as its last line in the final turn. BLOCKED: no task is runnable, none is
 `in-progress` or `waiting`, and `PREFLIGHT-DEFECTS.md` has a row with an empty `Resolved`
 cell — the only reason the run stops. A failing check, a design question, a review, a quota
@@ -74,6 +81,6 @@ finished is redone (`goal/EXECUTION.md` §1).
 
 ## Working rules
 
-- Planning only. No source code, no prototypes, no scaffolding in this repository; the only non-Markdown files are the root `verify.sh`, `.claude/settings.json` (D-095), and everything under `tasks/<id>/` — `verify.sh`, `task.toml`, and text evidence (D-038, D-069, D-093).
+- Planning only. No source code, no prototypes, no scaffolding in this repository; machine files are permitted at exactly these paths (D-118): `tools/` (POSIX `sh` or Python 3 stdlib only), `tests/fixtures/`, `run/LOCK.toml`, `run/state.db` or `run/events.jsonl`, `findings/disposition.toml`, `.claude/settings.json` (D-095), the root `verify.sh` (D-069), and under `tasks/<id>/` — `TASK.md`, `task.toml`, `verify.sh`, `expected-evidence.toml`, `evidence.json`, `refs/`, and text evidence (D-038, D-093).
 - Decisions are explicit. If it is not in `DECISIONS.md`, it is not decided.
 - Analyses cite files and lines in the real repositories; opinions are labeled as such.
