@@ -32,7 +32,7 @@ pass and a live pass can be shown to belong to the same plan.
   containing `hardline`, `tmux attach`, `--latest` or `newest` (durable
   evidence only), `tools/invariant_lint.py`, and `tools/state.py verify`.
 - `sh tools/readiness.sh live` — this host: the §1 standing items as
-  commands (Docker, `gh auth status`, `op whoami`, `tmux`, `dash`,
+  commands (Docker, `gh auth status`, `op account list`, `tmux`, `dash`,
   `shellcheck`, `gitleaks`, the `claude-yolo` launcher function, the
   `claude` and `codex` runtimes, `caffeinate` running, the screen saver
   off, `autoContinueAtUsageLimit`), plus `sh tools/probe_permissions.sh`,
@@ -43,8 +43,8 @@ pass and a live pass can be shown to belong to the same plan.
 when two authoritative documents disagree — the D-119 runnable predicate
 stated differently in `GOAL.md` and `goal/EXECUTION.md`, a `~/.claude`
 concurrency cap other than 2 (D-071), a retired `v1alpha8`, an
-unexpanded `<org>`, a `jackin workspace delete` outside the analysis
-archive, a cited `D-0nn`/`D-1nn` with no heading in `DECISIONS.md` or a
+unexpanded `<org>`, a `jackin workspace` teardown written as `delete`
+where the subcommand is `remove` (D-085), a cited `D-0nn`/`D-1nn` with no heading in `DECISIONS.md` or a
 `Q-0nn` with no heading in `QUESTIONS.md`, a claim that open questions
 remain, a `GOAL.md` over its 4000-byte prompt cap, a `tasks/README.md` or
 `PROGRESS.md` that differs from what `tools/state.py render` produces
@@ -82,10 +82,17 @@ never lowers the bar. Clear those items in §1..§5 below and re-run it.
       com.apple.screensaver idleTime 0`.
 - [ ] 1Password desktop app unlocked, CLI integration on, and Security
       settings human-only: Auto-lock "Never" and "Lock on sleep,
-      screensaver, or switching users" unchecked. Proof: `op whoami`
-      succeeds and, after at least 15 minutes without keyboard or mouse
-      input, `op read "op://Private/Context7/API Keys/Claude" </dev/null
-      >/dev/null && echo ok` prints `ok` without any prompt (D-076). This
+      screensaver, or switching users" unchecked. Proof: `op account list`
+      lists the account and, after at least 15 minutes without keyboard or
+      mouse input, `op read "op://Private/Context7/API Keys/Claude"
+      </dev/null >/dev/null && echo ok` prints `ok` without any prompt and
+      `op read op://tailrocks/op-service-account-jackin-operator/credential
+      </dev/null | wc -c` is non-zero (D-076). `op whoami` is not used: it
+      fails with "account is not signed in" whenever the CLI runs on
+      desktop-app integration with no CLI account added, while every read
+      the run makes still succeeds, so it would file a defect the session
+      cannot clear at every single start. The sign-in itself stays a
+      human-only item. This
       is a hard precondition with no fallback (D-090): the host session's
       own `op read` calls (the operator binding in vault `tailrocks`,
       every Linear token read from vault `jackin`) need the unlocked
@@ -109,8 +116,15 @@ never lowers the bar. Clear those items in §1..§5 below and re-run it.
       exists, `grep -q 'dangerously-bypass-approvals-and-sandbox'
       tasks/M1-13/lanes.json` must also succeed. Isolation comes from the
       container, not from approvals (D-121).
-- [ ] `gh auth status` shows `donbeave` with `repo` and `workflow` scopes;
-      the account can create public repositories and mark a template.
+- [ ] `gh auth status` shows `donbeave` with the scopes `repo`,
+      `workflow`, and `admin:org`; the account can create public
+      repositories and mark a template. `admin:org` is required, not
+      optional: the §2 GitHub App proof, M8-01's `gh api
+      /orgs/<org>/installations`, and `gh api user/memberships/orgs` all
+      return 403 without it, and a re-login with default scopes silently
+      drops it. `delete_repo` is never required. Proof: `gh auth status 2>&1
+      | grep -E 'admin:org'` and `gh api /orgs/jackin-project/installations
+      --jq .total_count` both succeed.
 - [ ] Provider logins current in all four account homes: `~/.claude`,
       `~/.codex`, `~/.codex-chainargos`, `~/.codex-chainargos2`. Proof:
       `claude --version` and `claude -p 'ok'` under
@@ -140,21 +154,56 @@ never lowers the bar. Clear those items in §1..§5 below and re-run it.
       shows the `session` bucket with `remaining_percent` above 40;
       below that the session applies the reserve rule of
       `goal/EXECUTION.md` §4 before dispatching anything on `~/.claude`.
+- [ ] The run is started in the interactive Claude Code TUI, in this
+      repository, or by `sh tools/supervisor.sh start`, which launches that
+      session itself. Never `claude -p`, `claude --print`, or a wrapper that
+      makes the session non-interactive: the `/goal` Stop-hook evaluator
+      that loops the run is armed only for an interactive session, so a
+      headless start runs one turn and stops. Proof: the `/goal` line prints
+      `Goal set: …`.
+- [ ] No Bash-rewriting `PreToolUse` hook is active for the run. This
+      repository's `.claude/settings.json` carries none, but hooks merge
+      across scopes and the user-level `~/.claude/settings.json` on this
+      host installs `rtk hook claude`, which rewrites `cat`, `grep`, `git
+      status`, and `gh` commands into token-compressed `rtk` variants; a
+      compressed rendering can elide the `status:` last line of a
+      `verify.out` or a `gitleaks` hit, and the session would then file that
+      rendering as evidence. Proof: `jq '.hooks.PreToolUse'
+      ~/.claude/settings.json` prints `null`. Either remove that hook for
+      the duration of the run, or keep it and run every evidence command
+      through `rtk proxy <command>`, which bypasses the filter. In both
+      cases evidence reaches a file by shell redirection and is never a copy
+      of a tool's rendered output (`goal/EXECUTION.md` §5 step 5).
 - [ ] `gitleaks` installed on the host (evidence scan, D-081).
       Installed by the session, never a defect (the session runs
       `brew install gitleaks` itself). Proof: `gitleaks version`.
 - [ ] `~/.jackin/managed` on a disk with room for one checkout per issue
       (M3). Proof: `df -h ~/.jackin` shows tens of GiB free.
 - [ ] Every ref the roles pin resolves (D-078): `gh api
-      repos/tailrocks/review-crucible/commits/<REVIEW_CRUCIBLE_SHA>` and
-      `gh api repos/tailrocks/tailrocks-skills/commits/<TAILROCKS_SKILLS_SHA>`
-      return 200, with the SHAs of `concept/roles.md` §3.1.
+      repos/tailrocks/review-crucible/commits/$(cat
+      tasks/M1-05c/review-crucible-sha.txt) --jq .sha` prints that SHA. The
+      tailrocks-skills pin is created by the run, not by the human: from
+      wave 3 on the check is `gh api
+      repos/tailrocks/tailrocks-skills/commits/$(cat
+      tasks/M1-05a/tailrocks-skills-sha.txt) --jq .sha`. While either file
+      does not exist its check is skipped and is never a defect. No standing
+      check ever carries a placeholder: §1 is re-run at every session start,
+      so an unresolvable one would block the run before wave 0 and at every
+      re-run after it.
 
 ## 2. Before the first run (M1)
 
 - [ ] The human's Linear account is a workspace admin (OAuth app creation
       in M1-07 and the `actor=app` consent in M1-10). Proof: Linear
       Settings → Administration is visible.
+- [ ] Workspace headroom for the run (human-only, a billing action): the
+      Linear plan allows one more team and at least 150 more issues (Free:
+      fewer than 2 teams and under 100 issues; Basic: fewer than 5 teams;
+      Business and Enterprise: always). M1-09 creates the team `JACKIN` and
+      M1-12 creates roughly 100 issues, plus every proof run's scratch
+      issues. Proof: Settings → Plans shows the plan and the issue count,
+      Settings → Teams the team count. A workspace at its team or issue cap
+      is never a run-time defect the session can clear.
 - [ ] The human's GitHub account owns the `jackin-project` and `tailrocks`
       organizations. Proof:
       `gh api user/memberships/orgs --jq '.[]|[.organization.login,.role]'`
@@ -210,7 +259,16 @@ never lowers the bar. Clear those items in §1..§5 below and re-run it.
       and re-save `state.json` (the only planned re-login).
 - [ ] GitHub App `jackin-daemon` created and installed by the human in
       each of `jackin-project` and `tailrocks` (sudo mode and owner
-      consent are human-only, D-076), permissions `contents:write`,
+      consent are human-only, D-076). Exactly **one** App is created, owned
+      by the `jackin-project` organization, with "Where can this GitHub App
+      be installed?" set to **Any account** so the same App installs into
+      `tailrocks` as well, and with **Webhook → Active** unticked (the
+      daemon polls; an active webhook with no reachable URL only produces
+      delivery failures). App slugs are globally unique: if `jackin-daemon`
+      is taken, take the next free name, and record whatever slug GitHub
+      assigned as the single line of `tasks/M8-01/app-slug.txt` — every
+      later `select(.app_slug==…)` reads that file, never the literal.
+      Permissions `contents:write`,
       `pull_requests:write`, `metadata:read`; private key generated and
       stored as `op://jackin/github-app-jackin-daemon-<org>` with fields
       `app id`, `client id`, `installation id`, `PEM private key`
@@ -238,11 +296,15 @@ never lowers the bar. Clear those items in §1..§5 below and re-run it.
 
 ## 3. Before M4 (runtime matrix, M4-05)
 
-- [ ] For each of Amp, Kimi, OpenCode, and Grok: either a host login in
-      that runtime's config directory or an API key stored as
-      `op://jackin/<runtime>-daemon/api key` (`concept/credentials.md`
-      §4). A runtime without a credential is recorded as skipped by M4-05,
-      never as passed. Leaving one out is allowed: it becomes a
+- [ ] For each of Amp, Kimi, OpenCode, and Grok: a host login in that
+      runtime's own config directory — `~/.amp`, `~/.kimi-code`,
+      `~/.opencode`, `~/.grok` (`concept/credentials.md` §4). That is the
+      only form M4-05 can use on this laptop: the run keeps `auth_forward =
+      "sync"` for its whole duration (D-090), and jackin reads an
+      `op://jackin/<runtime>-daemon/api key` item only in `api_key` mode,
+      which the laptop never enters. Those vault items belong to M11 (the
+      server daemon) and satisfy nothing here. A runtime without a host
+      login is recorded as skipped by M4-05, never as passed. Leaving one out is allowed: it becomes a
       `PREFLIGHT-DEFECTS.md` row that blocks only the tasks needing that
       runtime, and ends the run as BLOCKED only when nothing else is
       runnable (D-050, D-070).
@@ -257,10 +319,10 @@ never lowers the bar. Clear those items in §1..§5 below and re-run it.
 
 ## 5. Before M10..M12 (crates.io, server hosts)
 
-- [ ] M10: blessing is pre-approved in §2 (D-075) and is never a task gate
-      or a defect. If termrock 0.14 publishes to crates.io, the publish
-      token is stored under the `concept/credentials.md` §5.1 naming
-      before M10-02. Proof: `op item get <name> --vault jackin`.
+- [ ] M10: nothing to do. No task publishes termrock to crates.io in this
+      run (D-122, D-055, D-090), so no publish token is stored and no item
+      name has to be guessed; blessing is pre-approved in §2 (D-075) and is
+      never a task gate or a defect.
 - [ ] M11 (every item in vault `jackin` unless stated; field names are the
       contract M11-01 verifies, D-076, D-090):
       `op://jackin/claude-daemon/api key`, `op://jackin/codex-daemon/api key`,
@@ -272,13 +334,25 @@ never lowers the bar. Clear those items in §1..§5 below and re-run it.
       action);
       `op://jackin/registry-dockerhub/username` and `…/token` (Docker Hub
       access token for `donbeave`; M11-02 copies them into the GitHub
-      Actions secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`);
+      Actions secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`; proof that
+      the pair works for the namespace the images use
+      (`docker.io/donbeave/jackin-crew-*`): `op read
+      'op://jackin/registry-dockerhub/token' | docker login -u "$(op read
+      'op://jackin/registry-dockerhub/username')" --password-stdin` prints
+      `Login Succeeded`, the token never in argv);
       `op://jackin/server-host-1/address`, `…/ssh user`, `…/private key`,
       `…/arch` (SSH Key item plus one text field holding the server's
       `uname -m`, `aarch64` or `x86_64`): one Linux Docker server host
       whose SSH user is in the `docker` group (`docker info` without sudo)
       and may run `sudo apt-get` without a password, with `git`, `curl`,
-      `build-essential`, `clang`, and `pkg-config` installed (the branch
+      `build-essential`, `clang`, `pkg-config`, and the 1Password CLI `op`
+      2.39 or later installed — the server resolves its own `op://`
+      references, because jackin shells out to `op` there and nothing on the
+      laptop can do it for the daemon; if installing `op` needs more than
+      the passwordless `apt-get` grant (the 1Password apt repository needs
+      `sudo tee` for the keyring and the sources file), either widen the
+      grant or leave it to M11-03, which installs the release archive into
+      `~/.local/bin` with no sudo at all (the branch
       build is compiled there: no jackin release exists for the branch and
       this Mac cross-compiles nothing, D-055, D-090) and outbound HTTPS to
       github.com, api.linear.app, docker.io, and 1password.com; the
@@ -290,8 +364,14 @@ never lowers the bar. Clear those items in §1..§5 below and re-run it.
       op://tailrocks/op-service-account-jackin-daemon/credential | wc -c`
       non-zero; from this Mac, after `op read 'op://jackin/server-host-1/private key' > ~/.ssh/jackin-server-1 && chmod 600 ~/.ssh/jackin-server-1`
       (the host session materialises the key the same way and uses `-i`
-      for every `ssh`/`scp`), `ssh -i ~/.ssh/jackin-server-1 <ssh user>@<address> 'docker info && uname -m && git --version && cc --version'`
-      succeeds and the printed architecture equals the `arch` field.
+      for every `ssh`/`scp`), `ssh -i ~/.ssh/jackin-server-1 <ssh user>@<address> 'docker info && uname -m && git --version && cc --version && op --version'`
+      succeeds and the printed architecture equals the `arch` field. The
+      daemon's own service-account token is never typed on the server by the
+      human: M11-03 reads
+      `op://tailrocks/op-service-account-jackin-daemon/credential` in the
+      host session and writes it there as `~/.config/jackin/daemon.env`
+      (`umask 077`, fed over `ssh` on stdin, never in argv); `jackin daemon
+      install` loads `OP_SERVICE_ACCOUNT_TOKEN` from that file.
       M11-01's `op://tailrocks/...` check runs in the host session (the
       operator container can neither read nor write `tailrocks`). The
       human never runs `jackin daemon install` on the server: M11-03 does
