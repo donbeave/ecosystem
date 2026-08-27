@@ -642,3 +642,21 @@ loop to run and is clearer as a plain prompt.
   prefixed with the same iterate-until-DONE instruction when no equivalent
   exists; ROADMAP M4-05 (runtime matrix for prompt delivery) covers this.
 - `ROADMAP.md` lists the delivery mode per task.
+
+## D-045 — 2026-08-27 — New purpose-built roles under the `donbeave` GitHub account
+
+**Decision.** The jackin agent roles used to build this product are new
+roles created in the `donbeave` GitHub account, designed purely for this
+project. Existing roles (`the-architect`, `agent-smith`, `sentinel`) are not
+modified for it. The new roles are intended to become the basis for working
+on projects of this kind in the future.
+
+**Rationale.** `the-architect` is jackin's own development role and should
+not accumulate project-specific tooling such as `agent-browser`. Roles
+designed for "build a product through Linear + jackin" are reusable beyond
+this effort, so they deserve their own identity and repositories.
+
+**Consequences.** Q-016 is closed as to ownership and reuse; the set of
+roles, their names, and their contents are decided from the analysis in
+`analysis/roles/` and recorded in `concept/roles.md`. ROADMAP §4 and tasks
+M1-04/M1-05 are replaced accordingly once the set is decided.
