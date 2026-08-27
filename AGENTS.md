@@ -27,7 +27,13 @@ decisions, and concept of the project before implementation starts.
    repositories with `path:line` citations. Mark each capability as
    implemented, partial, documented only, or absent. Opinions are labeled.
 6. **Normal prose.** Documents are for humans; write complete sentences.
-7. **Commit and push every change.** Use `git commit -s`, then push to
+7. **Delegate heavily.** Research, analysis, drafting, and verification are
+   done by subagents; the top-level agent coordinates, integrates, and
+   records decisions (D-036).
+8. **Credentials go to 1Password.** Any credential created while working on
+   this project is stored in 1Password at creation and referenced as
+   `op://`; never in files, images, documents, or chat (D-035).
+9. **Commit and push every change.** Use `git commit -s`, then push to
    `origin` immediately. Nothing stays local.
 
 ## Where things go

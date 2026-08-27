@@ -118,6 +118,18 @@ Then one server host with Docker. Then several hosts, one daemon each.
 No decision may bake in single-host assumptions that block the move.
 (D-017)
 
+## 9a. Credentials
+
+Every credential is created into 1Password and referenced as `op://`;
+none lives in files, images, documents, or chat. The daemon resolves
+credentials from 1Password at runtime. (D-035)
+
+## 9b. Delegation
+
+All work — planning here, implementation, and the agents the daemon runs —
+is carried out by subagents; the top-level agent coordinates and decides.
+(D-036)
+
 ## 10. How the product is built
 
 The product is built with its own workflow: Linear issues, jackin roles,

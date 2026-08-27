@@ -396,3 +396,50 @@ gives the same binary minutes earlier.
   (for example for a role image that pins one), not on a schedule.
 - `SPEC.md` and the implementation plan record "verified locally" as the
   completion criterion for a step; CI green is recorded afterwards.
+
+## D-035 — 2026-08-27 — Every credential is created into 1Password
+
+**Decision.** Whenever a credential is created — Linear agent app client id
+and secret, OAuth tokens, GitHub tokens, browser profile logins, API keys
+for any provider, anything else — it is stored in 1Password at creation
+time and referenced from there (`op://` references) by every component
+that uses it. No credential is written into a config file, an environment
+file committed to git, a role image, a Markdown document, or a chat.
+
+**Rationale.** 1Password is the credential provider for every Tailrocks
+product (vision); a credential that exists outside it is a leak waiting to
+happen and cannot be rotated or audited.
+
+**Consequences.**
+
+- Setup steps that create credentials (`concept/workflow.md` section 0)
+  end with "stored in 1Password as `op://<vault>/<item>`" and nothing
+  else.
+- The daemon resolves credentials from 1Password at runtime, as jackin
+  already does for roles (`analysis/jackin.md`).
+- Any agent or subagent that creates a credential during implementation
+  must store it in 1Password in the same step; a step that leaves a
+  credential elsewhere is not done.
+
+## D-036 — 2026-08-27 — Work is done through subagents, heavily
+
+**Decision.** In this workflow, every unit of work is carried out by
+subagents: research, analysis, design proposals, implementation of each
+checklist item, verification, review. The top-level agent in a session
+coordinates, delegates, integrates, and decides; it does not do the bulk
+of the work itself. This applies to planning in this repository, to
+implementation of jackin, termrock, and the daemon, and to the agents the
+daemon runs on issues.
+
+**Rationale.** Observed (VISION.md): agents with a small, clear scope are
+markedly more accurate, and subagents for research and verification raise
+quality further. Heavy delegation keeps each context small and each result
+checkable.
+
+**Consequences.**
+
+- Prompts and roles used by the daemon instruct the agent to delegate
+  each checklist item and its verification to subagents (extends D-007).
+- Skills used for planning and implementation are written to spawn
+  subagents by default.
+- `AGENTS.md` in this repository records the rule for work done here.

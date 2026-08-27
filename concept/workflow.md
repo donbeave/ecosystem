@@ -11,12 +11,13 @@ sentences are the current understanding and are open to correction.
    (D-034). Verify with the existing interactive commands; they are
    unchanged (D-009).
 2. Create the jackin Linear agent app (`app:assignable`,
-   `app:mentionable`) and install it in the workspace. Store its
-   credentials in 1Password; the daemon reads them from there.
+   `app:mentionable`) and install it in the workspace. Its client id,
+   secret, and tokens are stored in 1Password at creation and referenced
+   as `op://` (D-035); the daemon reads them from there.
 3. Prepare the roles that will do the work (for example `the-architect`),
    built locally, with `agent-browser` included (D-032).
 4. Create the persistent `agent-browser` profile logged in to Linear and
-   GitHub (D-032).
+   GitHub (D-032); its logins are stored in 1Password (D-035).
 5. Start the jackin daemon on the local machine (D-017). It begins
    monitoring containers and listening to Linear (D-008, D-011).
 
@@ -51,8 +52,8 @@ issues can be assigned at once; independent ones run in parallel (D-004).
 4. It spawns the role with the chosen runtime through the same container
    mechanism as `jackin load`, under the capsule, with the prompt delivered
    as `/goal ... <local checklist>` (D-009, D-012, D-016).
-5. The agent works item by item with research and verification subagents
-   (D-007). When an item is finished it ticks it in the local file; the
+5. The agent works item by item, delegating each item's research,
+   implementation, and verification to subagents (D-007, D-036). When an item is finished it ticks it in the local file; the
    daemon pushes that tick to the Linear issue (D-013). The person sees
    progress in Linear without asking.
 6. When the checklist is complete, verification runs (*open (Q-014)*).
@@ -78,6 +79,10 @@ it become runnable.
 
 ## 6. Building the product with this workflow (D-033, D-034)
 
+- All work, including the planning in this repository, is delegated to
+  subagents; the session's top-level agent coordinates and records
+  decisions (D-036). Any credential created along the way goes to 1Password
+  in the same step (D-035).
 - Milestone 1 is the setup in section 0 plus enough of the daemon to run
   section 3 steps 1–4 for one issue on the local machine.
 - Until that exists, the same issue contract is executed by hand: create
