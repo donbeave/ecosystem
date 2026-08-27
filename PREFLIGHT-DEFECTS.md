@@ -15,3 +15,5 @@ references, commands, and UI paths only (D-035).
 
 | # | Task | Missing item | Proof it is in place | Recorded (UTC) | Resolved (UTC) |
 | --- | --- | --- | --- | --- | --- |
+| 1 | plan row 0.2 | Plan snapshot tag `plan-review-*` at 130cb4b7 (human-only: tagging the reviewed snapshot) | `git tag -l 'plan-review-*'` shows one tag at `130cb4b7`; create with `git tag plan-review-2026-08-28 130cb4b7 && git push origin plan-review-2026-08-28` | 2026-08-28 | |
+| 2 | plan row 0.3 | Ruleset on `donbeave/ecosystem` `main` (non-fast-forward, deletion) — repository settings UI, human-only | `gh api repos/donbeave/ecosystem/rules/branches/main --jq '[.[].type]'` is non-empty | 2026-08-28 | |
