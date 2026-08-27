@@ -17,13 +17,24 @@ the run as BLOCKED only when nothing else is runnable (D-050, D-070). Open Claud
 repository.
 
 ```text
-/goal Follow GOAL.md. Goal reached only when the current turn ends with a message whose first line is exactly `GOAL COMPLETE` or `GOAL BLOCKED` and whose last lines are the literal output of `sh verify.sh` from that turn: last line `status: DONE` for COMPLETE, or `status: PENDING <n> remaining` preceded by the open PREFLIGHT-DEFECTS.md rows for BLOCKED. Any other turn end is not the goal.
+/goal Follow GOAL.md. Goal reached only when the current turn ends with a message whose first line is exactly `GOAL COMPLETE` or `GOAL BLOCKED` and whose last lines are the literal output of `sh verify.sh` from that turn: last line `status: DONE` for COMPLETE, or `status: BLOCKED HUMAN` preceded by the open PREFLIGHT-DEFECTS.md rows for BLOCKED. Any other turn end is not the goal.
 ```
 
 This one line is the only invocation; every document that says "the invocation line of
 `GOAL.md`" means it, copied verbatim — never shortened to `/goal Follow GOAL.md`, because the
 argument carries the two terminal facts the runner's judge checks (D-083). `GOAL.md` itself is
 the prompt the runner executes and holds nothing else.
+
+A run is started and restarted by `tools/supervisor.sh start` (`resume` after any crash),
+which reconciles leases and live containers, launches the coordinator in the tmux session
+`ecosystem-coordinator`, and re-invokes it from durable state on any exit that is not
+`GOAL COMPLETE`/`GOAL BLOCKED` — see `goal/EXECUTION.md` §1 "Supervisor".
+
+Wave 0 is armed once, by `python3 tools/state.py arm`: it moves every dependency-free task
+— M1-01, which authors every task bundle (D-072) — from `planned` to `ready`, and is
+idempotent. Every later `done` transition promotes each `planned` task whose dependencies
+are all `done` to `ready`, so a row is `ready` before it is ever dispatched and no task
+runs from a bare row.
 
 Start the session with the model and permission mode the run is pinned to (D-095, D-120):
 
@@ -38,7 +49,11 @@ claude --settings '{"skipDangerousModePermissionPrompt":true}' \
        --dangerously-skip-permissions --model claude-fable-5
 ```
 
-so any host can reproduce the launch without that file. `claude-fable-5` at effort high is
+so any host can reproduce the launch without that file. Every agent runtime runs in its yolo mode
+— Claude Code with `--dangerously-skip-permissions`, Codex CLI with
+`--dangerously-bypass-approvals-and-sandbox` — on the host and in every container; isolation
+comes from the container, not from approvals, and no permission allowlist exists anywhere
+(D-121). `claude-fable-5` at effort high is
 the host session; every subagent it launches runs `claude-opus-5` (`AGENTS.md` delegation
 law). The permission mode is `bypassPermissions`, so an unattended run never stops on a
 permission prompt and no tool allowlist is needed; `.claude/settings.json` is committed in

@@ -314,9 +314,9 @@ if [ -z "$REPO" ]; then
 	REPO="$(cd "$(dirname "$0")/.." && pwd)"
 fi
 
-# Logs are host-local run artifacts, never repository content (D-059): they
-# live outside the tree until `run/logs/` is added to `.gitignore`.
-LOG_DIR="${ECOSYSTEM_RUN_DIR:-${TMPDIR:-/tmp}/ecosystem-run}"
+# Logs are host-local run artifacts, never repository content: they are
+# written to `run/logs/`, which `.gitignore` ignores (D-059).
+LOG_DIR="${ECOSYSTEM_RUN_DIR:-$REPO/run/logs}"
 mkdir -p "$LOG_DIR"
 LOG_FILE="$LOG_DIR/supervisor.log"
 RUN_LOG="$LOG_DIR/coordinator.log"
