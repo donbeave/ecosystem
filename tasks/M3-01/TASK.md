@@ -49,8 +49,10 @@ container-relative (D-086).
 
 - [ ] The scope above is implemented in the listed repositories.
 - [ ] The container part of the verify contract below holds.
-- [ ] host check passes: `jackin hardline <instance id>`
+- [ ] host check passes: `jackin status <instance id> --format json > tasks/M3-01/status.json`
 - [ ] `verify.container.out` is filed in the task folder.
+- [ ] `status.json` is filed in the task folder.
+- [ ] `launch.txt` is filed in the task folder.
 - [ ] Every touched repository is committed and pushed.
 - [ ] `sh verify.sh` prints `status: DONE` for each part.
 
@@ -62,7 +64,7 @@ Container part (run inside the task container):
 
 Host part (run by the host Claude Code session, D-061):
 
-> `cd "$(cat tasks/M1-02/checkout.txt)" && CI=1 cargo nextest run -p jackin --features e2e --profile docker-e2e -E 'test(load_options_launch)'` with no TTY launches "the-architect" against the host Docker, prints an instance id, and `jackin hardline <instance id>` attaches (a nested launch under the DinD sidecar cannot work: it bind-mounts the launcher's own filesystem)
+> `cd "$(cat tasks/M1-02/checkout.txt)" && CI=1 cargo nextest run -p jackin --features e2e --profile docker-e2e -E 'test(load_options_launch)'` with no TTY launches "the-architect" against the host Docker, prints an instance id, and the non-interactive `jackin status <instance id> --format json > tasks/M3-01/status.json` files that instance as running, with the launch output kept in `tasks/M3-01/launch.txt`; the proof is these files, never an interactive attach (a nested launch under the DinD sidecar cannot work: it bind-mounts the launcher's own filesystem)
 
 When a container part exists the host part first asserts that
 `tasks/M3-01/verify.container.out` ends with `status: DONE`, so a
@@ -71,6 +73,8 @@ passing host part can never mask a failed container part (D-086).
 ## Evidence expected (D-118)
 
 - `tasks/M3-01/verify.container.out` (container part, containing `status: DONE`)
+- `tasks/M3-01/status.json` (container part)
+- `tasks/M3-01/launch.txt` (container part)
 
 ## Proof (browser/attach)
 

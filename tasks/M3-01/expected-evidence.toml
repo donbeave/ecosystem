@@ -7,3 +7,13 @@ task = "M3-01"
 path = "verify.container.out"
 part = "container"
 contains = "status: DONE"
+
+[[evidence]]
+path = "status.json"
+part = "container"
+contains = ""
+
+[[evidence]]
+path = "launch.txt"
+part = "container"
+contains = ""

@@ -36,10 +36,20 @@ script = "verify.sh"
 has_container_part = true
 container = []
 host = [
-  "jackin hardline <instance id>",
+  "jackin status <instance id> --format json > tasks/M3-01/status.json",
 ]
 
 [[evidence]]
 path = "verify.container.out"
 part = "container"
 contains = "status: DONE"
+
+[[evidence]]
+path = "status.json"
+part = "container"
+contains = ""
+
+[[evidence]]
+path = "launch.txt"
+part = "container"
+contains = ""

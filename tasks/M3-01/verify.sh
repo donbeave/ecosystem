@@ -54,6 +54,8 @@ finish() {
 part=${1:-}
 case "$part" in
   container)
+    need_evidence 'status.json' ''
+    need_evidence 'launch.txt' ''
     finish
     ;;
   host)
@@ -63,7 +65,7 @@ case "$part" in
       printf '%s\n' "status: PENDING"
       exit 1
     fi
-    run_cmd 'jackin hardline <instance id>'
+    run_cmd 'jackin status <instance id> --format json > tasks/M3-01/status.json'
     finish
     ;;
   *)
