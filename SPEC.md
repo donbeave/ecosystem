@@ -393,9 +393,10 @@ Role repositories are the exception: jackin loads a role from its default
 branch only, so `donbeave/jackin-crew-*` and `jackin-role-template` commit
 directly to `main` and `jackin-the-architect` merges its PR in the same
 task (D-074).
-Manifest schema bumps are one per PR; `default_agent` and the launch
-prompt field land together as `v1alpha7` when M3-02 and M4-01 ship
-together, otherwise as two consecutive versions (Q-021 adopted). termrock's
+Manifest schema bumps are one per PR, and `default_agent` (M3-02,
+`v1alpha7`) is the only manifest schema bump of the run: M4-01 delivers the
+initial prompt through the launch env `JACKIN_INITIAL_PROMPT`, with no
+manifest field and no second version (Q-021 adopted). termrock's
 trunk-only `CONTRIBUTING.md` is amended on `feat/managed-execution` with an
 agent-authored-changes clause: branch, PR to `main`, `crew-reviewer`
 review requested, agent merges (D-047, D-053, D-055).

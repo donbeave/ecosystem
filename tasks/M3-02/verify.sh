@@ -54,6 +54,7 @@ finish() {
 part=${1:-}
 case "$part" in
   container)
+    run_cmd 'cargo xtask schema-check --base origin/main'
     run_cmd 'jackin role validate'
     run_cmd 'jackin status --format json'
     finish

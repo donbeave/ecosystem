@@ -48,6 +48,7 @@ container-relative (D-086).
 ## Checklist
 
 - [ ] The scope above is implemented in the listed repositories.
+- [ ] container check passes: `cargo xtask schema-check --base origin/main`
 - [ ] container check passes: `jackin role validate`
 - [ ] container check passes: `jackin status --format json`
 - [ ] `verify.container.out` is filed in the task folder.
@@ -58,7 +59,7 @@ container-relative (D-086).
 
 Container part (run inside the task container):
 
-> Manifest tests pass; `jackin role validate` on the cached `~/.jackin/roles/…/the-architect/default` checkout (HEAD equals the merged "main" commit) passes and it contains "default_agent"; a real launch without `--agent` picks the manifest default (`jackin status --format json` shows the agent; dry-run never reads the manifest)
+> Manifest tests pass; `cargo xtask schema-check --base origin/main` reports exactly this one bump to `v1alpha7` (it is the run's only manifest schema bump, Q-021); `jackin role validate` on the cached `~/.jackin/roles/…/the-architect/default` checkout (HEAD equals the merged "main" commit) passes and it contains "default_agent"; a real launch without `--agent` picks the manifest default (`jackin status --format json` shows the agent; dry-run never reads the manifest)
 
 Host part (run by the host Claude Code session, D-061):
 

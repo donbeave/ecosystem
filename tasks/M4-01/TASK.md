@@ -24,7 +24,7 @@ Initial prompt delivery at launch.
 
 ## Scope
 
-Add a launch field carried into the container (manifest `[prompt]` or launch env `JACKIN_INITIAL_PROMPT`, one schema bump, Q-021) that `entrypoint.sh` turns into the runtime's positional prompt for each of the six runtimes, keeping the session interactive on the capsule PTY (D-024; never `-p`/`exec` modes). B5.2, C6.2, gap 2. Amp ignores extra args: document the fallback (inject via M4-02 after start).
+Deliver the initial prompt through the launch env `JACKIN_INITIAL_PROMPT` only: no manifest field and no schema bump here, because `default_agent` (M3-02, `v1alpha7`) is the single manifest bump of the run and jackin's `AGENTS.md` allows one version bump per pull request, which `cargo xtask schema-check` enforces against `main` at merge time (Q-021, K-19). The env value is carried into the container and `entrypoint.sh` turns into the runtime's positional prompt for each of the six runtimes, keeping the session interactive on the capsule PTY (D-024; never `-p`/`exec` modes). B5.2, C6.2, gap 2. Amp ignores extra args: document the fallback (inject via M4-02 after start).
 
 ## References
 

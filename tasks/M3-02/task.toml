@@ -33,6 +33,7 @@ attempts = 3
 script = "verify.sh"
 has_container_part = true
 container = [
+  "cargo xtask schema-check --base origin/main",
   "jackin role validate",
   "jackin status --format json",
 ]
