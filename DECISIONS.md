@@ -2654,6 +2654,10 @@ second one would need a new decision, not a slug.
 
 ## D-095 — 2026-08-28 — Host model, subagent model, permission mode, allowlist
 
+*Amended by D-120: the permission mode is `bypassPermissions` via
+`--dangerously-skip-permissions` (the `claude-yolo` function) and the tool
+allowlist is dropped; the models are unchanged.*
+
 **Decision.** The run is launched with `claude-fable-5` at effort high for
 the host session, and every subagent is launched with `claude-opus-5`;
 both are exact model ids, not family aliases. The permission mode is
@@ -2909,3 +2913,39 @@ reserve was invisible at the entry point (I-22).
 files in one commit; the cross-document invariant lint (D-116) compares
 them byte for byte. D-084 and D-088 are cited by the predicate and
 unchanged.
+
+## D-120 — 2026-08-28 — Permission mode is bypassPermissions via `claude-yolo`
+
+Amends D-095.
+
+**Decision.** The host session runs in permission mode
+`bypassPermissions`, entered with `--dangerously-skip-permissions`. On the
+operator's host that flag is carried by the zsh function `claude-yolo`,
+defined in `~/.zshrc` as `_CLAUDE_YOLO_ARGS=(--settings
+'{"skipDangerousModePermissionPrompt":true}' --dangerously-skip-permissions)`
+and `claude-yolo() { command claude "${_CLAUDE_YOLO_ARGS[@]}" "$@"; }`, so
+the run is started with `claude-yolo --model claude-fable-5`. The host
+model stays `claude-fable-5` at effort high and every subagent stays
+`claude-opus-5`, both exact ids. The committed `.claude/settings.json`
+keeps `"model": "claude-fable-5"`, `"skipDangerousModePermissionPrompt":
+true` at top level, and a `permissions` object whose `defaultMode` is
+`bypassPermissions` and whose only other key is a `deny` list for `git
+push --force` and `git push -f`. The tool allowlist of D-095 is dropped:
+in this mode it grants nothing.
+
+**Rationale.** `dontAsk` still stops on anything the allowlist does not
+name, so an unattended run pays for every tool the plan did not foresee
+with a prompt that no human is there to answer, and the allowlist becomes
+a second thing to keep in sync with the run. `bypassPermissions` removes
+the whole class. The risk it carries is bounded the same way jackin bounds
+it — jackin already launches its role agents with
+`--dangerously-skip-permissions` inside containers — and on the host the
+`deny` list keeps the one irreversible operation (a force push) refused.
+
+**Consequences.** `README.md` "Start the run" prints `claude-yolo --model
+claude-fable-5` and states what the function expands to, so another host
+can reproduce it without the operator's `~/.zshrc`. `goal/PREFLIGHT.md` §1
+adds a standing check that `type claude-yolo` succeeds. `SPEC.md` §9c and
+§9e read `bypassPermissions`. A tool the run needs is no longer added to
+`.claude/settings.json`; only a new irreversible operation is, as a `deny`
+entry.

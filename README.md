@@ -25,18 +25,26 @@ This one line is the only invocation; every document that says "the invocation l
 argument carries the two terminal facts the runner's judge checks (D-083). `GOAL.md` itself is
 the prompt the runner executes and holds nothing else.
 
-Start the session with the model and permission mode the run is pinned to (D-095):
+Start the session with the model and permission mode the run is pinned to (D-095, D-120):
 
 ```text
-claude --model claude-fable-5 --permission-mode dontAsk
+claude-yolo --model claude-fable-5
 ```
 
-`claude-fable-5` at effort high is the host session; every subagent it launches runs
-`claude-opus-5` (`AGENTS.md` delegation law). The `dontAsk` permission mode and the
-allowlist it uses are committed in `.claude/settings.json`, which also pins the host model
-and denies `git push --force` and `git push -f`, so an unattended run never stops on a
-permission prompt. A tool the run needs that the allowlist does not cover is added to that
-file in the same commit as the task that needs it.
+`claude-yolo` is a zsh function in the operator's `~/.zshrc`; it expands to
+
+```text
+claude --settings '{"skipDangerousModePermissionPrompt":true}' \
+       --dangerously-skip-permissions --model claude-fable-5
+```
+
+so any host can reproduce the launch without that file. `claude-fable-5` at effort high is
+the host session; every subagent it launches runs `claude-opus-5` (`AGENTS.md` delegation
+law). The permission mode is `bypassPermissions`, so an unattended run never stops on a
+permission prompt and no tool allowlist is needed; `.claude/settings.json` is committed in
+this repository and pins the host model, sets `skipDangerousModePermissionPrompt`, and
+denies `git push --force` and `git push -f`. Only a new irreversible operation is ever
+added to that file, as a `deny` entry.
 
 The run's terminal class is derived by `verify.sh` from the run state store, never
 asserted by an agent, and is one of `DONE`, `BLOCKED HUMAN`, `FAILED SYSTEM`, `PENDING`

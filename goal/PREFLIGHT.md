@@ -49,6 +49,12 @@ run in any case.
       unattended — stop here and do not start it. (The host
       `~/.config/jackin/config.toml` currently holds no `op://` binding of
       its own; nothing needs copying into vault `jackin`.)
+- [ ] The launcher function exists in this shell. Proof: `type
+      claude-yolo` succeeds and shows it expanding to `claude --settings
+      '{"skipDangerousModePermissionPrompt":true}'
+      --dangerously-skip-permissions`; the run is started as `claude-yolo
+      --model claude-fable-5` (D-120). If the function is missing, paste
+      the expansion from `README.md` "Start the run" instead.
 - [ ] `gh auth status` shows `donbeave` with `repo` and `workflow` scopes;
       the account can create public repositories and mark a template.
 - [ ] Provider logins current in all four account homes: `~/.claude`,

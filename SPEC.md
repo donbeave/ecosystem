@@ -354,10 +354,15 @@ Codex lanes; manifests carry no `[claude].model`. (D-039, D-043, D-078)
 
 The host session itself runs `claude-fable-5` at effort high; every
 subagent it launches runs `claude-opus-5`. Both are exact model ids, not
-family aliases. The session's permission mode is `dontAsk` and its
-allowlist is committed in `.claude/settings.json`, which also pins the
-host model and denies `git push --force` and `git push -f`. `README.md`
-"Start the run" names the launcher flags. (D-095)
+family aliases. The session's permission mode is `bypassPermissions`,
+entered with `--dangerously-skip-permissions`; on the operator's host that
+flag is carried by the `claude-yolo` zsh function, so the run starts as
+`claude-yolo --model claude-fable-5`. `.claude/settings.json` is committed
+in this repository and pins the host model, sets
+`skipDangerousModePermissionPrompt`, and denies `git push --force` and
+`git push -f`; it carries no tool allowlist, because that mode needs none.
+`README.md` "Start the run" names the launcher line and what the function
+expands to. (D-095, D-120)
 
 Parallel work in one repository is serialised by leases, not by a shared
 branch: each task runs in its own worktree and branch, and one integrator
@@ -433,7 +438,11 @@ implementation `/goal` is armed only after a static readiness gate (the
 committed plan, the compiled graph, the task bundle hashes) and a live
 host readiness gate (tools, credentials, accounts, permission profile)
 both print `status: READY` for the same lock hash, recorded in
-`run/LOCK.toml` (D-109). Every `analysis/` findings archive a run touches
+`run/LOCK.toml` (D-109). The permission profile that gate checks is
+`bypassPermissions`: the session is launched with
+`--dangerously-skip-permissions` (the `claude-yolo` function), so no tool
+call can stop the run on a prompt, and only `git push --force` and `git
+push -f` stay denied (D-120). Every `analysis/` findings archive a run touches
 must carry `findings/disposition.toml` with one row per finding before
 that run may start (D-115). The host
 session is Fable and spends its context on coordination only: every
