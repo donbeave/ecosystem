@@ -63,7 +63,8 @@ unless overridden by a line in the description.
 | branch | yes | Linear `branchName`, overridden by a `branch: <name>` line in the description | Branch to work on. Reused (pulled) if it exists on the remote; created otherwise. (D-014) |
 | base branch | no, default `main` | `base: <name>` line in the description | Where a new branch is created from. (D-014) |
 | role | yes | label `role:<selector>` (for example `role:the-architect`, `role:donbeave/crew-builder`) | jackin agent role to spawn, resolvable by name to a local build or a published image. (D-012) |
-| runtime | yes | label `agent:<runtime>` (until M3-01 the lane value, for example `agent:codex-chainargos`; Q-024 adopted) | Agent runtime inside the role. (D-012) |
+| runtime | yes | label `agent:<runtime>`, value `claude` or `codex` only, never a lane value (Q-024 adopted; M2-05 rejects any runtime outside the role's `agents`) | Agent runtime inside the role. (D-012) |
+| lane | yes | label `lane:L<n>` (`L1`..`L6`) from the task's `task.toml` `lane` | Selects the account home, model, and effort recorded in `tasks/M1-13/lanes.json`; the daemon resolves the account home from its `[lanes.L<n>] account_home` config (M3-05). |
 | model | yes, lane default if absent | label `model:<model_id>`, the exact identifier recorded in `tasks/M1-13/lanes.json` (D-058, D-091) | Model the runtime uses; a defaulted value is reported on the issue. (D-043) |
 | effort | yes, default medium | label `effort:<level>` | Reasoning effort level; a defaulted value is reported. (D-043) |
 | prompt | yes | issue description verbatim | Text passed to the agent, rendered inside the repository's prompt frame when one exists. (D-012, D-018) |
@@ -119,6 +120,12 @@ sees a pending session.
    `max_concurrent_agents = 6`, per Codex account home 1, for `~/.claude`
    2 (D-071: the host session is a permanent consumer of that home), and a
    per-role cap of 1 for `donbeave/crew-operator` (one Chrome profile).
+   These per-account caps are daemon configuration, not constants: M3-05
+   reads `[daemon.accounts."<home>"] max` from `~/.config/jackin/config.toml`,
+   and the run's values —
+   `max = 2` for `~/.claude`, `max = 1` for each Codex home — are written
+   there before the first `jackin daemon start` and read back with
+   `jackin daemon status --format json`.
    (D-022, D-039, D-053, D-056, D-071) The host session's own dispatch of
    `tasks/README.md` rows follows the one runnable predicate of D-119,
    quoted byte-identically in `GOAL.md` and `goal/EXECUTION.md` §3.
@@ -550,7 +557,10 @@ overlap in execution; review tasks never gate the next milestone (D-055).
 8. **M8 Pull request opened and updated** — GitHub App per organization.
 9. **M9 Merge.**
 10. **M10 termrock TUI: fleet and attach** — daemon snapshot, fleet route,
-    one-key attach.
+    one-key attach. termrock 0.14 is not published to crates.io by this
+    run: M10-06 and the M11 tasks ship a GitHub release only, and a
+    crates.io publish is a later decision (D-122), so no crates.io token
+    is created or stored.
 11. **M11 Server host** — `op://` runtime credentials, published role
     images, daemon installed on a Docker server.
 12. **M12 Multi-host** — remote daemon transport, placement, no duplicate

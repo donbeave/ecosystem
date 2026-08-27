@@ -15,7 +15,8 @@ authors in git.
 | branch name to use | yes | Linear's own `branchName`; overridden by a `branch: <name>` line in the description; reused if it exists on the remote, otherwise created (D-014) |
 | base branch for a new branch | no, default `main` | `base: <name>` line in the description (D-014) |
 | jackin role to spawn | yes | label `role:<selector>`, e.g. `role:the-architect`, `role:donbeave/crew-builder` (D-012) |
-| agent runtime inside the role | yes | label `agent:<runtime>`, e.g. `agent:claude`; until per-launch account selection exists, the lane value, e.g. `agent:codex-chainargos` (Q-024) |
+| agent runtime inside the role | yes | label `agent:<runtime>`, value `claude` or `codex` only, never a lane value (Q-024); M2-05 rejects a runtime outside the role's `agents` |
+| lane | yes | label `lane:L<n>` (`L1`..`L6`) taken from the task's `task.toml` `lane`; the account home, model, and effort come from `tasks/M1-13/lanes.json`, and the daemon resolves the account home from `[lanes.L<n>] account_home` in its config (M3-05) |
 | model | yes, lane default if absent | label `model:<model_id>`, the exact identifier from `tasks/M1-13/lanes.json`, never a short name (D-043, D-058, D-091) |
 | effort | default medium | label `effort:<level>` (D-043) |
 | delivery | default `goal` | label `delivery:goal` or `delivery:prompt` (D-044) |
