@@ -15,7 +15,8 @@ sentences are the current understanding and are open to correction.
    secret, and tokens are stored in 1Password at creation and referenced
    as `op://` (D-035); the daemon reads them from there.
 3. Prepare the roles that will do the work (for example `the-architect`),
-   built locally, with `agent-browser` included (D-032).
+   built locally. Only the role that performs the browser proof ships
+   `agent-browser` (D-032 as amended by D-053).
 4. Create the persistent `agent-browser` profile logged in to Linear and
    GitHub (D-032); its logins are stored in 1Password (D-035).
 5. Start the jackin daemon on the local machine (D-017). It begins
@@ -63,8 +64,9 @@ issues can be assigned at once; independent ones run in parallel (D-004).
    backoff, stall is killed and retried, exhaustion escalates (D-021,
    D-027, D-029).
 7. The daemon opens or updates the pull request from the branch on GitHub
-   (D-014). Merge: human moves the issue to merging, a merge attempt
-   lands it, the daemon confirms (D-031).
+   (D-014). Merge: the agent merges it itself, using the forwarded `gh`
+   identity, whenever its task text names the merge; the daemon then moves
+   the issue to the merging state and confirms (D-031, D-055, D-079).
 
 ## 4. Watch, attach, decide
 
@@ -80,9 +82,10 @@ issues can be assigned at once; independent ones run in parallel (D-004).
 
 ## 5. Finish
 
-The result is a pull request on GitHub. Review it, merge it (who merges is
-D-031), and the issue reaches its final state. Issues blocked by
-it become runnable.
+The result is a pull request on GitHub. The agent merges it itself once its
+required checks pass (who merges is D-031, D-055, D-079); the daemon then
+moves the issue to the merging state and on to its final state. Issues
+blocked by it become runnable.
 
 ## 6. Building the product with this workflow (D-033, D-034)
 
