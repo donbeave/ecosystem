@@ -1,8 +1,8 @@
 # Operator preflight for the `/goal` run
 
 Everything the human provides, once, before running the `/goal` invocation
-line of `GOAL.md` (copied verbatim, never shortened to `/goal Follow
-GOAL.md`; D-050, D-083). Consolidated from the per-milestone "Operator preflight" lists in
+line printed in `README.md` "Start the run" (copied verbatim, never
+shortened to `/goal Follow GOAL.md`; D-050, D-083). Consolidated from the per-milestone "Operator preflight" lists in
 `ROADMAP.md` §2. The host session runs every host *command* itself (trust
 grants, `jackin config`, Homebrew); the human does only what needs a
 browser login, an OTP, a consent screen, a UI-created credential, a
@@ -245,4 +245,5 @@ session ends BLOCKED, `PREFLIGHT-DEFECTS.md` lists exactly what is needed
 the `Resolved` cell empty is fine for both kinds: the session re-runs each
 missing-input proof command at the next start and fills it, and it closes
 an `exhausted:` row by itself, re-opening the task in a new attempt epoch
-(D-084) — and run the `/goal` invocation line of `GOAL.md` again.
+(D-084) — and run the `/goal` invocation line of `README.md` "Start the
+run" again.

@@ -14,8 +14,9 @@ same commit) or a graph amendment.
 
 ## Entry point, run mode, source of truth
 
-1. `GOAL.md` is the entry point of any run: its fenced prompt is the whole contract,
-   `goal/EXECUTION.md` the procedure, `goal/PREFLIGHT.md` the human's one-time checklist.
+1. `GOAL.md` is the entry point of any run: its whole text is the prompt the `/goal` runner
+   executes and the whole contract, `goal/EXECUTION.md` the procedure, `goal/PREFLIGHT.md`
+   the human's one-time checklist, `README.md` "Start the run" the invocation line to paste.
 2. Run mode: if any `tasks/README.md` row is not `planned`, a `/goal` run is under way and
    this session is the host session. After a context compaction or a re-prompt, re-read
    `GOAL.md` and `goal/EXECUTION.md` §1 and §5, then run §1 steps 2–3; state is re-derived
@@ -114,7 +115,8 @@ credential to rotate, and blocks the commit.
 | Agreed decisions and the specification they feed (update both in one change) | `DECISIONS.md`, `SPEC.md` |
 | Manager, task on-disk format and `verify` contract, roles, workflow | `concept/manager.md`, `concept/task-format.md`, `concept/roles.md`, `concept/workflow.md` |
 | Milestones, tasks, dependencies, waves, roles, lanes | `ROADMAP.md` |
-| The `/goal` prompt, its procedure, the human's checklist | `GOAL.md`, `goal/EXECUTION.md`, `goal/PREFLIGHT.md` (D-069) |
+| The `/goal` prompt (that file is the prompt and nothing else), its procedure, the human's checklist | `GOAL.md`, `goal/EXECUTION.md`, `goal/PREFLIGHT.md` (D-069) |
+| The invocation line to paste, prerequisites, the two outcomes | `README.md` "Start the run" (D-083) |
 | One folder per task, indexed with status | `tasks/README.md`, `tasks/<id>/` |
 | Roadmap gate (`status: DONE` when every task is done); run ledgers | `verify.sh`, `PROGRESS.md`, `PREFLIGHT-DEFECTS.md` (D-050, D-069) |
 | Facts about existing repositories | `analysis/<repo>.md` |

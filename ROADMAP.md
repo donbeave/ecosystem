@@ -628,9 +628,10 @@ issue under `auto-dispatch` without a delegate; the host session
 delegates it to jackin when the daemon can serve it (D-067, D-073).
 
 Entry point (D-069, D-083): the whole roadmap is executed by one host
-Claude Code session started with the `/goal` invocation line of `GOAL.md`
-(copied verbatim; it carries the two terminal facts the runner's judge
-checks); `goal/EXECUTION.md` fixes the
+Claude Code session started with the `/goal` invocation line printed in
+`README.md` "Start the run" (copied verbatim; it carries the two terminal
+facts the runner's judge checks); `GOAL.md` is the prompt that session
+executes and nothing else; `goal/EXECUTION.md` fixes the
 mechanics, `goal/PREFLIGHT.md` is the human's one-time checklist, the root
 `verify.sh` is the gate (`status: DONE` when every task below is `done`),
 `PROGRESS.md` receives one row per task, and `PREFLIGHT-DEFECTS.md`

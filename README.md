@@ -9,6 +9,28 @@ Nothing here is implemented. Every file is a plan, an analysis, or a recorded
 decision. The documents are improved incrementally: each conversation that
 reaches agreement on a point updates the relevant file.
 
+## Start the run
+
+Prerequisites: complete `goal/PREFLIGHT.md` §1–§5 (each undone §3–§5 item is one guaranteed
+BLOCKED stop, D-050, D-070); open Claude Code in this repository.
+
+```text
+/goal Follow GOAL.md. Goal reached only when the current turn ends with a message whose first line is exactly `GOAL COMPLETE` or `GOAL BLOCKED` and whose last lines are the literal output of `sh verify.sh` from that turn: last line `status: DONE` for COMPLETE, or `status: PENDING <n> remaining` preceded by the open PREFLIGHT-DEFECTS.md rows for BLOCKED. Any other turn end is not the goal.
+```
+
+This one line is the only invocation; every document that says "the invocation line of
+`GOAL.md`" means it, copied verbatim — never shortened to `/goal Follow GOAL.md`, because the
+argument carries the two terminal facts the runner's judge checks (D-083). `GOAL.md` itself is
+the prompt the runner executes and holds nothing else.
+
+The run has exactly two outcomes (D-069, D-070, D-083). COMPLETE: `./verify.sh` prints
+`status: DONE` as its last line in the final turn. BLOCKED: no task is runnable, none is
+`in-progress` or `waiting`, and `PREFLIGHT-DEFECTS.md` has a row with an empty `Resolved`
+cell — the only reason the run stops. A failing check, a design question, a review, a quota
+wait, a capsule dialog, and a defect in an involved project are never reasons to stop.
+Re-running the same line after BLOCKED, a crash, or a context compaction resumes; nothing
+finished is redone (`goal/EXECUTION.md` §1).
+
 ## Map
 
 | File | Purpose |
@@ -28,7 +50,7 @@ reaches agreement on a point updates the relevant file.
 | [analysis/symphony.md](analysis/symphony.md) | openai/symphony: the closest existing execution concept, and what to adopt or reject. |
 | [analysis/linear-agents.md](analysis/linear-agents.md) | Linear Agents platform facts, jackin role contract facts, and a proposed issue convention. |
 | [AGENTS.md](AGENTS.md) | Rules for agents (and humans) working in this repository: the two modes, the delegation law, the status contract, the token economy. `CLAUDE.md` is a symlink to it. |
-| [GOAL.md](GOAL.md) | The `/goal` prompt that executes the whole roadmap unattended: objective, done condition (`./verify.sh` last line `status: DONE`), the one-line invocation to copy verbatim (D-083), resume, reporting, and the prompt block itself, under 4000 characters. The run ends COMPLETE or BLOCKED (D-069, D-070). |
+| [GOAL.md](GOAL.md) | The `/goal` prompt itself, nothing else: mission, sources of truth, operating laws, task loop, resume, termination (D-069, D-083). Under 4000 characters. The invocation line to paste is in "Start the run" above. |
 | [goal/EXECUTION.md](goal/EXECUTION.md) | How the host session runs it: session start, per-task procedure, wave order, execution paths, resume, STOP, host session budget. |
 | [goal/PREFLIGHT.md](goal/PREFLIGHT.md) | Everything the human provides once before the run (D-050), consolidated from `ROADMAP.md`. |
 | [verify.sh](verify.sh) | Roadmap-level gate: `status: DONE` only when every task in `tasks/README.md` is `done` with its `verify.sh` (D-069). |

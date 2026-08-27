@@ -9,7 +9,7 @@ rows; the human clears the item (the `Resolved` cell may stay empty: the
 session re-runs each missing-input proof command at the next start and
 fills it; an `exhausted:` row has `re-run` in its proof cell and
 is closed only by the human filling `Resolved`; until then its task stays
-`blocked` and is never re-attempted, D-084, D-093) and re-runs the `/goal` invocation line of `GOAL.md`. Lane fallbacks, quota waits, and capsule
+`blocked` and is never re-attempted, D-084, D-093) and re-runs the `/goal` invocation line of `README.md` "Start the run". Lane fallbacks, quota waits, and capsule
 dialogs are never rows here (D-071, D-082). Never a secret value: item names, `op://`
 references, commands, and UI paths only (D-035).
 

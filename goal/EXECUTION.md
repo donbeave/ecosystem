@@ -8,6 +8,17 @@ the decision wins and this file is corrected in the same commit.
 
 ## 1. Session start (every run, including a resume or a re-prompt)
 
+The run is started by the one invocation line printed in `README.md` "Start
+the run", copied verbatim, in a Claude Code session opened in this
+repository after the human has completed `goal/PREFLIGHT.md` §1..§5. It is
+never shortened to `/goal Follow GOAL.md`: the argument carries the two
+terminal facts the runner's judge checks (D-083). `GOAL.md` holds the
+prompt the runner executes and nothing else; every document that says "the
+invocation line of `GOAL.md`" means that line in `README.md`. Re-running it
+after a BLOCKED end, a crash, or a context compaction resumes the run:
+steps 1–4 below re-derive the whole state and nothing finished is redone.
+The two outcomes are §7.
+
 1. `git fetch origin && git rebase origin/main` in this repository (never
    `--force`; a diverged local tree is rebased onto `origin/main`, not
    refused). Refuse to work on a dirty tree: commit or stash-drop leftovers

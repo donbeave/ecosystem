@@ -1748,8 +1748,11 @@ reason to end).
 **Consequences.** `GOAL.md` invocation line, prose, and prompt (B);
 `goal/EXECUTION.md` §1 step 6, §6, §7; `goal/PREFLIGHT.md` line 3 and §6;
 `ROADMAP.md` §6 entry point; `README.md`; `PREFLIGHT-DEFECTS.md` header.
-Every document says "the invocation line of `GOAL.md`" instead of copying
-it, so the text cannot drift.
+Every document points at that one line instead of copying it, so the text
+cannot drift.
+
+*Clarified 2026-08-27: the line is printed in `README.md` "Start the run";
+`GOAL.md` holds only the prompt the runner executes. The rule is unchanged.*
 
 ## D-084 — 2026-08-27 — Attempt epochs; `exhausted:` rows have no proof command; `blocked` never propagates
 
