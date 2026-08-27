@@ -61,9 +61,11 @@ into an issue with the convention above. It contains:
   before it runs: one row per artefact with its path and the check that
   accepts it. `verify.sh` reads it and fails when a declared artefact is
   missing (D-118).
-- `evidence.json` — the machine record of what the run actually produced
-  for the task, written by `verify.sh` and read by the run state store
-  when the task's terminal class is derived (D-110, D-111, D-118).
+- `evidence.json` — the evidence manifest: the machine record of what the
+  run actually produced for the task, written by `verify.sh` through
+  `tools/evidence_manifest.py` and read by the run state store when the
+  task's terminal class is derived (D-110, D-111, D-118). Its schema is
+  below.
 - `refs/` — the files `TASK.md` references, staged into
   `<workspace>/.jackin/task/refs/` before the launch (D-086, D-118).
 - `verify.sh` — the task's verification (D-003); for repositories with
@@ -234,6 +236,65 @@ failure with the script output as evidence. Who authors this script and how
 it is trusted: the verify command is repository-owned on the base branch,
 run by the daemon, and reviewed by `crew-reviewer` when an agent authored
 it (D-030, D-053).
+
+### `evidence.json`
+
+The evidence manifest binds a task's claim of success to what actually
+ran. Without it, implementation and acceptance are the same actor in the
+same context and a task reaches `done` because the implementing agent
+reported success; with it, acceptance is a check over recorded commands,
+exit codes, output hashes, tool versions and the integrated SHA.
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `task` | string | the task id, matching the folder name and the `tasks/README.md` row |
+| `bundle_hash` | 40- or 64-hex string | hash of the task bundle (`TASK.md`, `task.toml`, `verify.sh`, `refs/`) the run was launched from |
+| `integrated_sha` | 40-hex string | the commit the verification ran against, never the agent's working tree (D-112) |
+| `commands` | array of objects | one entry per command the verification ran, in order |
+| `commands[].cmd` | array of strings | the argument vector, unquoted and unshelled |
+| `commands[].exit_code` | integer | the process exit status |
+| `commands[].stdout_sha256` | 64-hex string | SHA-256 of the raw stdout bytes |
+| `commands[].stderr_sha256` | 64-hex string | SHA-256 of the raw stderr bytes |
+| `commands[].started`, `.finished` | RFC 3339 UTC strings | when the command started and finished |
+| `tool_versions` | object | tool name to version line, captured at run time (`git`, `jq`, `python3`, `gitleaks`, `gh`, `docker` when present) |
+| `external_object_ids` | object | every external object the run created or touched: pull request URLs, Linear issue ids, container ids |
+| `created`, `updated` | RFC 3339 UTC strings | when the manifest was first written and last written |
+| `result_class` | enum | exactly one of `DONE`, `BLOCKED HUMAN`, `FAILED SYSTEM`, `PENDING` (D-110) |
+| `attempt` | integer | the attempt within the epoch (`limits.attempts`, D-070) |
+| `epoch` | integer | the run epoch (D-100) |
+| `fencing_token` | integer | the lease's fencing token at write time (D-113) |
+
+No secret value is ever written to the manifest: commands are recorded as
+they were invoked, so a secret is passed on stdin and never as an argument
+(D-035, D-081), and the folder is scanned with `gitleaks` before commit.
+
+`tools/evidence_manifest.py` (Python 3 standard library only) writes and
+checks it:
+
+```sh
+tools/evidence_manifest.py run --task <id> --bundle-hash <h> \
+    --integrated-sha <sha> --dir tasks/<id> [--attempt N --epoch N \
+    --fencing-token N --result-class DONE --external pr_url=<url>] \
+    -- <cmd...> [-- <cmd...>]
+tools/evidence_manifest.py validate tasks/<id>/evidence.json
+tools/evidence_manifest.py validate --all
+```
+
+`run` executes each command, streams its output through, hashes stdout and
+stderr, records the exit code and timestamps, and writes the manifest
+atomically (temporary file in the same directory, then `os.replace`), so a
+killed run never leaves a half-written manifest; a repeated `run` appends
+to `commands`. It exits non-zero when any recorded command failed.
+`validate` enforces the acceptance semantics of
+`jq -e '.integrated_sha and .commands and .bundle_hash'` — each field
+present and non-empty — plus the 40-hex shape of `integrated_sha`, the
+hex shape of the output hashes, and the `result_class` enum, and exits
+non-zero on failure.
+
+The acceptance condition over *every* manifest is not a per-task check: it
+is enforced by the root oracle, which validates the manifest of every task
+whose `tasks/README.md` row is `done` and refuses `status: DONE` for the
+run while any of them is missing or invalid.
 
 ## Status
 
