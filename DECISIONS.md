@@ -955,6 +955,12 @@ loop to run and is clearer as a plain prompt.
 
 ## D-045 — 2026-08-27 — New purpose-built roles under the `donbeave` GitHub account
 
+Amended by D-074, D-078, D-089 (reciprocal note, D-107): `jackin-the-architect`
+does receive exactly the three changes this run needs — CI on GitHub-hosted
+runners for `pull_request` and the removal of `[claude].model` plus the DCO
+sign-off hook (M1-13), and `default_agent` (M3-02). Nothing else about the
+existing roles is modified, and no project-specific tooling is added.
+
 **Decision.** The jackin agent roles used to build this product are new
 roles created in the `donbeave` GitHub account, designed purely for this
 project. Existing roles (`the-architect`, `agent-smith`, `sentinel`) are not
@@ -1038,7 +1044,11 @@ termrock PRs stay open during the run.*
 sibling repositories in jackin-project that `the-architect` already
 covers) runs in the existing `jackin-the-architect` role, always. The role
 is used as it is; it is not extended with project-specific tooling
-(D-045). The new `donbeave` roles cover the rest: termrock and ecosystem
+(D-045), with the sole exception recorded by D-074, D-078 and D-089 and
+noted on D-045 (reciprocal note, D-107): M1-13 switches its CI to
+GitHub-hosted runners for `pull_request`, removes `[claude].model` and
+installs the DCO sign-off hook, and M3-02 sets `default_agent`. The new
+`donbeave` roles cover the rest: termrock and ecosystem
 authoring (builder), Linear/GitHub/1Password/browser work (operator), and
 reviews (reviewer).
 
@@ -2997,3 +3007,24 @@ with `--dangerously-bypass-approvals-and-sandbox` — on the host and in
 every container; isolation comes from the container, not from approvals,
 and no permission allowlist exists anywhere (D-121)." A future runtime is
 added to this decision with its own yolo flag, never with an allowlist.
+
+## D-122 — 2026-08-28 — termrock 0.14 is not published to crates.io by this run
+
+**Decision.** termrock 0.14 is not published to crates.io by this run.
+M10-06 and the M11 tasks ship a GitHub release only; a crates.io publish
+is a later decision. No crates.io API token is created, stored in
+1Password, or asked of the human in `goal/PREFLIGHT.md`.
+
+**Rationale.** No roadmap task publishes to crates.io, and D-055 and D-090
+already exclude releases and tap publishes from this run. Leaving the
+question open forced the preflight to ask the human to decide it, which
+produces either an unused secret or an ambiguous instruction that a
+subagent can read as a publish step — both cost attempts on the critical
+path.
+
+**Consequences.** `SPEC.md` §10b M10 states that no crates.io publish
+happens in this run. `goal/PREFLIGHT.md` §5 M10 becomes "nothing to do"
+and the crates.io token sentence is removed there and from the `ROADMAP.md`
+M10 preflight. A later run that wants the publish records a new decision
+and adds the token item to `concept/credentials.md` §4 then.
+

@@ -6,7 +6,7 @@ Rules for any agent or person working here. `CLAUDE.md` symlinks to this file; r
 
 | Mode | Scope | Rule |
 | --- | --- | --- |
-| Planning | `VISION.md`, `SPEC.md`, `DECISIONS.md`, `OPEN-QUESTIONS.md`, `ROADMAP.md`, `concept/`, `analysis/`, `README.md` | Markdown only. No source code, build files, scaffolding, or prototypes. |
+| Planning | `VISION.md`, `SPEC.md`, `DECISIONS.md`, `OPEN-QUESTIONS.md`, `ROADMAP.md`, `concept/`, `analysis/`, `README.md` | Markdown only, at these paths. No source code, build files, scaffolding, or prototypes here. This never forbids the machine files the Execution row permits (D-118): the run writes and commits them as evidence and tooling. |
 | Execution | `GOAL.md`, `goal/`, `tasks/`, `tools/`, `tests/fixtures/`, `run/`, `findings/`, `PROGRESS.md`, `PREFLIGHT-DEFECTS.md`, root `verify.sh`, `.claude/` | Machine files allowed at exactly these paths and nowhere else (D-118): `tools/` (DAG compiler, state store, supervisor, fixture runner — POSIX `sh` or Python 3 stdlib only), `tests/fixtures/`, `run/LOCK.toml`, `run/state.db` or `run/events.jsonl` (state store; text preferred), `findings/disposition.toml`, `.claude/settings.json` (D-095), the root `verify.sh` (D-069), and under `tasks/<id>/` — `TASK.md`, `task.toml`, `verify.sh`, `expected-evidence.toml`, `evidence.json`, `refs/`, and text evidence (`.out`, `.log`, `.json`, `.toml`, `.txt`, `.cast`) (D-038, D-059). |
 
 Execution edits a planning document only to record a decision (`DECISIONS.md` + `SPEC.md`,
