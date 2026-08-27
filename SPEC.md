@@ -46,7 +46,7 @@ D-005, D-010..D-014, D-043, D-049)
 | Host (prototype) | The developer's Mac running OrbStack 2.2.3 (`docker context orbstack`; 18 CPU, about 122 GiB available to Docker, 1.6 TiB free; no Docker Desktop). jackin treats it as a plain Docker daemon (`crates/jackin/src/preflight.rs:217`). Host-only steps and host-only `verify.sh` are run by the host Claude Code session that drives the roadmap (D-056, D-061). | exists |
 | jackin daemon | Long-running per host. Monitors every agent container on the host (CLI- or daemon-started); polls Linear for issues assigned to jackin; prepares workspaces; spawns roles through the same container mechanism as the CLI; pushes progress and status; runs verification; manages pull requests. The manager logic (scheduler, retry policy, escalation, state snapshot) is compiled into the daemon binary for the prototype; whether it splits out is revisited at M12 (Q-001 adopted (a), D-053; D-026). | to build (D-008, D-009) |
 | jackin capsule | In-container PID 1; the attach point for live visibility; source of the agent-state signal (working, blocked, idle, exit) the daemon reads. | exists (D-016), extended (D-051) |
-| jackin agent roles | Dockerfile + `jackin.role.toml`: environment, skills, plugins. Selected per issue. Roles for this build: `the-architect` for every jackin and jackin-project task (D-048, used as is); `donbeave/crew-builder` for termrock, ecosystem, and the role repositories; `donbeave/crew-operator` for Linear, GitHub settings, 1Password items, and every browser proof; `donbeave/crew-reviewer` for pull-request reviews; `host` names a step the human performs on the developer machine. All three `crew` roles are built from `donbeave/jackin-role-template`, load from their default branch with trust pre-granted per host, and stay unpublished until M11. (D-045, D-053; `concept/roles.md`) | `the-architect` exists; `crew` roles to build |
+| jackin agent roles | Dockerfile + `jackin.role.toml`: environment, skills, plugins. Selected per issue. Roles for this build: `the-architect` for every jackin and jackin-project task (D-048; the role itself is changed where the run needs it — M1-13 fixes its CI lanes and commit hook, M3-02 adds `default_agent` — never forked); `donbeave/crew-builder` for termrock, ecosystem, and the role repositories; `donbeave/crew-operator` for Linear, GitHub settings, 1Password items, and every browser proof; `donbeave/crew-reviewer` for pull-request reviews; `host` names a step the human performs on the developer machine. All three `crew` roles are built from `donbeave/jackin-role-template`, load from their default branch with trust pre-granted per host, and stay unpublished until M11. (D-045, D-053; `concept/roles.md`) | `the-architect` exists; `crew` roles to build |
 | termrock TUI | Fleet, issue, log, and attach surface for the daemon; a client of the daemon snapshot, never on the correctness path. | to build (D-006, D-025) |
 
 ## 4. Issue contract
@@ -445,8 +445,10 @@ branch build (`feat/managed-execution`) runs on the machine. (D-042)
 ## 10b. Milestones
 
 Ordered proofs (D-037, extended by D-049 and D-053; details and tasks in
-`ROADMAP.md`, final under D-054; task folders in `tasks/` for M1..M5 now
-and for later milestones when reached, D-038, D-062). Milestones may
+`ROADMAP.md`, final under D-054). Task folders live in `tasks/<id>/`: the
+run materialises them for M1..M5 first and for later milestones when each
+is reached (D-038, D-062); this document makes no claim about which
+folders exist at any moment — `tasks/README.md` is the record. Milestones may
 overlap in execution; review tasks never gate the next milestone (D-055).
 
 1. **M1 Linear setup verified** — agent app, credentials in 1Password,

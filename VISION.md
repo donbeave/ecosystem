@@ -131,7 +131,10 @@ milestones, tasks, decisions — is measured against that bar.
 - termrock remains the component layer for every terminal interface,
   including the manager's. Changes to termrock are planned where the manager's
   interface needs them.
-- This repository plans. It does not implement.
+- This repository holds the plan and, during a run, the run's own state and
+  evidence: decisions, specification, roadmap, task folders, verifier
+  programs, and ledgers. It implements no product code — every product
+  change lands in jackin, termrock, or a role repository.
 
 ## Related repositories
 
