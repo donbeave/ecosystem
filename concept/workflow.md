@@ -29,7 +29,9 @@ sentences are the current understanding and are open to correction.
 2. Create a Linear issue. Fill in: repository, branch (and base branch if
    not `main`), jackin role, agent runtime, prompt, and the checklist of
    tasks as a Markdown task list (D-012, D-013, D-014). Convention for the
-   fields: *open (Q-013)*.
+   fields: labels `role:`/`agent:`/`model:`/`effort:`/`repo:`/`delivery:`,
+   `branch:`/`base:` lines, prompt = description, checklist = first task
+   list (Q-013 adopted, D-053).
 3. If the issue depends on other issues, add Linear blocking relations
    (D-004).
 4. Keep issues small. One issue is one agent's whole context; if the
@@ -56,10 +58,13 @@ issues can be assigned at once; independent ones run in parallel (D-004).
    implementation, and verification to subagents (D-007, D-036). When an item is finished it ticks it in the local file; the
    daemon pushes that tick to the Linear issue (D-013). The person sees
    progress in Linear without asking.
-6. When the checklist is complete, verification runs (*open (Q-014)*).
-   Failure handling is *open (Q-008)*.
+6. When the checklist is complete, the daemon runs the repository's verify
+   command and accepts only `status: DONE` (D-030). Failures retry with
+   backoff, stall is killed and retried, exhaustion escalates (D-021,
+   D-027, D-029).
 7. The daemon opens or updates the pull request from the branch on GitHub
-   (D-014). Merge strategy is *open (Q-007)*.
+   (D-014). Merge: human moves the issue to merging, a merge attempt
+   lands it, the daemon confirms (D-031).
 
 ## 4. Watch, attach, decide
 
@@ -69,12 +74,14 @@ issues can be assigned at once; independent ones run in parallel (D-004).
 - Attach to any container to see the exact prompt and the live session
   (D-016). This is the primary way to understand what an agent is doing.
 - When the agent needs a decision, it is asked through the issue
-  (*open (Q-009)* for the exact channel). Answer there; the run continues.
+  as a Linear elicitation with a blocker brief (D-029). Answer there; the
+  run continues. Blocked, stuck, and container identity are visible on the
+  issue (D-049, D-051, D-052).
 
 ## 5. Finish
 
 The result is a pull request on GitHub. Review it, merge it (who merges is
-*open (Q-007)*), and the issue reaches its final state. Issues blocked by
+D-031), and the issue reaches its final state. Issues blocked by
 it become runnable.
 
 ## 6. Building the product with this workflow (D-033, D-034)
