@@ -14,7 +14,8 @@ Format: `D-NNN` — date — title — decision — rationale — consequences.
 documents, analyses of existing repositories. No source code, prototypes, or
 scaffolding until the concept is aligned and a separate implementation plan
 says so. (Amended by D-038: verification scripts inside `tasks/<task>/` are
-the one permitted runnable file type.)
+the one permitted runnable file type; amended by D-069: the single
+roadmap-level gate `verify.sh` at the repository root is the other.)
 
 **Rationale.** Planning is the critical phase. Implementing before the concept
 is agreed produces the same context-loss failure at project scale that large
@@ -1134,3 +1135,41 @@ the duration.
 
 **Consequences.** `OPEN-QUESTIONS.md` is empty. ROADMAP §6 process notes
 that the host session is the first responder to escalations.
+
+## D-069 — 2026-08-27 — One root `verify.sh` and a `goal/` package drive the unattended run
+
+**Decision.** D-001 is amended a second time: besides the task-level
+`tasks/<id>/verify.sh` (D-038), exactly one more runnable file is permitted
+in this repository — `verify.sh` at the repository root. It is the gate of
+the whole roadmap run: it passes only when every task id in the `ROADMAP.md`
+task tables has a `tasks/README.md` row in status `done` and a
+`tasks/<id>/verify.sh` exists, and it prints `status: DONE` or
+`status: PENDING <n> remaining` as its last line. It is read-only and has
+no dependencies beyond POSIX `sh` and `awk`. The run itself is defined by
+Markdown only: `GOAL.md` (the `/goal` prompt, under 4000 characters, run as
+`/goal Follow GOAL.md`), `goal/EXECUTION.md` (session start, per-task
+procedure, wave order, execution paths, resume), `goal/PREFLIGHT.md` (the
+human's one-time operator checklist consolidated from `ROADMAP.md`),
+`PROGRESS.md` (append-only ledger, one row per task), and
+`PREFLIGHT-DEFECTS.md` (the only condition under which the run stops,
+D-050). Every other rule of D-001 stands: no source code, prototypes, or
+scaffolding here.
+
+**Rationale.** `/goal` is a model-judged loop: it keeps working until a
+model accepts that the stated condition holds. A condition stated in prose
+("all tasks done") is judged from the transcript; a condition stated as the
+last line of one deterministic script is judged from a fact. The task-level
+scripts already exist for that reason (D-003, D-038); the roadmap needs the
+same fact at its own level, and the only place a fact about eighty task
+folders can be computed is a script next to them. The `goal/` package exists
+because the prompt cap of 4000 characters (the `jackin-goal-prompt` skill's
+limit) cannot carry the wave order and the operator checklist, and because
+a resumable run needs its state (`PROGRESS.md`, `PREFLIGHT-DEFECTS.md`) in
+files, not in a session's memory (D-050, D-061, D-068).
+
+**Consequences.** `AGENTS.md` rule 1 names the root script as the second
+exception; `README.md` and `AGENTS.md` map the new files; `ROADMAP.md` §6
+names `GOAL.md` as the entry point and the two ledgers; `tasks/README.md`
+keeps its `Task` and `Status` columns with lowercase status values because
+the root script parses them by header name. The script and the `goal/`
+files are frozen during a run except through a decision here.

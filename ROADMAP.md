@@ -561,6 +561,14 @@ Linear escalations and applies the stuck rule; it records human-only items
 as preflight defects instead of interrupting (D-068). M1-12 also assigns
 every created issue to jackin under `auto-dispatch` (D-067).
 
+Entry point (D-069): the whole roadmap is executed by one host Claude Code
+session started with `/goal Follow GOAL.md`; `goal/EXECUTION.md` fixes the
+mechanics, `goal/PREFLIGHT.md` is the human's one-time checklist, the root
+`verify.sh` is the gate (`status: DONE` when every task below is `done`),
+`PROGRESS.md` receives one row per task, and `PREFLIGHT-DEFECTS.md`
+receives every operator input found missing — the only reason the run
+stops.
+
 1. Read `tasks/README.md`, then only the task's own folder (D-038). Work on
    that task alone.
 2. Delegate: one subagent for research of the touched code, one per
@@ -586,7 +594,9 @@ every created issue to jackin under `auto-dispatch` (D-067).
    whenever the roadmap needs the merge; work that blocks nothing stays on
    `feat/managed-execution`; no jackin release or Homebrew tap publish
    before M11 (D-055).
-7. Update the task's status row in `tasks/README.md` (D-038).
+7. Update the task's status row in `tasks/README.md` (D-038) and append
+   the task's row to `PROGRESS.md` (D-069); an operator input found missing
+   goes into `PREFLIGHT-DEFECTS.md` and the row becomes `blocked` (D-050).
 8. From M5 onward the daemon reports the run state, and from M6 onward the
    checklist ticks and a final `response`, back to the Linear issue (D-013,
    D-049); until then M1-12 has created the issue (M2 onward, D-060) and

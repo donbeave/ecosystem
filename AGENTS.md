@@ -13,7 +13,8 @@ decisions, and concept of the project before implementation starts.
 1. **No implementation.** Do not add source code, build files, scripts,
    scaffolding, or prototypes. Shell snippets inside Markdown that illustrate a
    contract are fine; runnable files are not — except verification scripts
-   inside `tasks/<task>/` (D-038).
+   inside `tasks/<task>/` (D-038) and the single roadmap gate `verify.sh`
+   at the repository root (D-069).
 2. **Decisions are explicit.** A point is decided only when it is recorded in
    `DECISIONS.md` with a date and a short rationale. `SPEC.md` states only
    decided points and marks the rest *open (Q-NNN)*. Concept documents must
@@ -61,4 +62,7 @@ decisions, and concept of the project before implementation starts.
 | Today's workflow versus target workflow | `concept/workflow.md` |
 | Milestones, task list, dependencies | `ROADMAP.md` |
 | One folder per task, indexed with status | `tasks/README.md`, `tasks/<task>/` |
+| The `/goal` prompt that runs the whole roadmap, and its guide and operator checklist | `GOAL.md`, `goal/EXECUTION.md`, `goal/PREFLIGHT.md` (D-069) |
+| Roadmap-level gate (`status: DONE` when every task is done) | `verify.sh` (D-069) |
+| Run ledgers: one row per task; operator inputs found missing | `PROGRESS.md`, `PREFLIGHT-DEFECTS.md` (D-050, D-069) |
 | Facts about existing repositories | `analysis/<repo>.md` |

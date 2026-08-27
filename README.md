@@ -28,9 +28,15 @@ reaches agreement on a point updates the relevant file.
 | [analysis/symphony.md](analysis/symphony.md) | openai/symphony: the closest existing execution concept, and what to adopt or reject. |
 | [analysis/linear-agents.md](analysis/linear-agents.md) | Linear Agents platform facts, jackin role contract facts, and a proposed issue convention. |
 | [AGENTS.md](AGENTS.md) | Rules for agents (and humans) editing this repository. `CLAUDE.md` is a symlink to it. |
+| [GOAL.md](GOAL.md) | The `/goal` prompt that executes the whole roadmap unattended (`/goal Follow GOAL.md`), under 4000 characters (D-069). |
+| [goal/EXECUTION.md](goal/EXECUTION.md) | How the host session runs it: session start, per-task procedure, wave order, execution paths, resume, STOP. |
+| [goal/PREFLIGHT.md](goal/PREFLIGHT.md) | Everything the human provides once before the run (D-050), consolidated from `ROADMAP.md`. |
+| [verify.sh](verify.sh) | Roadmap-level gate: `status: DONE` only when every task in `tasks/README.md` is `done` with its `verify.sh` (D-069). |
+| [PROGRESS.md](PROGRESS.md) | Append-only ledger of the run: one row per task with lane, path, result, evidence. |
+| [PREFLIGHT-DEFECTS.md](PREFLIGHT-DEFECTS.md) | Operator inputs found missing mid-run; the only reason the run stops. |
 
 ## Working rules
 
-- Planning only. No source code, no prototypes, no scaffolding in this repository.
+- Planning only. No source code, no prototypes, no scaffolding in this repository; the only runnable files are `tasks/<id>/verify.sh` and the root `verify.sh` (D-038, D-069).
 - Decisions are explicit. If it is not in `DECISIONS.md`, it is not decided.
 - Analyses cite files and lines in the real repositories; opinions are labeled as such.
