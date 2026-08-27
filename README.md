@@ -14,6 +14,7 @@ reaches agreement on a point updates the relevant file.
 | File | Purpose |
 | --- | --- |
 | [SPEC.md](SPEC.md) | The living specification: only decided points, with open questions marked. Improved every conversation. |
+| [ROADMAP.md](ROADMAP.md) | Milestones, tasks, dependencies, roles, and the decisions that gate each milestone. Proposal until finalized. |
 | [VISION.md](VISION.md) | The problem, today's workflow, observed insights, and the target we are building toward. Start here. |
 | [DECISIONS.md](DECISIONS.md) | Dated decision log. Anything agreed is recorded here before it is elaborated elsewhere. |
 | [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) | Questions not yet decided. Each one is closed by moving it into `DECISIONS.md`. |

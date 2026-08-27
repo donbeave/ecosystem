@@ -144,6 +144,15 @@ runtime. The top-level agent coordinates and decides. Building this
 product follows the same rule from the first iteration, so every
 iteration is also a proof of the workflow. (D-033, D-036)
 
+## 9c. Parallelism, accounts, models
+
+The build runs as many tasks in parallel as dependencies allow, spread over
+the provider accounts on the machine (`~/.claude`; `~/.codex`,
+`~/.codex-chainargos`, `~/.codex-chainargos2`) using jackin's multi-account
+support. Models: Fable 5, Opus 5, Sonnet 5, GPT-5.6 Sol, GPT-5.6 Terra,
+GPT-5.6 Luna, all at medium reasoning. Tasks are assigned across agents,
+models, and account lanes. (D-039)
+
 ## 10. How the product is built
 
 The product is built with its own workflow: Linear issues, jackin roles,

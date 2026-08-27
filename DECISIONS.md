@@ -505,3 +505,38 @@ before execution; a folder per task is the format already observed to work
   after that is finalized are the task folders created and delegated.
 - Which jackin agent roles are needed to build this product (existing
   roles or new ones) is decided during that planning; see Q-016.
+
+## D-039 — 2026-08-27 — Build in parallel across accounts, agents, and models
+
+**Decision.** The build runs as many tasks in parallel as the dependency
+graph allows. Parallelism uses the multiple provider accounts already on
+this machine — jackin supports configuring and logging into several
+accounts — currently:
+
+- `~/.claude` (Claude Code)
+- `~/.codex`, `~/.codex-chainargos`, `~/.codex-chainargos2` (Codex)
+
+The models used for this project are: Fable 5, Opus 5, Sonnet 5 (Claude),
+and GPT-5.6 Sol, GPT-5.6 Terra, GPT-5.6 Luna (Codex). All of them run at
+**medium** reasoning for work on this project. Every task is planned with
+subagents, and the plan assigns tasks across different agents and different
+models rather than defaulting to one; independent tasks are spread over
+accounts so that no single account's quota serializes the build.
+
+**Rationale.** Wall-clock speed is the constraint (D-034). Quota per
+account is the practical ceiling on parallelism, so spreading over
+accounts raises it; using several agents and models keeps D-015 real and
+exposes runtime-specific problems early. Medium reasoning is the agreed
+cost/quality point for this phase.
+
+**Consequences.**
+
+- `ROADMAP.md` and each task folder record the assigned agent runtime,
+  model, and account lane; the per-milestone "parallel groups" are spread
+  across lanes.
+- jackin's multi-account configuration is part of milestone 1 setup, and
+  the daemon's per-provider-account concurrency cap (proposed D-022) is
+  needed by milestone 3.
+- Prompts and role configuration pin reasoning effort to medium for every
+  runtime that exposes it.
+- Adding accounts or models later is a one-line change to this decision.
