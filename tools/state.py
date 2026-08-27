@@ -29,11 +29,25 @@ import time
 from datetime import datetime, timezone
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RUN_DIR = os.path.join(REPO, "run")
-LOG_PATH = os.path.join(RUN_DIR, "events.jsonl")
-LOCK_PATH = os.path.join(RUN_DIR, "events.lock")
-README_PATH = os.path.join(REPO, "tasks", "README.md")
-PROGRESS_PATH = os.path.join(REPO, "PROGRESS.md")
+
+# `ECOSYSTEM_STORE` points the store at another directory, so a rehearsal --
+# the canary of the readiness plan, a fixture, a test -- can exercise the real
+# code against a copy of the log without touching the run of record. The two
+# Markdown projections follow the store, because rendering them into the
+# repository from a rehearsal log would corrupt the real projections.
+STORE_DIR = os.environ.get("ECOSYSTEM_STORE", "").strip()
+if STORE_DIR:
+    RUN_DIR = os.path.abspath(STORE_DIR)
+    LOG_PATH = os.path.join(RUN_DIR, "events.jsonl")
+    LOCK_PATH = os.path.join(RUN_DIR, "events.lock")
+    README_PATH = os.path.join(RUN_DIR, "tasks-README.md")
+    PROGRESS_PATH = os.path.join(RUN_DIR, "PROGRESS.md")
+else:
+    RUN_DIR = os.path.join(REPO, "run")
+    LOG_PATH = os.path.join(RUN_DIR, "events.jsonl")
+    LOCK_PATH = os.path.join(RUN_DIR, "events.lock")
+    README_PATH = os.path.join(REPO, "tasks", "README.md")
+    PROGRESS_PATH = os.path.join(REPO, "PROGRESS.md")
 
 GENESIS = "0" * 64
 

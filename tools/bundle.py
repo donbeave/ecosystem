@@ -554,9 +554,9 @@ def generate(root, roadmap, tasks, lanes, tid, dest_root=None):
     return d
 
 
-def bundle_hash(d):
+def bundle_hash(d, names=None):
     h = hashlib.sha256()
-    for name in BUNDLE_FILES:
+    for name in (names if names is not None else BUNDLE_FILES):
         path = os.path.join(d, name)
         h.update(name.encode())
         h.update(b"\0")
@@ -575,6 +575,10 @@ def main():
     ap.add_argument("--all", action="store_true")
     ap.add_argument("--root", default=".")
     ap.add_argument("--roadmap", default=None)
+    ap.add_argument("--extra", action="append", default=[], metavar="ID",
+                    help="hash a bundle whose id is not in ROADMAP.md, such as "
+                         "the canary; only `hash` accepts it, and the id is "
+                         "never added to the compiled graph")
     a = ap.parse_args()
 
     roadmap = a.roadmap or os.path.join(a.root, "ROADMAP.md")
@@ -584,7 +588,38 @@ def main():
               file=sys.stderr)
         return 1
     lanes = lane_table(roadmap)
-    ids = sorted(tasks) if (a.all or not a.ids) else a.ids
+    ids = sorted(tasks) if (a.all or not a.ids) else list(a.ids)
+    if a.extra:
+        if a.action != "hash":
+            print("--extra is only meaningful for `hash`", file=sys.stderr)
+            return 1
+        if a.all or a.ids:
+            print("--extra cannot be combined with --all or a listed id",
+                  file=sys.stderr)
+            return 1
+        # An extra id is hashed straight from disk: it has no ROADMAP.md row,
+        # so it can be neither generated nor verified against one, and a
+        # hand-written bundle has no `refs/sources.txt`, which only the
+        # generator produces. The hash therefore covers the bundle files that
+        # are present, in the same fixed order; the three files every bundle
+        # must have are still required. Evidence a task produces later --
+        # `evidence.json`, `verify.out` and the artefacts themselves -- is
+        # outside that list, so the hash of a bundle does not move once it is
+        # written.
+        for tid in a.extra:
+            d = os.path.join(a.root, "tasks", tid)
+            if not os.path.isdir(d):
+                print(f"{tid} missing", file=sys.stderr)
+                return 1
+            present = [n for n in BUNDLE_FILES
+                       if os.path.isfile(os.path.join(d, n))]
+            missing = [n for n in ("TASK.md", "task.toml", "verify.sh")
+                       if n not in present]
+            if missing:
+                print(f"{tid} missing " + ", ".join(missing), file=sys.stderr)
+                return 1
+            print(f"{tid} {bundle_hash(d, present)}")
+        return 0
     unknown = [i for i in ids if i not in tasks]
     if unknown:
         print("unknown task id: " + ", ".join(unknown), file=sys.stderr)
