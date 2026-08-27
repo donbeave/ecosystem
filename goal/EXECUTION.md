@@ -110,7 +110,8 @@ in this session (§8, D-092, D-093).
 - Every task is delegated (D-036, D-092): one subagent researches the
   touched code, one subagent per checklist item implements, one subagent
   verifies against `verify.sh` and the references; the session integrates.
-  Every host subagent is launched with `model: "opus"`, whatever it does,
+  Every host subagent is launched with `model: "claude-opus-5"` (D-095),
+  whatever it does,
   and returns at most 15 lines (verdict, evidence paths, next action).
   Host subagents: at most three in flight (fewer under the §4 reserve
   rule). Reviews are `crew-reviewer` tasks and never gate the next task
@@ -531,7 +532,8 @@ What this session may do itself, and nothing more:
   appends the decision and corrects the specification in the working tree
   and returns the id and the touched paths; the session then commits and
   pushes both files in one commit (D-104).
-- Delegate: everything else, with `model: "opus"` (D-092), in parallel up
+- Delegate: everything else, with `model: "claude-opus-5"` (D-092, D-095),
+  in parallel up
   to three host subagents in flight and the §4 reserve rule.
 - Never: answer from memory what a file states, re-read a large file after
   a compaction instead of delegating it, or ask the human anything.

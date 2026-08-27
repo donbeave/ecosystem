@@ -25,6 +25,19 @@ This one line is the only invocation; every document that says "the invocation l
 argument carries the two terminal facts the runner's judge checks (D-083). `GOAL.md` itself is
 the prompt the runner executes and holds nothing else.
 
+Start the session with the model and permission mode the run is pinned to (D-095):
+
+```text
+claude --model claude-fable-5 --permission-mode dontAsk
+```
+
+`claude-fable-5` at effort high is the host session; every subagent it launches runs
+`claude-opus-5` (`AGENTS.md` delegation law). The `dontAsk` permission mode and the
+allowlist it uses are committed in `.claude/settings.json`, which also pins the host model
+and denies `git push --force` and `git push -f`, so an unattended run never stops on a
+permission prompt. A tool the run needs that the allowlist does not cover is added to that
+file in the same commit as the task that needs it.
+
 The run has exactly two outcomes (D-069, D-070, D-083). COMPLETE: `./verify.sh` prints
 `status: DONE` as its last line in the final turn. BLOCKED: no task is runnable, none is
 `in-progress` or `waiting`, and `PREFLIGHT-DEFECTS.md` has a row with an empty `Resolved`
@@ -61,6 +74,6 @@ finished is redone (`goal/EXECUTION.md` §1).
 
 ## Working rules
 
-- Planning only. No source code, no prototypes, no scaffolding in this repository; the only non-Markdown files are the root `verify.sh` and everything under `tasks/<id>/` — `verify.sh`, `task.toml`, and text evidence (D-038, D-069, D-093).
+- Planning only. No source code, no prototypes, no scaffolding in this repository; the only non-Markdown files are the root `verify.sh`, `.claude/settings.json` (D-095), and everything under `tasks/<id>/` — `verify.sh`, `task.toml`, and text evidence (D-038, D-069, D-093).
 - Decisions are explicit. If it is not in `DECISIONS.md`, it is not decided.
 - Analyses cite files and lines in the real repositories; opinions are labeled as such.

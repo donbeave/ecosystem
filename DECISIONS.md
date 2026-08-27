@@ -2448,6 +2448,8 @@ and `verify.sh` contract; `concept/roles.md` §3.2 verdict flow; `SPEC.md`
 
 ## D-092 — 2026-08-27 — The host session is Fable at medium effort; every subagent is Opus
 
+*Amended by D-095: the exact model ids and the effort are pinned there.*
+
 Adopted under D-053. Amends the last sentence of D-071 ("research and
 verification subagents on Claude use the cheapest model") and D-036.
 
@@ -2622,3 +2624,27 @@ M8-01 and its §5 preflight paragraph, and `concept/credentials.md` §5.1,
 §5.3, §5.4 use the literal names. M1-10 additionally files
 `tasks/M1-10/linear-org.txt`. Only one Linear workspace is in scope; a
 second one would need a new decision, not a slug.
+
+## D-095 — 2026-08-28 — Host model, subagent model, permission mode, allowlist
+
+**Decision.** The run is launched with `claude-fable-5` at effort high for
+the host session, and every subagent is launched with `claude-opus-5`;
+both are exact model ids, not family aliases. The permission mode is
+`dontAsk`, and the allowlist that mode uses is committed in
+`.claude/settings.json` in this repository, together with `"model":
+"claude-fable-5"` and a deny list for `git push --force` and `git push
+-f`. `README.md` "Start the run" names the launcher flags.
+
+**Rationale.** The repository named no permission mode and no launcher
+flags at all, and pinned the models only as family aliases (K-23, K-24,
+K-25). An unattended run that must never prompt cannot rely on a mutable
+alias or on whatever mode the operator happens to start in, and a
+permission profile that is not committed cannot be reviewed or resumed.
+
+**Consequences.** `.claude/settings.json` is the second non-Markdown file
+allowed in this repository (with the root `verify.sh` and `tasks/<id>/`);
+`AGENTS.md` and `README.md` say so. `AGENTS.md` and `goal/EXECUTION.md`
+now read `model: "claude-opus-5"` where they read `model: "opus"`. D-092
+is amended by this decision. A tool the run needs that the allowlist does
+not cover is added to `.claude/settings.json` in the same commit as the
+task that needs it, never answered by a prompt.

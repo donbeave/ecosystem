@@ -7,7 +7,7 @@ Rules for any agent or person working here. `CLAUDE.md` symlinks to this file; r
 | Mode | Scope | Rule |
 | --- | --- | --- |
 | Planning | `VISION.md`, `SPEC.md`, `DECISIONS.md`, `OPEN-QUESTIONS.md`, `ROADMAP.md`, `concept/`, `analysis/`, `README.md` | Markdown only. No source code, build files, scaffolding, or prototypes. |
-| Execution | `GOAL.md`, `goal/`, `tasks/`, `PROGRESS.md`, `PREFLIGHT-DEFECTS.md`, root `verify.sh` | Runnable and machine files allowed, and only here: the root `verify.sh` (D-069) and everything under `tasks/<id>/` — `verify.sh`, `task.toml`, and evidence (`.out`, `.log`, `.json`, `.toml`, `.txt`, `.cast`) (D-038, D-059). |
+| Execution | `GOAL.md`, `goal/`, `tasks/`, `PROGRESS.md`, `PREFLIGHT-DEFECTS.md`, root `verify.sh`, `.claude/` | Runnable and machine files allowed, and only here: the root `verify.sh` (D-069), `.claude/settings.json` (D-095), and everything under `tasks/<id>/` — `verify.sh`, `task.toml`, and evidence (`.out`, `.log`, `.json`, `.toml`, `.txt`, `.cast`) (D-038, D-059). |
 
 Execution edits a planning document only to record a decision (`DECISIONS.md` + `SPEC.md`,
 same commit) or a graph amendment. The host session never makes that edit itself: it
@@ -37,7 +37,8 @@ delegates it to a subagent and commits the subagent's edit (D-104).
   `PREFLIGHT-DEFECTS.md`, and the current task folder. Nothing else.
 - Every read of a large file (`ROADMAP.md`, `SPEC.md`, `DECISIONS.md`, `concept/*`,
   `analysis/*`, any involved repository), every implementation, every verification, and
-  every proof runs in a subagent launched with `model: "opus"` (D-092). The session may
+  every proof runs in a subagent launched with `model: "claude-opus-5"` — the exact id
+  D-095 pins, not the family alias (D-092, amended by D-095). The session may
   `grep` for a single literal instead of delegating, never `Read`.
 - One subagent per checklist item, in parallel wherever the wave and the caps of
   `ROADMAP.md` §3 allow.

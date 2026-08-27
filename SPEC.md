@@ -335,6 +335,13 @@ launch (a saved workspace is selected only by name and has one fixed
 Claude lanes and by a role hook writing `$CODEX_HOME/config.toml` for
 Codex lanes; manifests carry no `[claude].model`. (D-039, D-043, D-078)
 
+The host session itself runs `claude-fable-5` at effort high; every
+subagent it launches runs `claude-opus-5`. Both are exact model ids, not
+family aliases. The session's permission mode is `dontAsk` and its
+allowlist is committed in `.claude/settings.json`, which also pins the
+host model and denies `git push --force` and `git push -f`. `README.md`
+"Start the run" names the launcher flags. (D-095)
+
 ## 9d. Involved projects and branches
 
 Any repository under github.com/jackin-project or github.com/tailrocks is
