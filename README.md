@@ -53,10 +53,17 @@ asserted by an agent, and is one of `DONE`, `BLOCKED HUMAN`, `FAILED SYSTEM`, `P
 unblock. The implementation run is armed only after a static and a live readiness gate
 both print `status: READY` for the same lock hash (D-109).
 
-The run has exactly two good outcomes (D-069, D-070, D-083). COMPLETE: `./verify.sh` prints
-`status: DONE` as its last line in the final turn. BLOCKED: no task is runnable, none is
+The run has exactly two good outcomes (D-069, D-070, D-083), and `verify.sh` decides which
+one it reached from the state store and the repositories, not from anything an agent writes.
+COMPLETE: `sh verify.sh` prints `status: DONE` as its last line in the final turn — every
+task is `done`, its evidence names a commit that is an ancestor of the pushed head, its
+recorded bundle hash still matches its bundle, the tree is clean, and `PROGRESS.md` holds one
+row per done task. BLOCKED: `status: BLOCKED HUMAN` — no task is runnable, none is
 `in-progress` or `waiting`, and `PREFLIGHT-DEFECTS.md` has a row with an empty `Resolved`
-cell — the only reason the run stops. A failing check, a design question, a review, a quota
+cell, the only reason the run stops. The two bad outcomes are `status: PENDING`, which means
+work remains and the run has simply not finished, and `status: FAILED SYSTEM`, an integrity
+failure — forged, stale, dirty, unpushed, or contradicting the state store — that no operator
+input would clear. A failing check, a design question, a review, a quota
 wait, a capsule dialog, and a defect in an involved project are never reasons to stop.
 Re-running the same line after BLOCKED, a crash, or a context compaction resumes; nothing
 finished is redone (`goal/EXECUTION.md` §1).
@@ -83,7 +90,7 @@ finished is redone (`goal/EXECUTION.md` §1).
 | [GOAL.md](GOAL.md) | The `/goal` prompt itself, nothing else: mission, sources of truth, operating laws, task loop, resume, termination (D-069, D-083). Under 4000 characters. The invocation line to paste is in "Start the run" above. |
 | [goal/EXECUTION.md](goal/EXECUTION.md) | How the host session runs it: session start, per-task procedure, wave order, execution paths, resume, STOP, host session budget. |
 | [goal/PREFLIGHT.md](goal/PREFLIGHT.md) | Everything the human provides once before the run (D-050), consolidated from `ROADMAP.md`. |
-| [verify.sh](verify.sh) | Roadmap-level gate: `status: DONE` only when every task in `tasks/README.md` is `done` with its `verify.sh` (D-069). |
+| [verify.sh](verify.sh) | Roadmap-level gate: derives the run's terminal class — `DONE`, `BLOCKED HUMAN`, `FAILED SYSTEM`, `PENDING` — from the state store, the compiled graph and the repository (D-069, D-110). `sh tools/gate_fixtures.sh` proves it against the adversarial fixtures in `tests/fixtures/`. |
 | [PROGRESS.md](PROGRESS.md) | Append-only ledger of the run: one row per task with lane, path, result, evidence. |
 | [PREFLIGHT-DEFECTS.md](PREFLIGHT-DEFECTS.md) | Operator inputs found missing mid-run; the only reason the run stops. |
 
