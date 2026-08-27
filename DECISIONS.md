@@ -322,3 +322,31 @@ down validating the core loop.
   layout).
 - Milestone ordering: local end-to-end loop first; server host second;
   multi-host third.
+
+## D-032 — 2026-08-27 — Implementation is verified visually with agent-browser on a persistent profile
+
+**Decision.** During implementation, every step is verified against the
+real Linear and GitHub user interfaces with `agent-browser` (visual
+verification by the implementing agent), not only through API responses.
+The browser uses one static profile that stays logged in to Linear and
+GitHub for a long time; either a single long-lived session or several
+sessions sharing that one profile. The same rule applies to both Linear and
+GitHub.
+
+**Rationale.** The human's view of progress is the Linear issue and the
+GitHub pull request; if those do not look right, the feature is not done
+regardless of what the API returned. A persistent logged-in profile removes
+repeated logins and two-factor prompts from the verification loop.
+
+**Consequences.**
+
+- The implementation plan includes, for each milestone, a browser-based
+  verification step (issue shows checklist ticks, agent session activities,
+  elicitation, state transitions; PR opened, linked, merged).
+- A dedicated browser profile directory for `agent-browser`, logged in to
+  Linear and GitHub, is part of the development environment setup; its
+  credentials come from 1Password and it is never committed.
+- Roles used to implement this project (for example `the-architect`) must
+  ship `agent-browser` and be able to reuse that profile.
+- This applies to the implementation phase; it does not make the manager
+  itself depend on a browser at runtime.
