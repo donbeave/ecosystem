@@ -18,26 +18,20 @@ version, not final.
 
 Placeholder in all documents: "the manager".
 
-## Q-003 — What is the machine-readable source of truth for roadmap state?
-
-Options: task folders and status files on a git branch that the daemon polls
-or watches; a local database owned by the daemon with the git branch as
-input; a mix where git is the plan and the daemon owns runtime state.
-Affects: how the human marks "ready", how multiple machines share state, how
-history is kept.
-
 ## Q-004 — How are dependencies between tasks declared?
 
-Options: a manifest per task listing prerequisite task identifiers; a
-plan-level graph file; inferred from folder order. Also: can a task depend on
-an external condition (a CI run, a human approval) rather than another task?
+Narrowed by D-010: dependencies between issues use the tracker's blocking
+relations (Linear `blockedBy`, GitHub task-list references). Remaining: does
+the daemon refuse to start a blocked issue, or is assignment alone the gate
+(Symphony collapses blocks into a `dispatchable` bool)? Within one issue,
+checklist order is the dependency order unless stated otherwise.
 
 ## Q-005 — Who produces the decomposition?
 
-Options: the human with planning skills in a jackin session (today's
-approach, formalized); a planner agent run by the manager from a high-level
-goal; both, with the planner proposing and the human approving. Affects
-whether the manager needs a "planning" phase distinct from "execution".
+Narrowed by D-013: the issue author writes the checklist. Remaining: whether
+a planner agent may be assigned an issue whose output is a set of new
+issues or a checklist (Symphony's follow-up pattern), and whether the human
+must approve before those become assignable.
 
 ## Q-006 — Who writes the verification scripts, and how are they trusted?
 
@@ -75,3 +69,25 @@ Limits on concurrent agents per host, per provider account, and per plan.
 Minimum: roadmap and task graph, per-task status and live log, approval
 inbox, agent fleet. Which of these are termrock gaps versus product widgets
 is listed in `analysis/termrock.md`; the product-side scope is undecided.
+
+## Q-013 — How are role, runtime, and prompt expressed on a Linear issue?
+
+D-012 requires all three. Options: labels (`role:the-architect`,
+`agent:claude`), issue template fields, a fenced block or front matter in
+the description, or a project-level default with per-issue override.
+Pending `analysis/linear-agents.md`.
+
+## Q-014 — How do checklist items relate to verification scripts?
+
+D-013 makes the checklist the unit of progress; D-003 makes `verify.sh` the
+unit of proof. Options: one verification per issue run by the daemon after
+the checklist is complete; a verification reference per checklist item; the
+agent's own verification subagent per item with the daemon verifying only at
+the end.
+
+## Q-015 — Webhook or polling?
+
+A self-hosted daemon behind NAT cannot receive Linear webhooks without a
+public endpoint or a relay. Options: polling assigned issues and agent
+sessions; a small relay; a tunnel. Pending `analysis/linear-agents.md`.
+

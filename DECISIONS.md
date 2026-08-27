@@ -153,3 +153,79 @@ without touching the interactive path.
   Its form is Q-003 (files on a branch, a service, or both). The daemon is a
   consumer of that system.
 - D-008 stands; this decision narrows how it is achieved.
+
+## D-010 — 2026-08-27 — The task system is an issue tracker, following the Symphony concept
+
+**Decision.** Tasks are provided through an issue tracker, in the same
+concept as openai/symphony (`analysis/symphony.md`): the tracker is the
+source of truth for what work exists and its status; the daemon holds no
+authoritative task state of its own and rebuilds its view from the tracker
+and local workspaces after restart. Linear is the primary tracker. GitHub
+Issues is the second adapter (originally considered for the first proof of
+concept; Linear is now preferred first).
+
+**Rationale.** The human already thinks in issues. A tracker gives
+assignment, status, comments, and history for free, with a native UI on
+desktop and phone, and Symphony proves the dispatch loop works at scale.
+Git-tracked task folders remain possible as plan content but are no longer
+the task system.
+
+**Consequences.** Q-003 is closed. The daemon needs a tracker adapter
+interface with Linear and GitHub implementations. The task-folder layout in
+`concept/task-format.md` is demoted to "the local working copy of an issue",
+not the source of truth.
+
+## D-011 — 2026-08-27 — Assignment is the trigger
+
+**Decision.** When an issue is assigned to jackin in the tracker (Linear:
+the jackin agent app, installed with `app:assignable`), the jackin daemon
+picks it up and spawns a jackin role to work on it. Creating an issue alone
+does not start work; assignment does.
+
+**Rationale.** Assignment is the natural human gesture for "you, do this",
+is visible in the tracker, and is exactly the event Linear's agent platform
+is built around.
+
+**Consequences.** The daemon subscribes to (or polls for) assignment events.
+The trigger for GitHub is the equivalent assignment to the jackin app or
+user. Work is never started from an unassigned issue.
+
+## D-012 — 2026-08-27 — The issue defines the role, the agent runtime, and the prompt
+
+**Decision.** Every issue that jackin executes must define three things:
+(1) the jackin agent role to spawn (for example `the-architect`, designed as
+in https://github.com/jackin-project/jackin-the-architect); (2) which agent
+runtime to use inside that role (Claude Code, Codex, Amp, ...); (3) the
+prompt to pass to the agent. The daemon refuses issues that lack any of the
+three and reports why on the issue.
+
+**Rationale.** The role fixes the environment and skills, the runtime fixes
+the model and behavior, the prompt fixes the work. Keeping all three on the
+issue means the human controls the run entirely from the tracker and the
+daemon never guesses.
+
+**Consequences.** A convention for expressing the three on a Linear issue is
+needed (labels, template fields, or a description block) — see
+`analysis/linear-agents.md` when available and Q-013. Roles must be
+resolvable by name to a published image.
+
+## D-013 — 2026-08-27 — The issue carries a Markdown checklist that the agent mirrors locally and reports back
+
+**Decision.** The issue's Markdown (the description or an attached Markdown
+file) contains a checklist of the tasks to be done. The daemon reads it once
+when it picks the issue up, stores it locally, and the agent works on the
+local copy through the `/goal` command. The local file is the working status
+tracker: the agent updates it only when it finishes a checklist item, and on
+each such update the progress is pushed back to the tracker so the issue
+shows clear progress. The daemon does not make repeated requests to the
+tracker while working; it reads once and writes on completion of items.
+
+**Rationale.** One read plus write-on-progress keeps tracker traffic and
+rate-limit exposure minimal, keeps the agent's working state local and
+fast, and gives the human progress in the tool they already watch.
+
+**Consequences.** The checklist format is part of the task contract
+(`concept/task-format.md`). Write-back is idempotent (re-pushing the same
+checklist is safe). Per-item verification (`verify.sh`, D-003) applies to
+checklist items where present; how checklist items and verification
+scripts relate is Q-014.

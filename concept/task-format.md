@@ -1,8 +1,27 @@
-# Plan and task format
+# Issue and checklist format
 
-Elaborates D-003 and D-004. The format is a contract between the human (or
-planner) who authors tasks, the manager that schedules them, and the agent
-that executes one of them.
+Elaborates D-003, D-004, D-012, and D-013. Since D-010 the source of truth is
+the issue tracker; this document describes what an issue must contain and
+what its local working copy looks like. The folder layout further down is
+the local mirror the daemon creates from the issue, not something the human
+authors in git.
+
+## What an issue must contain
+
+| Field | Required | Where (convention, Q-013) |
+| --- | --- | --- |
+| jackin role to spawn | yes | e.g. label `role:the-architect` |
+| agent runtime inside the role | yes | e.g. label `agent:claude` |
+| prompt handed to the agent | yes | issue description, or a fenced block in it |
+| checklist of tasks | yes | Markdown task list in the description or an attached Markdown file |
+| references (schemas, contracts, designs) | recommended | links or paths in the description |
+| verification | recommended | path to a `verify.sh` in the repository, or per item (Q-014) |
+| dependencies on other issues | when relevant | tracker blocking relations (Q-004) |
+
+The daemon rejects, with a comment on the issue, any assigned issue missing
+a required field.
+
+## Local working copy
 
 ## Principles
 
