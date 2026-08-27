@@ -160,9 +160,11 @@ without touching the interactive path.
 concept as openai/symphony (`analysis/symphony.md`): the tracker is the
 source of truth for what work exists and its status; the daemon holds no
 authoritative task state of its own and rebuilds its view from the tracker
-and local workspaces after restart. Linear is the primary tracker. GitHub
-Issues is the second adapter (originally considered for the first proof of
-concept; Linear is now preferred first).
+and local workspaces after restart. **Linear is the only tracker.** GitHub
+is not a task source: it is used only to host the repository a task works
+on and to manage the pull request that carries the result. (Superseded
+wording from earlier the same day: GitHub Issues was briefly considered as
+a second adapter; that is withdrawn.)
 
 **Rationale.** The human already thinks in issues. A tracker gives
 assignment, status, comments, and history for free, with a native UI on
@@ -170,8 +172,8 @@ desktop and phone, and Symphony proves the dispatch loop works at scale.
 Git-tracked task folders remain possible as plan content but are no longer
 the task system.
 
-**Consequences.** Q-003 is closed. The daemon needs a tracker adapter
-interface with Linear and GitHub implementations. The task-folder layout in
+**Consequences.** Q-003 is closed. The daemon needs a Linear adapter and
+a GitHub repository/PR adapter; no GitHub Issues adapter. The task-folder layout in
 `concept/task-format.md` is demoted to "the local working copy of an issue",
 not the source of truth.
 
@@ -187,8 +189,7 @@ is visible in the tracker, and is exactly the event Linear's agent platform
 is built around.
 
 **Consequences.** The daemon subscribes to (or polls for) assignment events.
-The trigger for GitHub is the equivalent assignment to the jackin app or
-user. Work is never started from an unassigned issue.
+Work is never started from an unassigned issue.
 
 ## D-012 — 2026-08-27 — The issue defines the role, the agent runtime, and the prompt
 
@@ -229,3 +230,28 @@ fast, and gives the human progress in the tool they already watch.
 checklist is safe). Per-item verification (`verify.sh`, D-003) applies to
 checklist items where present; how checklist items and verification
 scripts relate is Q-014.
+
+## D-014 — 2026-08-27 — A task names its repository and its branch; branches are created or reused
+
+**Decision.** Every task specifies the GitHub repository it works on and
+the branch name to use. The daemon prepares the workspace as follows: if the
+branch exists on the remote, it is pulled and reused; if it does not exist,
+it is created from a base branch that the task may specify, defaulting to
+`main`. The result of the work is managed as a pull request on GitHub from
+that branch.
+
+**Rationale.** The repository and branch are the two facts that make a task
+concrete. Reusing an existing branch lets several tasks, or a retried task,
+continue the same line of work; a declared base branch (default `main`)
+removes any guessing about where a new branch starts.
+
+**Consequences.**
+
+- Repository, branch, and optional base branch join role, runtime, prompt,
+  and checklist as issue fields (`concept/task-format.md`, convention
+  Q-013). A missing repository or branch is a validation failure reported
+  on the issue.
+- The daemon performs the git preparation before spawning the agent, so
+  the agent starts on the right branch; the agent does not choose branches.
+- Pull request creation and updates are a daemon responsibility through
+  GitHub; how this interacts with the merge strategy is Q-007.

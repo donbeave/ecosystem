@@ -26,7 +26,8 @@ decisions, and concept of the project before implementation starts.
    repositories with `path:line` citations. Mark each capability as
    implemented, partial, documented only, or absent. Opinions are labeled.
 6. **Normal prose.** Documents are for humans; write complete sentences.
-7. **Commits are signed off.** Use `git commit -s`.
+7. **Commit and push every change.** Use `git commit -s`, then push to
+   `origin` immediately. Nothing stays local.
 
 ## Where things go
 

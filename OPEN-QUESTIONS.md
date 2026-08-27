@@ -20,8 +20,8 @@ Placeholder in all documents: "the manager".
 
 ## Q-004 — How are dependencies between tasks declared?
 
-Narrowed by D-010: dependencies between issues use the tracker's blocking
-relations (Linear `blockedBy`, GitHub task-list references). Remaining: does
+Narrowed by D-010: dependencies between issues use Linear blocking
+relations (`inverseRelations.type == "blocks"`). Remaining: does
 the daemon refuse to start a blocked issue, or is assignment alone the gate
 (Symphony collapses blocks into a `dispatchable` bool)? Within one issue,
 checklist order is the dependency order unless stated otherwise.
@@ -72,7 +72,8 @@ is listed in `analysis/termrock.md`; the product-side scope is undecided.
 
 ## Q-013 — How are role, runtime, and prompt expressed on a Linear issue?
 
-D-012 requires all three. Options: labels (`role:the-architect`,
+D-012 requires role, runtime, and prompt; D-014 adds repository, branch,
+and optional base branch. Options: labels (`role:the-architect`,
 `agent:claude`), issue template fields, a fenced block or front matter in
 the description, or a project-level default with per-issue override.
 Facts from `analysis/linear-agents.md`: Linear has no custom fields and no

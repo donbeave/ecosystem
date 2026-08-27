@@ -1,7 +1,8 @@
 # Issue and checklist format
 
-Elaborates D-003, D-004, D-012, and D-013. Since D-010 the source of truth is
-the issue tracker; this document describes what an issue must contain and
+Elaborates D-003, D-004, D-012, D-013, and D-014. Since D-010 the source of
+truth is Linear; GitHub only hosts the repository and the pull request. This
+document describes what an issue must contain and
 what its local working copy looks like. The folder layout further down is
 the local mirror the daemon creates from the issue, not something the human
 authors in git.
@@ -10,6 +11,9 @@ authors in git.
 
 | Field | Required | Where (convention, Q-013) |
 | --- | --- | --- |
+| GitHub repository to work on | yes | issue field, convention Q-013 (e.g. `repo: owner/name` line or label) |
+| branch name to use | yes | issue field; reused if it exists on the remote, otherwise created (D-014) |
+| base branch for a new branch | no, default `main` | issue field (D-014) |
 | jackin role to spawn | yes | e.g. label `role:the-architect` |
 | agent runtime inside the role | yes | e.g. label `agent:claude` |
 | prompt handed to the agent | yes | issue description, or a fenced block in it |

@@ -41,8 +41,9 @@ that is an empty shell. The recommended split, adopted as the working model:
   uses. It exposes start (role, mounts, brief), list with live status,
   stream events, stop, restart, and "execute and return result" for
   verification scripts, and reconciles state after its own restart.
-- **Task system = issue tracker (D-010):** Linear first, GitHub Issues
-  second. Source of truth for what work exists and its status. The daemon
+- **Task system = Linear (D-010):** the only tracker. Source of truth for
+  what work exists and its status. GitHub hosts repositories and pull
+  requests only (D-014). The daemon
   is its consumer through a tracker adapter; the manager logic (scheduling,
   verification policy, inbox) sits between the tracker and the daemon, in
   the daemon binary or beside it (Q-001).
@@ -79,8 +80,11 @@ human ── jackin CLI ──┐ │
    is reported back on the issue and the issue is not started.
 3. **Runnable.** Not blocked by other issues (Q-004) and within resource
    limits (Q-010).
-4. **Picked up.** The daemon reads the issue once, stores the checklist
-   Markdown locally in the working copy, and spawns the named jackin role
+4. **Picked up.** The daemon reads the issue once, prepares the workspace
+   for the named repository and branch (reuse and pull if the branch exists
+   on the remote, otherwise create from the base branch, default `main`,
+   D-014), stores the checklist Markdown locally in the working copy, and
+   spawns the named jackin role
    with the named runtime through the same container mechanism as the CLI
    (D-009), handing it the issue's prompt via `/goal`, pointing at the
    local checklist file.
@@ -95,8 +99,9 @@ human ── jackin CLI ──┐ │
    daemon reports completion on the issue. Otherwise **failed** and the
    failure policy applies (Q-008): retry, change runtime, split, or
    escalate.
-8. **Merged.** The result is integrated according to the merge strategy
-   (Q-007). Issues blocked by this one become runnable.
+8. **Pull request.** The daemon opens or updates the pull request on
+   GitHub from the task's branch. Merge follows the merge strategy (Q-007).
+   Issues blocked by this one become runnable.
 
 ## Daemon behavior
 
