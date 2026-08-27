@@ -438,7 +438,15 @@ overlap in execution; review tasks never gate the next milestone (D-055).
 12. **M12 Multi-host** — remote daemon transport, placement, no duplicate
     execution.
 
+## 10c. Naming and escalation
+
+There is no separate product name: the feature is the jackin daemon's
+"managed execution" (D-066). Roadmap issues are created and assigned to
+jackin by M1-12 under label `auto-dispatch`; agent-created follow-ups
+dispatch only when the parent carries that label (D-067). Escalation is
+Linear-only; the host session is first responder during the roadmap
+(D-068).
+
 ## 11. Open questions
 
-See `OPEN-QUESTIONS.md`: Q-002 (name), Q-005 (planner approval detail),
-Q-009 (delivery beyond Linear). None blocks execution (D-050, D-053).
+None (see `OPEN-QUESTIONS.md`).

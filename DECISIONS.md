@@ -1082,3 +1082,55 @@ without credentials and lets role images build in public CI.
 D-035 (credentials in 1Password only) and D-059 (text-only evidence).
 Repository creation tasks (M1-04a, M1-05a..c) specify `--public`. The
 browser profile, tokens, and service-account secrets stay outside git.
+
+## D-066 — 2026-08-27 — No separate product name: it is the jackin daemon, "managed execution"
+
+**Decision.** The manager has no name of its own. It is jackin's daemon
+(`jackin daemon`) and the feature is called "managed execution". Q-002 is
+closed; "the manager" in older documents means the jackin daemon's
+managed-execution logic.
+
+**Rationale.** D-009 and Q-001 placed it inside jackin; a second brand adds
+nothing.
+
+**Consequences.** New text says "jackin daemon" or "managed execution";
+old text is not rewritten.
+
+## D-067 — 2026-08-27 — Roadmap issues are created and assigned by agents; follow-ups dispatch only under `auto-dispatch`
+
+**Decision.** Closing Q-005 in line with unattended execution (D-050): the
+issues for this roadmap are created by M1-12 from the task folders and are
+also assigned to jackin by that task, in dependency order, so no human
+assignment is needed for the roadmap to run. Follow-up issues that agents
+create during work (D-028) are left unassigned in the backlog unless the
+parent issue carries the label `auto-dispatch`, in which case the creating
+agent may assign the follow-up to jackin. Every roadmap issue carries
+`auto-dispatch`. Outside this roadmap the default stays: a human assigns
+(D-011).
+
+**Rationale.** The human asked for the whole work to be executed without
+being disturbed; requiring a human click per issue contradicts that. The
+label keeps D-011's protection for everything that is not this roadmap
+and keeps self-generated work from dispatching by accident.
+
+**Consequences.** M1-12 scope: create, label (`auto-dispatch` included),
+relate, and assign. Q-013 label set gains `auto-dispatch`. D-028
+consequence amended accordingly.
+
+## D-068 — 2026-08-27 — Escalation stays in Linear; the host session handles it
+
+**Decision.** Closing Q-009: blocked, stuck, and elicitations are
+delivered in Linear only (D-029, D-049, D-051). No email, Slack, push, or
+phone channel is added in this roadmap. During this roadmap the host
+Claude Code session that drives the work watches Linear and the daemon,
+answers elicitations it can answer, applies the stuck rule (D-063), and
+records anything only the human can answer as a preflight defect
+(D-050) — it does not interrupt the human. A push/phone surface is a
+post-M12 backlog item, not an open question.
+
+**Rationale.** The human wants the work done without being disturbed;
+Linear already holds every state; the host session is the operator for
+the duration.
+
+**Consequences.** `OPEN-QUESTIONS.md` is empty. ROADMAP §6 process notes
+that the host session is the first responder to escalations.
