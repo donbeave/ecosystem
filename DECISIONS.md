@@ -331,8 +331,6 @@ down validating the core loop.
 
 ## D-018 — 2026-08-27 — Each repository carries a managed-work workflow file
 
-*Proposed in `concept/borrowed-from-symphony.md`; adopted by D-053.*
-
 **Decision.** A repository worked on by the manager may contain
 `.jackin/workflow.toml` and an optional `.jackin/WORKFLOW.md`. The TOML
 holds machine settings for managed runs in that repository: `[hooks]`
@@ -360,8 +358,6 @@ question. Q-014 gets its verification command location. Symphony's
 
 ## D-019 — 2026-08-27 — The daemon keeps a local, non-authoritative run ledger
 
-*Proposed in `concept/borrowed-from-symphony.md`; adopted by D-053.*
-
 **Decision.** The tracker remains the only authority for what work
 exists and its state (D-010). The daemon additionally persists a local
 ledger (per host, SQLite or equivalent) of claims, attempts with kind
@@ -381,8 +377,6 @@ stands; the ledger is a cache with extras. The termrock TUI reads
 history from the ledger.
 
 ## D-020 — 2026-08-27 — Dispatchability and issue states on Linear
-
-*Proposed in `concept/borrowed-from-symphony.md`; adopted by D-053.*
 
 **Decision.** The Linear adapter derives one boolean `dispatchable` per
 issue. It is true only when: the issue's `delegate` is the jackin app
@@ -408,8 +402,6 @@ non-dispatchable, so no agent burns tokens while a human reviews.
 
 ## D-021 — 2026-08-27 — Retry, backoff, stall, and workspace reuse
 
-*Proposed in `concept/borrowed-from-symphony.md`; adopted by D-053.*
-
 **Decision.** After a clean agent exit with an incomplete checklist the
 daemon starts a `continuation` attempt after 1 s, up to
 `max_continuations` (default 20). After a failure the delay is `min(10 s
@@ -434,8 +426,6 @@ fresh-container-per-attempt lean in `analysis/symphony.md` §10.
 
 ## D-022 — 2026-08-27 — Concurrency caps and dispatch order
 
-*Proposed in `concept/borrowed-from-symphony.md`; adopted by D-053.*
-
 **Decision.** Slots are enforced at four levels, all from configuration:
 per host (`max_concurrent_agents`, daemon), per repository
 (`[limits].max_concurrent`), per repository state
@@ -451,8 +441,6 @@ falls back to another execution mode.
 to pass to jackin", which is jackin's `[docker.grants]` surface.
 
 ## D-023 — 2026-08-27 — Tracker credentials never enter the container; the daemon is the only tracker writer
-
-*Proposed in `concept/borrowed-from-symphony.md`; adopted by D-053.*
 
 **Decision.** The Linear token is held by the daemon only. The daemon
 pre-fetches everything the agent needs from the issue into the workspace
@@ -474,8 +462,6 @@ and open or merge PRs.
 
 ## D-024 — 2026-08-27 — Managed runs are ordinary attachable jackin sessions
 
-*Proposed in `concept/borrowed-from-symphony.md`; adopted by D-053.*
-
 **Decision.** The daemon starts every managed run as a jackin instance
 whose agent runs interactively on the capsule PTY with the rendered
 prompt delivered into that session at start. The daemon never uses a
@@ -492,8 +478,6 @@ a protocol; we own it through the capsule, which already exists.
 session (see the gap list).
 
 ## D-025 — 2026-08-27 — The daemon exposes a state snapshot; no UI is on the correctness path
-
-*Proposed in `concept/borrowed-from-symphony.md`; adopted by D-053.*
 
 **Decision.** The daemon answers a synchronous state query over its
 socket returning `running`, `retrying`, `blocked`, per-host totals,
@@ -512,8 +496,6 @@ structured and carry `issue_id`, `issue_identifier`, `attempt`, `host`,
 of the TUI stays open.
 
 ## D-026 — 2026-08-27 — Multi-host: one manager, one jackin daemon per host
-
-*Proposed in `concept/borrowed-from-symphony.md`; adopted by D-053.*
 
 **Decision.** The manager talks to one jackin daemon per host. A run's
 identity is `(issue, host, attempt)`. Placement picks the least-loaded
@@ -534,8 +516,6 @@ first host remains open.
 
 ## D-027 — 2026-08-27 — Failure classes decide recovery
 
-*Proposed in `concept/borrowed-from-symphony.md`; adopted by D-053.*
-
 **Decision.** Failures are classified as workflow/config, workspace (git
 preparation, hooks), agent (exit, stall, timeout, blocked past
 deadline), tracker, or observability. Agent failures retry with backoff
@@ -550,8 +530,6 @@ next tick. Observability failures never stop the daemon.
 
 ## D-028 — 2026-08-27 — Agent-proposed follow-up issues never dispatch by themselves
 
-*Proposed in `concept/borrowed-from-symphony.md`; adopted by D-053.*
-
 **Decision.** A role may propose follow-up work. The daemon creates such
 issues in Linear on the agent's behalf, unassigned, in a backlog state,
 linked as related (and `blocks` when stated) to the current issue. They
@@ -565,8 +543,6 @@ runaway self-generated work.
 is issues awaiting human assignment.
 
 ## D-029 — 2026-08-27 — Escalation is a blocker brief delivered as a Linear elicitation
-
-*Proposed in `concept/borrowed-from-symphony.md`; adopted by D-053.*
 
 **Decision.** When a run reaches capsule state `Blocked`, exhausts
 attempts, or the prompt frame's escape-hatch conditions are met, the
@@ -586,8 +562,6 @@ and session states (`analysis/linear-agents.md` A3).
 the termrock TUI mirrors it from the ledger.
 
 ## D-030 — 2026-08-27 — Completion bar for the agent, verification command for the daemon
-
-*Proposed in `concept/borrowed-from-symphony.md`; adopted by D-053.*
 
 **Decision.** Two distinct gates. The prompt frame's completion bar
 (checklist done and mirrored, tests green, branch pushed, PR open and
@@ -611,8 +585,6 @@ is repository-owned and committed on the base branch, so the
 implementing agent cannot rewrite it on its task branch.
 
 ## D-031 — 2026-08-27 — Merge is a human-triggered, agent-executed, daemon-confirmed attempt
-
-*Proposed in `concept/borrowed-from-symphony.md`; adopted by D-053.*
 
 **Decision.** A human moves an issue to the repository's `merging`
 state. The daemon dispatches a `merge` attempt (same role and runtime,
@@ -955,11 +927,12 @@ loop to run and is clearer as a plain prompt.
 
 ## D-045 — 2026-08-27 — New purpose-built roles under the `donbeave` GitHub account
 
-Amended by D-074, D-078, D-089 (reciprocal note, D-107): `jackin-the-architect`
-does receive exactly the three changes this run needs — CI on GitHub-hosted
-runners for `pull_request` and the removal of `[claude].model` plus the DCO
-sign-off hook (M1-13), and `default_agent` (M3-02). Nothing else about the
-existing roles is modified, and no project-specific tooling is added.
+Amended by D-074, D-078, D-089 (reciprocal note, D-107): `jackin-the-
+architect` does receive exactly the three changes this run needs — CI on
+GitHub-hosted runners for `pull_request` and the removal of
+`[claude].model` plus the DCO sign-off hook (M1-13), and `default_agent`
+(M3-02). Nothing else about the existing roles is modified, and no
+project-specific tooling is added.
 
 **Decision.** The jackin agent roles used to build this product are new
 roles created in the `donbeave` GitHub account, designed purely for this
@@ -1200,11 +1173,6 @@ not block anything.
 objection and has asked for independent execution; waiting on explicit
 per-item confirmation is exactly the blocking D-050 forbids.
 
-**Consequences.** `OPEN-QUESTIONS.md` keeps only the genuinely open
-items; `ROADMAP.md` §7 is reduced accordingly; `SPEC.md` is updated to
-state the adopted answers; `concept/borrowed-from-symphony.md` proposals
-are marked adopted.
-
 ## D-054 — 2026-08-27 — The roadmap is finalized
 
 **Decision.** `ROADMAP.md` is final. Task ids and the dependency graph are
@@ -1243,16 +1211,10 @@ findings become follow-up checklist items on the issue they reviewed.
 a human merge is exactly such a wait. Branch builds are sufficient until the
 server milestone needs published artifacts.
 
-**Consequences.** Review tasks are marked `non-blocking` in `ROADMAP.md` and
-appear in no `depends_on`; `SPEC.md` §9d and §6 step 12 drop the human
-merge; the termrock `CONTRIBUTING.md` clause (D-047, D-053) reads "agent
-merges after `crew-reviewer` review has been requested", not "human
-merges"; `AGENTS.md` rule 9 is unchanged for this repository.
-
 ## D-056 — 2026-08-27 — The host is OrbStack; laptop caps are 6/3/1/1
 
-Amended by D-071: the `~/.claude` cap for this run is 2, not 3, because the
-host session is a permanent consumer of that account home.
+Amended by D-071: the `~/.claude` cap for this run is 2, not 3, because
+the host session is a permanent consumer of that account home.
 
 **Decision.** The developer machine runs OrbStack 2.2.3 (18 CPU, about
 122 GiB available to Docker, 1.6 TiB free disk; Docker context `orbstack`;
@@ -1264,10 +1226,9 @@ no Docker Desktop). jackin treats it as a plain Docker daemon
 limits; OrbStack on this machine has room for six role containers plus
 DinD, and one Claude account can carry three concurrent sessions.
 
-**Consequences.** Every "Docker Desktop" mention in the preflights is
-replaced by the OrbStack facts; M3-05 and `SPEC.md` §6 carry the new caps;
-wave planning in `ROADMAP.md` §3 may schedule up to two `~/.claude`
-container tasks at once (three minus the host session, D-071).
+**Consequences.** Wave planning in `ROADMAP.md` §3 may schedule up to
+two `~/.claude` container tasks at once (three minus the host session,
+D-071).
 
 ## D-057 — 2026-08-27 — Automatic lane fallback on quota exhaustion or stuck
 
@@ -1285,9 +1246,8 @@ session re-lanes a task by hand and records it as a preflight defect.
 run stops without a human; a defined next lane turns both into a retry
 instead of a wait.
 
-**Consequences.** M6 gains task M6-05 (depends on M3-05 and M7-02);
-`SPEC.md` §6 step 8 and `concept/manager.md` describe the fallback; the
-retry ledger (D-019) records the lane of every attempt.
+**Consequences.** The retry ledger (D-019) records the lane of every
+attempt.
 
 *Amended by D-071: a hand re-lane is recorded in `PROGRESS.md` only, never
 as a preflight defect; quota fallback is per account home and consumes no
@@ -1349,9 +1309,6 @@ filed in the task folder.
 **Rationale.** These tasks have no container; the host session is the only
 place their checks can run and it already holds the evidence.
 
-**Consequences.** `host` rows in `ROADMAP.md` name the host session as the
-verifier; the task-format `verify.sh` contract states the host exception.
-
 *Amended by D-081: every host-side check (Linear token, `op`, daemon
 socket, host `docker`) runs in the host session whatever the task's role.*
 
@@ -1383,11 +1340,6 @@ and every `TASK.md` carry the instruction.
 **Rationale.** Most stalls are solvable inside the session (a wrong
 assumption, a missing file, a flaky check); escalating first wastes the
 human's attention and violates D-050.
-
-**Consequences.** `AGENTS.md` rule 11; `concept/task-format.md` gains a
-"When stuck" section in the `TASK.md` template; `SPEC.md` §9f; the M5
-stuck transition and the M6-05 fallback are preceded by this analysis
-step.
 
 ## D-064 — 2026-08-27 — CI for this roadmap runs on GitHub-hosted runners, not velnor
 
@@ -1522,20 +1474,16 @@ limit) cannot carry the wave order and the operator checklist, and because
 a resumable run needs its state (`PROGRESS.md`, `PREFLIGHT-DEFECTS.md`) in
 files, not in a session's memory (D-050, D-061, D-068).
 
-**Consequences.** `AGENTS.md` rule 1 names the root script as the second
-exception; `README.md` and `AGENTS.md` map the new files; `ROADMAP.md` §6
-names `GOAL.md` as the entry point and the two ledgers; `tasks/README.md`
-keeps its `Task` and `Status` columns with lowercase status values because
-the root script parses them by header name. The script and the `goal/`
-files are frozen during a run except through a decision here.
+**Consequences.** The root `verify.sh` and the `goal/` files are frozen
+during a run except through a decision here.
 
 ## D-070 — 2026-08-27 — The run has two terminal outcomes; a task can be `exhausted`
 
-Adopted under D-053 (bulletproofing round 1). Amended by D-083 (the
-BLOCKED predicate also requires no `in-progress` or `waiting` row and the
-BLOCKED message ends on script output) and D-084 (attempts are counted per
-epoch; an `exhausted:` row has no proof command and is closed by the next
-session start; `blocked` never propagates to dependents).
+Amended by D-083 (the BLOCKED predicate also requires no `in-progress`
+or `waiting` row and the BLOCKED message ends on script output) and
+D-084 (attempts are counted per epoch; an `exhausted:` row has no proof
+command and is closed by the next session start; `blocked` never
+propagates to dependents).
 
 **Decision.** The `/goal` run ends in exactly one of two outcomes, both of
 which satisfy the run's goal condition for the current session: COMPLETE —
@@ -1560,20 +1508,15 @@ count with a named terminal row gives it one without weakening the
 "fix, never route around" bias (D-046, D-063), because the row is filed only
 after the analysis has run on every attempt.
 
-**Consequences.** `GOAL.md` prompt states both outcomes and both `blocked`
-reasons; `goal/EXECUTION.md` §5 step 5 and §6 mirror them;
-`PREFLIGHT-DEFECTS.md` accepts the `exhausted:` kind; `AGENTS.md` is
-unchanged.
-
 ## D-071 — 2026-08-27 — Quota fallback is per account home, consumes no attempt, and is never a preflight defect
 
-Adopted under D-053 (bulletproofing round 1). Amends D-057 and the D-027
-interpretation in `SPEC.md` §6 step 8. Amended by D-090: the reset-time
-command is `jackin usage host snapshot --agent <claude|codex> --format
-json` (there is no `jackin usage host accounts`), the host session applies
-a headroom reserve rule before drawing on `~/.claude`, and a limit hit on
-the session itself is survived by Claude Code's auto-continue setting, not
-by a poll the limited session could not run.
+Amends D-057 and the D-027 interpretation in `SPEC.md` §6 step 8.
+Amended by D-090: the reset-time command is `jackin usage host snapshot
+--agent <claude|codex> --format json` (there is no `jackin usage host
+accounts`), the host session applies a headroom reserve rule before
+drawing on `~/.claude`, and a limit hit on the session itself is
+survived by Claude Code's auto-continue setting, not by a poll the
+limited session could not run.
 
 **Decision.** Provider quota exhaustion is an infrastructure-class failure:
 it consumes no attempt. The re-launch skips every lane whose account home
@@ -1605,20 +1548,15 @@ preflight defect" wording would stop the run on the first quota event with
 a row the human cannot resolve. The host session and its subagents draw on
 the same `~/.claude` budget as the L1..L3 containers.
 
-**Consequences.** `ROADMAP.md` §5 prose and M6-05 scope, `SPEC.md` §6 step
-8, `goal/EXECUTION.md` §4 and §6, `GOAL.md` prompt, and `concept/manager.md`
-carry this wording; `tasks/README.md` gains the status `waiting`; M6-05's
-tests assert the per-account-home chain and an unchanged attempt counter.
-
 ## D-072 — 2026-08-27 — Graph amendments: M1-01 is wave 0; M1-09 and M1-12 depend on M1-13; M1-09 depends on M1-10
 
 *Amended by D-114: M1-01 is no longer an authoring task; every task bundle
 exists before the run starts.*
 
-Adopted under D-053 (bulletproofing round 1). Amends D-054. Amended by
-D-088: M1 wave 5 is split because throwaway loads count as lane use, and
-M1-01's verify clause "n = total − 1" is replaced by a state-independent
-check (the row is still `in-progress` when its verify runs).
+Amends D-054. Amended by D-088: M1 wave 5 is split because throwaway
+loads count as lane use, and M1-01's verify clause "n = total − 1" is
+replaced by a state-independent check (the row is still `in-progress`
+when its verify runs).
 
 **Decision.** Three edges of the frozen graph change because the findings
 proved an impossible ordering or a missing edge. (1) M1-01 has no
@@ -1651,12 +1589,12 @@ time).
 
 ## D-073 — 2026-08-27 — Issues are delegated to jackin only when the daemon can serve them; the host session closes issues; M1-12 re-runs after every authoring
 
-Adopted under D-053 (bulletproofing round 1). Amends D-067 and D-060.
-Amended by D-087 (the host session completes every finished task's issue
-for the whole run, not only until M9-01; the daemon creates the agent
-session for a delegated issue itself; a `response` is posted only when a
-session exists) and D-088 (the early-start tasks M3-01, M3-03, M4-02,
-M4-03 may run before M1-12 exists; every other M2+ task waits for it).
+Amends D-067 and D-060. Amended by D-087 (the host session completes
+every finished task's issue for the whole run, not only until M9-01; the
+daemon creates the agent session for a delegated issue itself; a
+`response` is posted only when a session exists) and D-088 (the early-
+start tasks M3-01, M3-03, M4-02, M4-03 may run before M1-12 exists;
+every other M2+ task waits for it).
 
 **Decision.** M1-12 creates, labels (`auto-dispatch` included), relates,
 and links every M2+ issue but sets no delegate; issues for tasks already
@@ -1690,22 +1628,17 @@ keep every dependent non-dispatchable (D-020), so the daemon path would
 wait forever. M6..M12 folders are authored after M1-12 ran once, so their
 issues need a re-run.
 
-**Consequences.** `ROADMAP.md` M1-12 and M2-02/M2-06/M3-05 rows, §6 item 8,
-`SPEC.md` §10c, `goal/EXECUTION.md` §3, §4 and §5 steps 1, 7, 8,
-`GOAL.md` prompt.
-
 ## D-074 — 2026-08-27 — Role repositories are effective on `main`; jackin and termrock PRs stay open during the run
 
 *Amended by D-112: a change to a role repository is still made in a per-task
 worktree and branch and integrated under the repository's integrator lease.*
 
-Adopted under D-053 (bulletproofing round 1). Amends D-047, D-048, D-055,
-D-058. Amended by D-088 (M11-01a merges jackin `feat/managed-execution`
-into `main` once, before M11-02, because the role-publishing validator is
-built from `main`) and D-089 (the-architect's CI switch happens in M1-13,
-its first merge; `delete_branch_on_merge` is turned off on three
-repositories; merge protocol and the single DCO `--force-with-lease`
-exception).
+Amends D-047, D-048, D-055, D-058. Amended by D-088 (M11-01a merges
+jackin `feat/managed-execution` into `main` once, before M11-02, because
+the role-publishing validator is built from `main`) and D-089 (the-
+architect's CI switch happens in M1-13, its first merge;
+`delete_branch_on_merge` is turned off on three repositories; merge
+protocol and the single DCO `--force-with-lease` exception).
 
 **Decision.** `jackin load` builds a role from the cached default branch
 only and `--role-branch` is interactive-only, so a role change is effective
@@ -1737,13 +1670,7 @@ and deletes branches on merge, which would remove the D-042/D-047 pin;
 GitHub allows one open PR per head→base, so the milestone reviews are
 reviews of one long-lived PR at successive commits.
 
-**Consequences.** `GOAL.md` prompt, `AGENTS.md` rule 10, `SPEC.md` §9d,
-`ROADMAP.md` M3-02, M3-02a, M11-02, M1-13 note, §6 step 6, `concept/roles.md`
-§4, `goal/EXECUTION.md` §4 rules and §5 step 6a, `goal/PREFLIGHT.md` §2.
-
 ## D-075 — 2026-08-27 — Golden-frame blessing is pre-approved; the host session blesses
-
-Adopted under D-053 (bulletproofing round 1).
 
 **Decision.** The human's `goal/PREFLIGHT.md` §5 checkbox is the recorded
 approval for blessing termrock golden frames for M10-03 and M10-04. The
@@ -1759,17 +1686,13 @@ Blessing is never a task gate, never a preflight defect, and never a STOP.
 **Rationale.** A mid-run human approval contradicts the unattended goal
 (D-050) and guaranteed a STOP before M10-04 with thirty tasks remaining.
 
-**Consequences.** `goal/PREFLIGHT.md` §5 and §6, `ROADMAP.md` M10 milestone
-proof, M10 preflight paragraph, M10-03 verify, `concept/roles.md` builder
-threat-model cell.
-
 ## D-076 — 2026-08-27 — Human-only GitHub and 1Password steps move into preflight
 
-Adopted under D-053 (bulletproofing round 1). Amended by D-089 (the App
-is installed with access to all repositories; the scratch repository is
-named) and D-090 (item (3): auto-lock Never is mandatory with no
-service-account fallback; item (5): M11-01 verifies and records, M11-03
-wires the server daemon; the laptop config never switches).
+Amended by D-089 (the App is installed with access to all repositories;
+the scratch repository is named) and D-090 (item (3): auto-lock Never is
+mandatory with no service-account fallback; item (5): M11-01 verifies
+and records, M11-03 wires the server daemon; the laptop config never
+switches).
 
 **Decision.** (1) The GitHub App `jackin-daemon` is created and installed
 by the human in preflight for each of `jackin-project` and `tailrocks`
@@ -1800,16 +1723,13 @@ verifies that they resolve and switches daemon config, it creates nothing.
 **Rationale.** Each of these was either assigned to an agent that cannot
 perform it or specified without the name the agent would look up.
 
-**Consequences.** `goal/PREFLIGHT.md` §1, §2, §4, §5; `ROADMAP.md` M1-05d,
-M8-01, M11-01, M8 and M11 preflight paragraphs; `concept/credentials.md` §4.
-
 ## D-077 — 2026-08-27 — Browser session travels as agent-browser storage state; the operator image uses Debian Chromium
 
-Adopted under D-053 (bulletproofing round 1). Amends D-032/Q-017 wiring.
-Amended by D-090: the login commands use `open <url>` (a bare
-`agent-browser --headed --profile … --session operator` does nothing) and
-the standing proof reads `agent-browser state --help`, since the top-level
-`--help` of 0.35.1 lists no `state save`/`state load`.
+Amends D-032/Q-017 wiring. Amended by D-090: the login commands use
+`open <url>` (a bare `agent-browser --headed --profile … --session
+operator` does nothing) and the standing proof reads `agent-browser
+state --help`, since the top-level `--help` of 0.35.1 lists no `state
+save`/`state load`.
 
 **Decision.** A Chrome user-data directory created on macOS is not readable
 by Linux Chromium (cookies are encrypted with an OS-bound key). The
@@ -1835,17 +1755,14 @@ default.
 while the host-only proof passes; the CfT gap would stop M1-05b, which is
 on the critical path.
 
-**Consequences.** `goal/PREFLIGHT.md` §2, `ROADMAP.md` M1-05b and M1-06,
-`concept/roles.md` §3.1 and §3.2, `analysis/roles/operator-needs.md`.
-
 ## D-078 — 2026-08-27 — Lane mechanics: workspace env, Codex hook, privileged DinD, hand-written on-demand binding
 
-Adopted under D-053 (bulletproofing round 1). Amends D-039/D-058 wiring.
-Amended by D-085 (item (1): a lane is a template merged into a per-task
-saved workspace `task-<id>`, because a saved workspace is selected only by
-name and pins one `workdir`), D-090 (item (4): the file is
-`~/.config/jackin/config.toml`), and D-091 (item (3): the DinD grant never
-serves a nested `jackin load`; launch-based verifies are host parts).
+Amends D-039/D-058 wiring. Amended by D-085 (item (1): a lane is a
+template merged into a per-task saved workspace `task-<id>`, because a
+saved workspace is selected only by name and pins one `workdir`), D-090
+(item (4): the file is `~/.config/jackin/config.toml`), and D-091 (item
+(3): the DinD grant never serves a nested `jackin load`; launch-based
+verifies are host parts).
 
 **Decision.** jackin has no per-workspace model or effort knob today; the
 only model source is the manifest's `--model`. Therefore: (1) M1-13 writes
@@ -1884,13 +1801,9 @@ image inspect` label, real launches for `default_agent`).
 code does not have; leaving them would make M1-05d, M1-13, M3-02a, and
 M11-02 fail their own verify.
 
-**Consequences.** `ROADMAP.md` M1-05b, M1-05d, M1-13, M3-01, M3-02a, M11-02,
-§4, §5, M1 preflight; `SPEC.md` §9c; `concept/roles.md` §3.1, §3.2, §5, §7;
-`concept/task-format.md` example; `analysis/roles/jackin-dev-needs.md` §3.
-
 ## D-079 — 2026-08-27 — Reviewer identity and verdicts before M8; merge authorization lives in the task text
 
-Adopted under D-053 (bulletproofing round 1). Amends D-055 wiring.
+Amends D-055 wiring.
 
 **Decision.** While the reviewer's `gh` identity equals the PR author
 (every review before M8-01, and any later PR opened by the forwarded `gh`),
@@ -1916,14 +1829,7 @@ author; jackin's own `.github/AGENTS.md` demands a per-PR operator "merge
 it", which the GOAL prompt forbids asking for, so the authorization must be
 in the artifact the agent reads.
 
-**Consequences.** `concept/roles.md` §1, §3.1, §3.2 verdict flow, §6;
-`analysis/roles/review-role-and-conventions.md` A.5;
-`analysis/roles/jackin-dev-needs.md`; `concept/task-format.md` template;
-`ROADMAP.md` review rows, M1-05a, M1-05c, §4 role table.
-
 ## D-080 — 2026-08-27 — Linear OAuth wiring: loopback redirect, placeholder webhook URL, secret never in argv
-
-Adopted under D-053 (bulletproofing round 1).
 
 **Decision.** The Linear OAuth app's callback URL is the literal
 `http://localhost:53682/callback` (nothing serves it; the authorization code
@@ -1944,18 +1850,15 @@ row so M1-01 copies it into `tasks/M1-10/TASK.md`.
 would invent a public URL or stop; two documents disagreed on whether the
 webhook secret exists.
 
-**Consequences.** `ROADMAP.md` M1-07, M1-10, M1-11; `concept/credentials.md`
-rows 1 and 2.
-
 ## D-081 — 2026-08-27 — Host-side verification parts, evidence secret scan, and read-count wording
 
-Adopted under D-053 (bulletproofing round 1). Amends D-061 and D-013.
-Amended by D-086 (item (1): `verify.sh` takes `container|host` and the
-host part asserts the container verdict, so the concatenation can never
-mask a failure; the in-container part runs through `docker exec`, never
-typed into the TUI), D-087 (item (3): a fourth log tag `pre-read`, one
-`write` line per logical write with a `kind`), and D-091 (item (1): a
-launch of or attach to a jackin instance is always a host part).
+Amends D-061 and D-013. Amended by D-086 (item (1): `verify.sh` takes
+`container|host` and the host part asserts the container verdict, so the
+concatenation can never mask a failure; the in-container part runs
+through `docker exec`, never typed into the TUI), D-087 (item (3): a
+fourth log tag `pre-read`, one `write` line per logical write with a
+`kind`), and D-091 (item (1): a launch of or attach to a jackin instance
+is always a host part).
 
 **Decision.** (1) D-061 extends from `host` rows to host-side checks: any
 verify part that needs the Linear token, `op`, the host daemon socket, or
@@ -1994,23 +1897,18 @@ never enters a container (D-023), so live checks cannot run inside;
 `verify.out` is committed to a public repository (D-065); the literal
 "one read, nothing else" was unsatisfiable by the polling design.
 
-**Consequences.** `ROADMAP.md` M1-07, M2-02, M2-06, M3-05, M3-06, M4-01,
-M4-03, M4-04, M4-05, M5-04, M5-06, M6-02, M6-03, M7-03, §1 M5/M6 proof cells;
-`SPEC.md` §7 read sentence; `concept/task-format.md` `verify.sh` contract;
-`goal/EXECUTION.md` §5.
-
 ## D-082 — 2026-08-27 — Execution mechanism per runtime, container-path dialog handling, and resume checks
 
-Adopted under D-053 (bulletproofing round 1). Amends D-036 wiring.
-*Amended by D-121: `--dangerously-bypass-approvals-and-sandbox` is the
-rule for every Codex launch, container as well as interim host process.*
-Amended by D-085 (items (1)–(2): the `CODEX_HOME=`/`CLAUDE_CONFIG_DIR=`
-prefixes select nothing in `jackin load`; the account comes from the
-per-task workspace; the prefixes remain only for the `codex exec` interim
-and the host probes of item (4)) and D-086 (item (2): one-line prompt
-pointing at the staged `.jackin/task/TASK.md`, eject by container name
-recorded in `tasks/<id>/container.txt`, teardown before any re-launch;
-item (3): an idle surviving tmux session is a finished attempt).
+Amends D-036 wiring. *Amended by D-121: `--dangerously-bypass-approvals-
+and-sandbox` is the rule for every Codex launch, container as well as
+interim host process.* Amended by D-085 (items (1)–(2): the
+`CODEX_HOME=`/`CLAUDE_CONFIG_DIR=` prefixes select nothing in `jackin
+load`; the account comes from the per-task workspace; the prefixes
+remain only for the `codex exec` interim and the host probes of item
+(4)) and D-086 (item (2): one-line prompt pointing at the staged
+`.jackin/task/TASK.md`, eject by container name recorded in
+`tasks/<id>/container.txt`, teardown before any re-launch; item (3): an
+idle surviving tmux session is a finished attempt).
 
 **Decision.** (1) In-session subagents are always Claude on this session's
 `~/.claude`; the `subagents` path therefore serves Claude lanes only
@@ -2056,13 +1954,9 @@ to the lane home after each run (D-046 fix if absent).
 the launch TUI raises dialogs a blind `send-keys` lands in; a restart
 without checking for a surviving run dispatches the same task twice.
 
-**Consequences.** `goal/EXECUTION.md` §1, §2, §3 table, §4, §5, §6;
-`goal/PREFLIGHT.md` §1; `GOAL.md` prompt; `ROADMAP.md` M1-13;
-`analysis/roles/operator-needs.md` §8 wording.
-
 ## D-083 — 2026-08-27 — The `/goal` argument carries the terminal facts; BLOCKED needs a quiet run and ends on script output
 
-Adopted under D-053 (bulletproofing round 2). Amends D-069 and D-070.
+Amends D-069 and D-070.
 
 **Decision.** The invocation is no longer `/goal Follow GOAL.md` but the
 one-line argument printed in `GOAL.md`: the goal is reached only when the
@@ -2090,18 +1984,15 @@ both outcomes on script output makes either verdict a fact, and requiring
 a quiet run keeps D-071 true (a quota wait or a live container is never a
 reason to end).
 
-**Consequences.** `GOAL.md` invocation line, prose, and prompt (B);
-`goal/EXECUTION.md` §1 step 6, §6, §7; `goal/PREFLIGHT.md` line 3 and §6;
-`ROADMAP.md` §6 entry point; `README.md`; `PREFLIGHT-DEFECTS.md` header.
-Every document points at that one line instead of copying it, so the text
-cannot drift.
+**Consequences.** Every document points at that one line instead of
+copying it, so the text cannot drift.
 
 *Clarified 2026-08-27: the line is printed in `README.md` "Start the run";
 `GOAL.md` holds only the prompt the runner executes. The rule is unchanged.*
 
 ## D-084 — 2026-08-27 — Attempt epochs; `exhausted:` rows have no proof command; `blocked` never propagates
 
-Adopted under D-053 (bulletproofing round 2). Amends D-070.
+Amends D-070.
 
 **Decision.** (1) An `exhausted: <id>` row carries `re-run` in its proof
 cell instead of a proof command: `sh tasks/<id>/verify.sh` cannot pass
@@ -2126,10 +2017,6 @@ resume. With propagation, resolving one row un-blocked only the task named
 in it, leaving dependents `blocked` with no open row — a state that is
 neither (A) nor (B), on which the loop would spin.
 
-**Consequences.** `goal/EXECUTION.md` §1 step 2, §3, §6; `GOAL.md` prompt
-clause (b); `PROGRESS.md` and `PREFLIGHT-DEFECTS.md` headers;
-`tasks/README.md` status legend; `goal/PREFLIGHT.md` §6.
-
 ## D-085 — 2026-08-27 — A lane is a template merged into a per-task saved workspace `task-<id>`
 
 *Amended 2026-08-28 (round 3, R3-56/R3-17): the workspace `workdir` is
@@ -2141,8 +2028,7 @@ container-relative `.jackin/task/…` prompt line, and the-architect's
 `MISE_TRUSTED_CONFIG_PATHS=/workspace`. The `--dry-run --format json`
 assertion gains `jq -e '.data.mounts[]|select(.dst=="/workspace")'`.*
 
-Adopted under D-053 (bulletproofing round 2). Amends D-078 (1) and D-082
-(1)–(2).
+Amends D-078 (1) and D-082 (1)–(2).
 
 **Decision.** `jackin load` resolves a saved workspace only when it is
 named as `TARGET` (`jackin load <role> <name>`) or when the current
@@ -2179,17 +2065,13 @@ account, fallback hops landed on the exhausted account, and after M1-13
 every lane's model, account, and DinD setting was silently absent for
 every container-path task.
 
-**Consequences.** `goal/EXECUTION.md` §2, §3 table, §4 container row and
-lane rule; `ROADMAP.md` §2 intro, M1-02a, M1-13, §5 prose; `SPEC.md` §9c;
-`GOAL.md` prompt.
-
 ## D-086 — 2026-08-27 — Container-path mechanics: staged task folder, two-part `verify.sh`, one-line prompt, eject by name, host build refresh, single writer
 
 *Amended by D-111: the single-writer rule applies to the state store; the
 Markdown ledgers are generated projections.*
 
-Adopted under D-053 (bulletproofing round 2). Amends D-074 (push protocol
-for this repository), D-081 (1), D-082 (2)–(3).
+Amends D-074 (push protocol for this repository), D-081 (1), D-082
+(2)–(3).
 
 **Decision.** (1) The container never sees this repository, so the host
 session stages `tasks/<id>/TASK.md`, `task.toml`, `verify.sh`, the
@@ -2240,16 +2122,9 @@ concurrent the-architect instances, `tmux new-session` failing on a
 duplicate name, host parts calling daemon features the stale binary lacks,
 and two writers racing on `tasks/README.md`.
 
-**Consequences.** `goal/EXECUTION.md` §1 step 2, §2, §4 container row and
-rules, §5 steps 0, 4a, 5, 6a, 7; `concept/task-format.md` `TASK.md` and
-`verify.sh` contracts; `ROADMAP.md` M1-01, M1-02, M1-12, M4-04;
-`tasks/README.md` header; `goal/PREFLIGHT.md` §1 (`dash`, `shellcheck`);
-`GOAL.md` prompt.
-
 ## D-087 — 2026-08-27 — Linear mechanics: client-credentials tokens everywhere, daemon-created sessions, one document per tick, rate-limit handling, `pre-read` tag, host closes every issue
 
-Adopted under D-053 (bulletproofing round 2). Amends D-073 and D-081
-(3)–(4).
+Amends D-073 and D-081 (3)–(4).
 
 **Decision.** (1) Tokens: the M1-10 authorization-code exchange installs
 the app; every consumer then uses a `grant_type=client_credentials` token
@@ -2291,29 +2166,11 @@ a literal "nothing else" log assertion was unsatisfiable next to `poll`
 lines and heartbeats; and after M9-01 nothing closed roadmap issues, so
 their `blocks` relations never resolved.
 
-**Consequences.** `ROADMAP.md` M1-10, M1-11, M2-01, M2-02, M2-03, M2-07,
-M3-05, M5-06, M6-03, M12-02, §1 M5/M6 proof cells, §6 item 8;
-`goal/EXECUTION.md` §4 daemon row and Linear-token rule, §5 steps 7 and 9;
-`concept/credentials.md` row 3 and §5.4; `SPEC.md` §5, §6 step 12, §10c;
-`GOAL.md` prompt.
-
 ## D-088 — 2026-08-27 — Graph amendments: M11-01a; M1 wave 5 split; M2+ tasks wait for M1-12; M11-01 starts with M11; M10-02 owns the CONTRIBUTING clause; M1-01's verify is state-independent
 
 *Amended by D-114: no `<milestone>-00 authoring` task remains in the graph.*
 
-*Amended 2026-08-28 (bulletproofing round 3, adopted under D-053): twelve
-edges are added to the frozen graph so that no proof run is runnable while
-its real input is `blocked` or `waiting`. `M3-05` gains `M2-03` (its host
-verify needs the polling tick to detect the delegated issue), and each of
-`M4-04`, `M4-06`, `M5-06`, `M6-03`, `M7-04`, `M8-03`, `M9-02`, `M10-05`,
-`M11-04`, `M12-03` gains `M3-07` (each needs a dispatchable scratch issue
-in the repository `tasks/M3-07/scratch-repo.txt` names). Task ids and the
-task count are unchanged. `ROADMAP.md` §2 `depends_on` cells, §3 mermaid
-graph (which draws each new edge unless another drawn edge already implies
-it) and the M6..M12 wave paragraph carry the edges; M1-01 copies the new
-`depends_on` values into each `task.toml`.*
-
-Adopted under D-053 (bulletproofing round 2). Amends D-054, D-072, D-073.
+Amends D-054, D-072, D-073.
 
 **Decision.** (1) New task M11-01a "Merge jackin `feat/managed-execution`
 to `main` and republish the preview validator" (the-architect, L2,
@@ -2358,15 +2215,9 @@ M1-12 re-run demanded before M1-12 could exist, a laptop config switch
 that would break every later forwarded login, an unowned gate, and a
 deterministic first-task failure).
 
-**Consequences.** `ROADMAP.md` M1-01, M1-06, M1-13, M3-02, M3-02a, M10
-milestone row, M10-02, M11 preflight, M11-01, M11-01a, M11-02, counts, §3
-wave table, §5 lane table; `goal/EXECUTION.md` §3, §5 step 1;
-`concept/roles.md` §4, §7, §8; `GOAL.md` prompt.
-
 ## D-089 — 2026-08-27 — GitHub mechanics: the-architect CI switch in M1-13, three repositories keep the branch, merge protocol, DCO hook, named workflows, scratch repository under `jackin-project`, App on all repositories
 
-Adopted under D-053 (bulletproofing round 2). Amends D-064, D-065, D-074,
-D-076 (1).
+Amends D-064, D-065, D-074, D-076 (1).
 
 **Decision.** (1) `jackin-project/jackin-the-architect` `main` requires
 `ci-required` and `DCO` with no bypass actors, and its `ci.yml` routes
@@ -2407,16 +2258,9 @@ offline runner, the first squash would delete the pinned branch, one
 unsigned Codex commit would make the merge unreachable, and a scratch
 repository created under `donbeave` would 404 every App-token push.
 
-**Consequences.** `goal/PREFLIGHT.md` §2; `goal/EXECUTION.md` §4 branch
-and DCO rules; `ROADMAP.md` M1-04a, M1-13, M3 preflight, M3-02, M3-07,
-M4-06, M6-03, M7/M9 preflights, M8-01, M8-03, M9-02, M11-02, M11-04,
-M12-03, §6 step 6; `concept/roles.md` §4, §7; `concept/task-format.md`
-template.
-
 ## D-090 — 2026-08-27 — Operator and host facts: auto-lock Never is mandatory, corrected tool commands, runtimes in use, server host contract, M11-01 verifies and M11-03 wires, `op` by direct download, session reserve rule
 
-Adopted under D-053 (bulletproofing round 2). Amends D-071, D-076 (3) and
-(5), D-077, D-078 (4).
+Amends D-071, D-076 (3) and (5), D-077, D-078 (4).
 
 **Decision.** (1) 1Password auto-lock Never (and lock-on-sleep off) is a
 hard precondition with no fallback: the host session's `op read` of the
@@ -2469,17 +2313,9 @@ service-account fallback covered only the daemon, the apt pin fails on the
 next `op` release, and the polled recovery from a session limit was
 impossible by construction.
 
-**Consequences.** `goal/PREFLIGHT.md` §1, §2, §5; `goal/EXECUTION.md` §1
-step 4, §4 reserve and login rules, §6; `ROADMAP.md` M1 and M2 preflight
-paragraphs, M1-05b, M1-05d, M1-06, M11 and M12 preflights, M11-01, M11-03,
-§6 step 6; `concept/roles.md` §3.1, §3.2, §5, §7; `concept/task-format.md`
-example; `analysis/roles/operator-needs.md` §2 and install list;
-`DECISIONS.md` D-078 (4) text.
-
 ## D-091 — 2026-08-27 — Verify contracts: launch-based checks are host parts, temporal checks assert on snapshots, `lanes.json`, reviews pin the SHA in `pr.txt`
 
-Adopted under D-053 (bulletproofing round 2). Amends D-058, D-078 (3),
-D-079, D-081 (1).
+Amends D-058, D-078 (3), D-079, D-081 (1).
 
 **Decision.** (1) Any verify that launches a jackin instance, calls
 `jackin hardline`, or asserts on a real container is a `host (D-061):`
@@ -2530,7 +2366,7 @@ and `verify.sh` contract; `concept/roles.md` §3.2 verdict flow; `SPEC.md`
 
 *Amended by D-095: the exact model ids and the effort are pinned there.*
 
-Adopted under D-053. Amends the last sentence of D-071 ("research and
+Amends the last sentence of D-071 ("research and
 verification subagents on Claude use the cheapest model") and D-036.
 
 **Decision.** The `/goal` run is driven by one Claude Code session on the
@@ -2556,10 +2392,7 @@ subagents carry that cost on a budget that is not the bottleneck, and a
 15-line contract keeps their output from re-importing what was delegated
 away.
 
-**Consequences.** `AGENTS.md` "Delegation law" and "Token economy",
-`GOAL.md` prompt, `SPEC.md` §6, and `goal/EXECUTION.md` §2 delegation
-bullet plus the new §8 host-session budget carry this wording; D-071's
-cheapest-model sentence is struck.
+**Consequences.** D-071's cheapest-model sentence is struck.
 
 ## D-093 — 2026-08-27 — Exhausted rows are closed by the human; fixed final-message shape; task-folder files are not "implementation"
 
@@ -2602,12 +2435,8 @@ account is empty. An attempt count held in context is lost by the
 compaction that a long run guarantees. A fixed final-message shape is the
 only thing a judge can check without reading prose.
 
-**Consequences.** `AGENTS.md` two-modes table, run-mode item, stuck rule;
-`GOAL.md` prompt clause (b) and both terminal clauses; `goal/EXECUTION.md`
-§1 step 2, §5 steps 3 and 5, §6, §7 and the new §8;
-`PREFLIGHT-DEFECTS.md` and `tasks/README.md` header prose; `SPEC.md` §6
-step 8; `README.md` working rules. The disposition of every round-3 finding,
-applied or not, is recorded in `findings/disposition.toml`.
+**Consequences.** The disposition of every round-3 finding, applied or
+not, is recorded in `findings/disposition.toml`.
 
 ## D-094 — 2026-08-27 — `GOAL.md` is the pure `/goal` prompt; the invocation lives in `README.md`
 
@@ -2639,10 +2468,8 @@ only") already assert this invariant, while fourteen decisions cited as
 normative by `SPEC.md` and `ROADMAP.md` sat only in
 `concept/borrowed-from-symphony.md` with no anchors (K-39).
 
-**Consequences.** `concept/borrowed-from-symphony.md` keeps a pointer in
-place of the draft text; `SPEC.md` line 8 cites `DECISIONS.md` for
-D-018..D-031. Any future proposal drafted in a concept document is moved
-into `DECISIONS.md` when it is adopted.
+**Consequences.** Any future proposal drafted in a concept document is
+moved into `DECISIONS.md` when it is adopted.
 
 ## D-107 — 2026-08-28 — `D-056` is amended by `D-071`; amendments are reciprocal
 
@@ -2657,9 +2484,9 @@ enforce 2 citing D-071, while `SPEC.md` still said 3 citing D-056 and
 D-056 recorded no amendment. A reader following the precedence rules
 reached the wrong number (K-41).
 
-**Consequences.** `SPEC.md` §6 step 2 and `DECISIONS.md` D-056 are
-corrected here. Any later amendment adds both notes; the cross-document
-invariant lint (D-105) checks caps and reciprocal amendment notes.
+**Consequences.** Any later amendment adds both notes; the cross-
+document invariant lint (D-105) checks caps and reciprocal amendment
+notes.
 
 
 ## D-104 — 2026-08-28 — Decision recording is delegated; the session only commits
@@ -2676,10 +2503,8 @@ both files in one commit.
 An in-place edit requires a read, so the pair was unsatisfiable and no
 escape hatch was named (K-42).
 
-**Consequences.** `goal/EXECUTION.md` §8 drops `DECISIONS.md` and
-`SPEC.md` from the session's "Write" bullet and states the delegation;
-`AGENTS.md` and `GOAL.md` say the same. Committing a file the session did
-not read stays allowed, because the subagent reports what it wrote.
+**Consequences.** Committing a file the session did not read stays
+allowed, because the subagent reports what it wrote.
 
 ## D-108 — 2026-08-28 — 1Password item names carry no unresolvable slug
 
@@ -2698,11 +2523,8 @@ Linear `urlKey` does not exist until M1-10 runs the authorize flow and
 never be written in advance. Removing the slug from the name makes the
 path a constant and keeps the workspace identity as data inside the item.
 
-**Consequences.** `goal/EXECUTION.md` §4, `ROADMAP.md` M1-09, M1-10,
-M8-01 and its §5 preflight paragraph, and `concept/credentials.md` §5.1,
-§5.3, §5.4 use the literal names. M1-10 additionally files
-`tasks/M1-10/linear-org.txt`. Only one Linear workspace is in scope; a
-second one would need a new decision, not a slug.
+**Consequences.** Only one Linear workspace is in scope; a second one
+would need a new decision, not a slug.
 
 ## D-095 — 2026-08-28 — Host model, subagent model, permission mode, allowlist
 
@@ -2749,9 +2571,9 @@ its own plan and write its own oracle inside the same run, so a defect in
 the plan could not be distinguished from a defect in the work, and nothing
 proved the host was capable before the first product task started (K-03).
 
-**Consequences.** `SPEC.md` §9e states the two gates and the shared lock
-hash. `run/LOCK.toml` carries the lock hash both gates print. No product
-task of M1..M12 runs during the readiness-hardening run.
+**Consequences.** `run/LOCK.toml` carries the lock hash both gates
+print. No product task of M1..M12 runs during the readiness-hardening
+run.
 
 ## D-110 — 2026-08-28 — Four machine terminal classes derived by `verify.sh` (plan proposal D-097)
 
@@ -2769,11 +2591,9 @@ as its last line.
 filed as a human prerequisite and end the run as BLOCKED, so a defect in
 the plan masqueraded as a missing operator input (K-27).
 
-**Consequences.** D-069 is amended by this decision: the root `verify.sh`
-gate has four outcomes, not two. `SPEC.md` §9e and `GOAL.md`'s termination
-text name the four classes; `README.md` "Start the run" keeps COMPLETE and
-BLOCKED as the human-facing names of `DONE` and `BLOCKED HUMAN` and adds
-`FAILED SYSTEM`. A model may not write a terminal class into any file.
+**Consequences.** D-069 is amended by this decision: the root
+`verify.sh` gate has four outcomes, not two. A model may not write a
+terminal class into any file.
 
 ## D-111 — 2026-08-28 — Run state is an atomic store; the ledgers are generated projections (plan proposal D-098)
 
@@ -2791,11 +2611,9 @@ no rule described, and restart reconciliation depended on reading prose
 (K-26).
 
 **Consequences.** D-038 and D-086 are amended by this decision:
-`tasks/README.md` and `PROGRESS.md` become generated, and the single-writer
-rule applies to the state store rather than to the Markdown ledgers.
-`SPEC.md` §8 describes the store and its fields; `AGENTS.md` names the
-three added statuses. A hand edit to a projection is a defect, not a
-transition.
+`tasks/README.md` and `PROGRESS.md` become generated, and the single-
+writer rule applies to the state store rather than to the Markdown
+ledgers. A hand edit to a projection is a defect, not a transition.
 
 ## D-112 — 2026-08-28 — One worktree and branch per task; one integrator lease per repository (plan proposal D-099)
 
@@ -2814,10 +2632,8 @@ repository could rebase, force, or clobber each other, and a verify could
 pass on a tree nobody ever integrated (K-16).
 
 **Consequences.** D-046, D-047, and D-074 are amended by this decision.
-`SPEC.md` §9d states the worktree, the branch name, the lease, and the
-integrated-SHA rule; `AGENTS.md` "Repositories, branches, commits" says
-the same. Role repositories keep `main` as their effective branch (D-074),
-but a task that changes one still works in its own worktree and branch and
+Role repositories keep `main` as their effective branch (D-074), but a
+task that changes one still works in its own worktree and branch and
 reaches `main` through the integrator lease.
 
 ## D-113 — 2026-08-28 — Idempotency keys on external mutations; leases carry fencing tokens (plan proposal D-100)
@@ -2852,11 +2668,10 @@ not the plan that ran, and a bundle could change under a task that had
 already read it (K-01, K-05).
 
 **Consequences.** D-062, D-072, and D-088 are amended by this decision:
-task folders for every milestone exist before the run starts, M1-01 is no
-longer an authoring task, and no `<milestone>-00 authoring` task remains
-in the graph. `SPEC.md` §10b drops the "materialises them for M1..M5
-first" clause. A bundle whose hash does not match `run/LOCK.toml` fails
-the static readiness gate of D-109.
+task folders for every milestone exist before the run starts, M1-01 is
+no longer an authoring task, and no `<milestone>-00 authoring` task
+remains in the graph. A bundle whose hash does not match `run/LOCK.toml`
+fails the static readiness gate of D-109.
 
 ## D-115 — 2026-08-28 — Every `analysis/` findings archive needs a disposition file (plan proposal D-102)
 
@@ -2933,10 +2748,8 @@ keeps the planning character of the repository while letting the readiness
 tooling exist.
 
 **Consequences.** D-038, D-069, and D-095 are amended by this decision.
-`AGENTS.md` "Two modes" and `README.md` "Working rules" carry the list;
-`concept/task-format.md` names `expected-evidence.toml` and
-`evidence.json`. A machine file at any other path is a defect. No
-binaries, archives, or generated artifacts (D-059).
+A machine file at any other path is a defect. No binaries, archives, or
+generated artifacts (D-059).
 
 ## D-119 — 2026-08-28 — One runnable predicate, quoted verbatim wherever it is stated
 
@@ -2996,13 +2809,9 @@ it — jackin already launches its role agents with
 `--dangerously-skip-permissions` inside containers — and on the host the
 `deny` list keeps the one irreversible operation (a force push) refused.
 
-**Consequences.** `README.md` "Start the run" prints `claude-yolo --model
-claude-fable-5` and states what the function expands to, so another host
-can reproduce it without the operator's `~/.zshrc`. `goal/PREFLIGHT.md` §1
-adds a standing check that `type claude-yolo` succeeds. `SPEC.md` §9c and
-§9e read `bypassPermissions`. A tool the run needs is no longer added to
-`.claude/settings.json`; only a new irreversible operation is, as a `deny`
-entry.
+**Consequences.** A tool the run needs is no longer added to
+`.claude/settings.json`; only a new irreversible operation is, as a
+`deny` entry.
 
 ## D-121 — 2026-08-28 — Every agent runtime runs in its yolo mode; isolation comes from the container
 
@@ -3062,11 +2871,8 @@ produces either an unused secret or an ambiguous instruction that a
 subagent can read as a publish step — both cost attempts on the critical
 path.
 
-**Consequences.** `SPEC.md` §10b M10 states that no crates.io publish
-happens in this run. `goal/PREFLIGHT.md` §5 M10 becomes "nothing to do"
-and the crates.io token sentence is removed there and from the `ROADMAP.md`
-M10 preflight. A later run that wants the publish records a new decision
-and adds the token item to `concept/credentials.md` §4 then.
+**Consequences.** A later run that wants the publish records a new
+decision and adds the token item to `concept/credentials.md` §4 then.
 
 
 ## D-123 — 2026-08-28 — M1 is independently audited before M2 is activated
