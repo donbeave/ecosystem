@@ -58,6 +58,7 @@ container-relative (D-086).
 - [ ] container check passes: `jackin load donbeave/crew-<p> --dry-run --format json | jq -r .data.role`
 - [ ] container check passes: `tmux`
 - [ ] container check passes: `script`
+- [ ] container check passes: `! grep -qE '^[env.OP_SERVICE_ACCOUNT_TOKEN]' ~/.jackin/roles/donbeave/crew-operator/default/jackin.role.toml`
 - [ ] `verify.container.out` is filed in the task folder.
 - [ ] Every touched repository is committed and pushed.
 - [ ] `sh verify.sh` prints `status: DONE` for each part.

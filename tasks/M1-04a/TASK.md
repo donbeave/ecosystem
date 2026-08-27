@@ -48,6 +48,7 @@ container-relative (D-086).
 ## Checklist
 
 - [ ] The scope above is implemented in the listed repositories.
+- [ ] container check passes: `! grep -rqE 'velnor|self-hosted' .github/workflows`
 - [ ] container check passes: `gh workflow list -R donbeave/jackin-role-template`
 - [ ] `verify.container.out` is filed in the task folder.
 - [ ] Every touched repository is committed and pushed.

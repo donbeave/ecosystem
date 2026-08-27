@@ -31,6 +31,7 @@ attempts = 3
 script = "verify.sh"
 has_container_part = true
 container = [
+  "! grep -rqE 'velnor|self-hosted' .github/workflows",
   "gh workflow list -R donbeave/jackin-role-template",
 ]
 host = []

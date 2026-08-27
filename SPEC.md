@@ -379,8 +379,9 @@ lease per repository admits merges (D-112, D-113).
 
 Any repository under github.com/jackin-project or github.com/tailrocks is
 changed when this effort needs it; defects are bugs to fix there, gaps are
-extensions (D-046). All such changes land on `feat/managed-execution` in
-each repository; this repository commits directly to `main` (D-047).
+extensions (D-046). All such changes reach the integration branch
+`feat/managed-execution` in each repository; this repository commits
+directly to `main` (D-047).
 Each task works in its own git worktree on its own branch
 `managed/<run-id>/<task-id>`, created from the base SHA locked in
 `run/LOCK.toml`. Workers push only their task branch and never push the

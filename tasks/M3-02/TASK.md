@@ -24,7 +24,7 @@ roadmap row instead.
 
 ## Scope
 
-Schema bump (one per PR, Q-021) adding `default_agent` to `RoleManifest`, validated against `agents`; launch precedence becomes issue runtime → workspace `default_agent` → manifest `default_agent` → single agent. B5.4. Update `jackin-the-architect`: its CI `pull_request` lane already runs on GitHub-hosted runners since M1-13 (D-064, D-089); open the PR from `feat/managed-execution`, `gh pr checks <n> --watch --fail-fast`, merge it to `main` in this task (D-074: `jackin load` resolves the default branch only), merge `origin/main` back into the branch and push it, then `jackin load the-architect --rebuild`. The jackin change itself stays on `feat/managed-execution`; the-architect's `main` manifest is branch-build-only until M11, so its `Publish Image` workflow on `main` is expected red from this task until M11-01a (the `jackin-role-action` validator comes from jackin's `preview` release built from `main`, which knows `v1alpha6` only) — non-gating, never a stuck signal.
+Schema bump (one per PR, Q-021) adding `default_agent` to `RoleManifest`, validated against `agents`; launch precedence becomes issue runtime → workspace `default_agent` → manifest `default_agent` → single agent. B5.4. Update `jackin-the-architect`: its CI `pull_request` lane already runs on GitHub-hosted runners since M1-13 (D-064, D-089); merge the task branch into `feat/managed-execution` under the integrator lease (D-112) and open the PR from it, `gh pr checks <n> --watch --fail-fast`, merge it to `main` in this task (D-074: `jackin load` resolves the default branch only), merge `origin/main` back into the branch and push it, then `jackin load the-architect --rebuild`. The jackin change itself stays on `feat/managed-execution`; the-architect's `main` manifest is branch-build-only until M11, so its `Publish Image` workflow on `main` is expected red from this task until M11-01a (the `jackin-role-action` validator comes from jackin's `preview` release built from `main`, which knows `v1alpha6` only) — non-gating, never a stuck signal.
 
 ## References
 
@@ -59,7 +59,7 @@ container-relative (D-086).
 
 Container part (run inside the task container):
 
-> Manifest tests pass; `cargo xtask schema-check --base origin/main` reports exactly this one bump to `v1alpha7` (it is the run's only manifest schema bump, Q-021); `jackin role validate` on the cached `~/.jackin/roles/…/the-architect/default` checkout (HEAD equals the merged "main" commit) passes and it contains "default_agent"; a real launch without `--agent` picks the manifest default (`jackin status --format json` shows the agent; dry-run never reads the manifest)
+> Manifest tests pass; `cargo xtask schema-check --base origin/main` reports exactly this one bump, to version v1alpha7 (the run's only manifest schema bump, Q-021); `jackin role validate` on the cached `~/.jackin/roles/…/the-architect/default` checkout (HEAD equals the merged "main" commit) passes and it contains "default_agent"; a real launch without `--agent` picks the manifest default (`jackin status --format json` shows the agent; dry-run never reads the manifest)
 
 Host part (run by the host Claude Code session, D-061):
 

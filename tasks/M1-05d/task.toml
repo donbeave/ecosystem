@@ -46,6 +46,7 @@ container = [
   "jackin load donbeave/crew-<p> --dry-run --format json | jq -r .data.role",
   "tmux",
   "script",
+  "! grep -qE '^[env.OP_SERVICE_ACCOUNT_TOKEN]' ~/.jackin/roles/donbeave/crew-operator/default/jackin.role.toml",
 ]
 host = []
 

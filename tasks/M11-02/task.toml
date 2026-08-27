@@ -39,6 +39,7 @@ script = "verify.sh"
 has_container_part = true
 container = [
   "jackin role published-image .",
+  "! grep -rqE 'velnor|self-hosted' .github/workflows",
 ]
 host = [
   "gh run list -R donbeave/jackin-crew-<p> --workflow publish-image.yml --branch main --limit 1 --json conclusion | jq -e '.[0].conclusion==\"success\"'",

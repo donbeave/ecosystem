@@ -32,6 +32,7 @@ attempts = 3
 script = "verify.sh"
 has_container_part = true
 container = [
+  "! brew list --formula | grep -qx jackin-preview",
   "jackin workspace create task-probe --workdir ~/.jackin/managed/probe --mount ~/.jackin/managed/probe",
   "jackin load the-architect task-probe --agent codex --dry-run --format json",
   "tmux",

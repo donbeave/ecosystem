@@ -48,6 +48,7 @@ container-relative (D-086).
 ## Checklist
 
 - [ ] The scope above is implemented in the listed repositories.
+- [ ] container check passes: `! brew list --formula | grep -qx jackin-preview`
 - [ ] container check passes: `jackin workspace create task-probe --workdir ~/.jackin/managed/probe --mount ~/.jackin/managed/probe`
 - [ ] container check passes: `jackin load the-architect task-probe --agent codex --dry-run --format json`
 - [ ] container check passes: `tmux`

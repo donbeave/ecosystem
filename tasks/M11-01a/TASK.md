@@ -67,7 +67,7 @@ Container part (run inside the task container):
 
 Host part (run by the host Claude Code session, D-061):
 
-> `gh run view <id> --json jobs --jq '.jobs[] | select(.name=="ci-required") | .labels'` for the PR's last check run lists an `ubuntu-*` label and no `self-hosted`; `gh pr view <n> -R jackin-project/jackin --json state --jq .state` is `MERGED`; `gh release view preview --repo jackin-project/jackin --json targetCommitish --jq .targetCommitish` equals `git rev-parse origin/main`; a fresh `jackin-role` from that release (`gh release download preview --pattern 'jackin-<host target>.tar.gz'`) runs `jackin-role validate .` green on the three crew checkouts; `gh run list -R donbeave/jackin-crew-<p> --workflow ci.yml --branch main --limit 1 --json conclusion | jq -e '.[0].conclusion=="success"'` after a re-run for all three
+> `gh run view <id> --json jobs --jq '.jobs[] | select(.name=="ci-required") | .labels'` for the PR's last check run lists an `ubuntu-*` label and no self-hosted label; `gh pr view <n> -R jackin-project/jackin --json state --jq .state` is `MERGED`; `gh release view preview --repo jackin-project/jackin --json targetCommitish --jq .targetCommitish` equals `git rev-parse origin/main`; a fresh `jackin-role` from that release (`gh release download preview --pattern 'jackin-<host target>.tar.gz'`) runs `jackin-role validate .` green on the three crew checkouts; `gh run list -R donbeave/jackin-crew-<p> --workflow ci.yml --branch main --limit 1 --json conclusion | jq -e '.[0].conclusion=="success"'` after a re-run for all three
 
 ## Evidence expected (D-118)
 

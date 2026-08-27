@@ -49,6 +49,7 @@ container-relative (D-086).
 
 - [ ] The scope above is implemented in the listed repositories.
 - [ ] container check passes: `jackin role published-image .`
+- [ ] container check passes: `! grep -rqE 'velnor|self-hosted' .github/workflows`
 - [ ] host check passes: `gh run list -R donbeave/jackin-crew-<p> --workflow publish-image.yml --branch main --limit 1 --json conclusion | jq -e '.[0].conclusion=="success"'`
 - [ ] host check passes: `docker image inspect <image> --format '{{index .Config.Labels "jackin.role.git.sha"}}'`
 - [ ] host check passes: `git rev-parse HEAD`
