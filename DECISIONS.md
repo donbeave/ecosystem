@@ -2578,3 +2578,22 @@ reached the wrong number (K-41).
 corrected here. Any later amendment adds both notes; the cross-document
 invariant lint (D-105) checks caps and reciprocal amendment notes.
 
+
+## D-104 — 2026-08-28 — Decision recording is delegated; the session only commits
+
+**Decision.** The host session never edits `DECISIONS.md` or `SPEC.md`
+directly. When a decision has to be recorded (D-053), the session
+delegates the edit to a subagent, which appends the decision to
+`DECISIONS.md` and corrects `SPEC.md` in the working tree and returns the
+decision id and the touched paths. The session then commits and pushes
+both files in one commit.
+
+**Rationale.** The host session budget forbids reading `DECISIONS.md` and
+`SPEC.md`, yet also required the session to write them when D-053 applies.
+An in-place edit requires a read, so the pair was unsatisfiable and no
+escape hatch was named (K-42).
+
+**Consequences.** `goal/EXECUTION.md` §8 drops `DECISIONS.md` and
+`SPEC.md` from the session's "Write" bullet and states the delegation;
+`AGENTS.md` and `GOAL.md` say the same. Committing a file the session did
+not read stays allowed, because the subagent reports what it wrote.

@@ -10,7 +10,8 @@ Rules for any agent or person working here. `CLAUDE.md` symlinks to this file; r
 | Execution | `GOAL.md`, `goal/`, `tasks/`, `PROGRESS.md`, `PREFLIGHT-DEFECTS.md`, root `verify.sh` | Runnable and machine files allowed, and only here: the root `verify.sh` (D-069) and everything under `tasks/<id>/` — `verify.sh`, `task.toml`, and evidence (`.out`, `.log`, `.json`, `.toml`, `.txt`, `.cast`) (D-038, D-059). |
 
 Execution edits a planning document only to record a decision (`DECISIONS.md` + `SPEC.md`,
-same commit) or a graph amendment.
+same commit) or a graph amendment. The host session never makes that edit itself: it
+delegates it to a subagent and commits the subagent's edit (D-104).
 
 ## Entry point, run mode, source of truth
 

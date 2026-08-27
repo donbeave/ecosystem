@@ -21,8 +21,8 @@ absent; `goal/PREFLIGHT.md` is done.
 2. Codex lanes L4..L6 run in jackin role containers (§4 `container` path), never as
    subagents.
 3. Never ask the human, never confirm, never wait for a review or merge; agents merge
-   when the task names it. Answer a design question with its recommended answer, recorded in
-   `DECISIONS.md` and `SPEC.md` in one commit.
+   when the task names it. Answer design questions with the recommended answer; a subagent
+   records it in `DECISIONS.md`+`SPEC.md`; session commits (D-104).
 4. An input only a human can give: append it to `PREFLIGHT-DEFECTS.md` with its proving
    command, set that row `blocked`, continue with every other runnable task.
 5. Stuck — no new evidence for 30 minutes, or three verify failures — spawns diagnostic

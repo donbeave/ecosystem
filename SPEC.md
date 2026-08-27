@@ -313,6 +313,11 @@ runtime. The top-level agent coordinates and decides. Building this
 product follows the same rule from the first iteration, so every
 iteration is also a proof of the workflow. (D-033, D-036)
 
+The top-level session does not edit `DECISIONS.md` or `SPEC.md` itself: it
+may not read them, so an in-place edit is impossible. Recording a decision
+is delegated to a subagent that appends the decision and corrects the
+specification, and the session commits both files in one commit. (D-104)
+
 ## 9c. Parallelism, accounts, models
 
 The build runs as many tasks in parallel as dependencies allow, spread over

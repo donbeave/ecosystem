@@ -522,9 +522,15 @@ What this session may do itself, and nothing more:
 - Run: git on this repository, `sh verify.sh`, `sh tasks/<id>/verify.sh
   host`, `docker`/`tmux`/`jackin`/`gh`/`op` host commands of §4, the
   standing checks of §1 step 4, and `caffeinate`.
-- Write: `tasks/README.md`, `PROGRESS.md`, `PREFLIGHT-DEFECTS.md`,
-  `tasks/<id>/` files, `DECISIONS.md` and `SPEC.md` when D-053 applies —
-  in this repository only, then commit and push at once (D-086).
+- Write: `tasks/README.md`, `PROGRESS.md`, `PREFLIGHT-DEFECTS.md`, and
+  `tasks/<id>/` files — in this repository only, then commit and push at
+  once (D-086).
+- Recording a decision (D-053 applies): the session never edits
+  `DECISIONS.md` or `SPEC.md` itself, because it may not read them. It
+  delegates the edit of `DECISIONS.md` and `SPEC.md` to a subagent, which
+  appends the decision and corrects the specification in the working tree
+  and returns the id and the touched paths; the session then commits and
+  pushes both files in one commit (D-104).
 - Delegate: everything else, with `model: "opus"` (D-092), in parallel up
   to three host subagents in flight and the §4 reserve rule.
 - Never: answer from memory what a file states, re-read a large file after
