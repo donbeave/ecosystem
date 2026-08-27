@@ -185,14 +185,13 @@ lane or the operator role holds that resource for the load's duration, and
 before every load the session checks `docker ps` for a live container on
 the same account home or role.
 
-Runnable predicate (D-119). A `tasks/README.md` row is runnable iff: its
-status is `ready`; every `depends_on` id is `done`; a lane slot is free
-under the caps — at most two host subagents drawing on `~/.claude` and at
-most three host subagents in flight (D-071) — plus the §4 reserve rule of
-`goal/EXECUTION.md`; and, for M2+ ids other than M3-01, M3-03, M4-02,
-M4-03, the M1-12 row is `done` (D-088). Rows `planned`, `blocked`,
-`waiting` or `in-progress` are not runnable and do not count as `done`
-(D-084).
+Runnable predicate (D-119). A row is Runnable (D-119) iff: its status is
+`ready`; every `depends_on` id is `done`; a lane slot is free
+under the caps — at most two host subagents on `~/.claude`, at most three
+in flight (D-071) — plus the §4 reserve rule of `goal/EXECUTION.md`; and,
+for M2+ ids other than M3-01, M3-03, M4-02, M4-03, the M1-12 row is `done`
+(D-088). Rows `planned`, `blocked`, `waiting` or `in-progress` are not
+runnable and do not count as `done` (D-084).
 
 Arming and promotion. Nothing dispatches a `planned` row, so wave 0 is
 armed once, by `python3 tools/state.py arm`: it moves every task whose
