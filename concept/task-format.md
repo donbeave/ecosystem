@@ -68,7 +68,16 @@ into an issue with the convention above. It contains:
   task's terminal class is derived (D-110, D-111, D-118). Its schema is
   below.
 - `refs/` — the files `TASK.md` references, staged into
-  `<workspace>/.jackin/task/refs/` before the launch (D-086, D-118).
+  `<workspace>/.jackin/task/refs/` before the launch (D-086, D-118). Every
+  reference is resolved relative to the container working directory, which
+  is `/workspace` on every path: the launch is `jackin workspace create
+  task-<id> --workdir /workspace --mount <ws>:/workspace` and every exec is
+  `docker exec -u agent -w /workspace …` (goal/EXECUTION.md §4), so the
+  staged folder appears as `/workspace/.jackin/task/` and a reference is
+  written `.jackin/task/refs/<name>`, never as a host path and never with a
+  leading `/` of its own. `<ws>` — the mount source — is the task's worktree
+  for a task that changes a repository and the evidence directory for an
+  operator or evidence task, so repository files are `./…` in both cases.
 - `verify.sh` — the task's verification (D-003); for repositories with
   `.jackin/workflow.toml`, `[verify] command` points at it. It is POSIX
   `sh` (`#!/bin/sh`, `set -u`; checked by M1-01 with `dash -n` and
@@ -76,7 +85,11 @@ into an issue with the convention above. It contains:
   argument, `container` or `host`, running only that part through
   `case "$1"`; a single-part task accepts both. The container part ends
   with `status: DONE` or `status: FAILED` and is filed as
-  `verify.container.out`; the host part, whenever a container part exists,
+  `verify.container.out`. It reads nothing outside `/workspace`: repository
+  files as `./…` and any evidence file the host produced as
+  `.jackin/task/refs/<name>`, staged there as a ref by the host session; it
+  never names `tasks/<id>/…`, which does not exist in the container. The
+  host part's working directory is this repository's root. The host part, whenever a container part exists,
   first asserts `tail -n1 tasks/<id>/verify.container.out` is
   `status: DONE` and otherwise prints `status: FAILED` and exits 1, so a
   passing host part can never mask a failed container part (D-086). For

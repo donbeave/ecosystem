@@ -2127,6 +2127,15 @@ clause (b); `PROGRESS.md` and `PREFLIGHT-DEFECTS.md` headers;
 
 ## D-085 — 2026-08-27 — A lane is a template merged into a per-task saved workspace `task-<id>`
 
+*Amended 2026-08-28 (round 3, R3-56/R3-17): the workspace `workdir` is
+`/workspace` and the mount carries an explicit `:/workspace` destination. A
+mount spec without `:dst` uses `dst = src`, so the original
+`--workdir ~/.jackin/managed/<id> --mount ~/.jackin/managed/<id>` left
+`/workspace` empty and broke every `-w /workspace` exec, the
+container-relative `.jackin/task/…` prompt line, and the-architect's
+`MISE_TRUSTED_CONFIG_PATHS=/workspace`. The `--dry-run --format json`
+assertion gains `jq -e '.data.mounts[]|select(.dst=="/workspace")'`.*
+
 Adopted under D-053 (bulletproofing round 2). Amends D-078 (1) and D-082
 (1)–(2).
 
@@ -2139,7 +2148,10 @@ and jackin reads `CLAUDE_CONFIG_DIR`/`CODEX_HOME` of the launching process
 nowhere. One profile per lane therefore cannot serve many task checkouts.
 Instead: before every container launch the host session registers the
 saved workspace `task-<id>` (`jackin workspace create task-<id> --workdir
-~/.jackin/managed/<id> --mount ~/.jackin/managed/<id>`) and merges the
+/workspace --mount <ws>:/workspace`, where `<ws>` is the task's worktree
+`~/.jackin/managed/<id>/<repo>` for a repository task and
+`~/.jackin/managed/<id>` for an operator or evidence task; a review adds
+`:ro`) and merges the
 lane's template into `~/.config/jackin/workspaces/task-<id>.toml`. Before
 M1-13 the template is `tasks/M1-02a/lanes/L<n>.toml`, written by M1-02a
 (host, wave 2) and holding only `[claude]`/`[codex] sync_source_dir` — the
