@@ -21,6 +21,7 @@ reaches agreement on a point updates the relevant file.
 | [concept/workflow.md](concept/workflow.md) | Current manual workflow versus the target workflow, step by step. |
 | [analysis/jackin.md](analysis/jackin.md) | What jackin is today, with citations, and its gaps for this goal. |
 | [analysis/termrock.md](analysis/termrock.md) | What termrock is today, with citations, and its gaps for this goal. |
+| [analysis/symphony.md](analysis/symphony.md) | openai/symphony: the closest existing execution concept, and what to adopt or reject. |
 | [AGENTS.md](AGENTS.md) | Rules for agents (and humans) editing this repository. |
 
 ## Working rules
