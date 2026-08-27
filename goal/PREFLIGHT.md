@@ -55,6 +55,15 @@ run in any case.
       --dangerously-skip-permissions`; the run is started as `claude-yolo
       --model claude-fable-5` (D-120). If the function is missing, paste
       the expansion from `README.md` "Start the run" instead.
+- [ ] The Codex runtime is present and runs in its yolo mode. Proof:
+      `codex --version` succeeds, and every Codex launch line carries
+      `--dangerously-bypass-approvals-and-sandbox` — inside jackin role
+      containers that is the built-in default (`codex --enable goals
+      --dangerously-bypass-approvals-and-sandbox`), and the interim host
+      process of D-082 spells it out. Once `tasks/M1-13/lanes.json`
+      exists, `grep -q 'dangerously-bypass-approvals-and-sandbox'
+      tasks/M1-13/lanes.json` must also succeed. Isolation comes from the
+      container, not from approvals (D-121).
 - [ ] `gh auth status` shows `donbeave` with `repo` and `workflow` scopes;
       the account can create public repositories and mark a template.
 - [ ] Provider logins current in all four account homes: `~/.claude`,

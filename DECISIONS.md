@@ -1987,6 +1987,8 @@ M4-03, M4-04, M4-05, M5-04, M5-06, M6-02, M6-03, M7-03, §1 M5/M6 proof cells;
 ## D-082 — 2026-08-27 — Execution mechanism per runtime, container-path dialog handling, and resume checks
 
 Adopted under D-053 (bulletproofing round 1). Amends D-036 wiring.
+*Amended by D-121: `--dangerously-bypass-approvals-and-sandbox` is the
+rule for every Codex launch, container as well as interim host process.*
 Amended by D-085 (items (1)–(2): the `CODEX_HOME=`/`CLAUDE_CONFIG_DIR=`
 prefixes select nothing in `jackin load`; the account comes from the
 per-task workspace; the prefixes remain only for the `codex exec` interim
@@ -2916,7 +2918,9 @@ unchanged.
 
 ## D-120 — 2026-08-28 — Permission mode is bypassPermissions via `claude-yolo`
 
-Amends D-095.
+Amends D-095. *Amended by D-121: the same yolo posture is extended to
+every agent runtime — host subagents, containers, and Codex CLI with
+`--dangerously-bypass-approvals-and-sandbox`.*
 
 **Decision.** The host session runs in permission mode
 `bypassPermissions`, entered with `--dangerously-skip-permissions`. On the
@@ -2949,3 +2953,47 @@ adds a standing check that `type claude-yolo` succeeds. `SPEC.md` §9c and
 §9e read `bypassPermissions`. A tool the run needs is no longer added to
 `.claude/settings.json`; only a new irreversible operation is, as a `deny`
 entry.
+
+## D-121 — 2026-08-28 — Every agent runtime runs in its yolo mode; isolation comes from the container
+
+Amends D-120 (it covered the host Claude session only) and D-082 (the
+Codex flag is now the rule for every Codex launch, not only the interim
+host process).
+
+**Decision.** Every agent runtime in this run runs in its full-auto
+("yolo") mode, so no approval prompt can ever stop an unattended run.
+Claude Code — the host session, every host subagent, and every Claude
+agent inside a jackin role container — runs with
+`--dangerously-skip-permissions` (on the host carried by the `claude-yolo`
+function of D-120; inside containers jackin's own entrypoint already
+launches `claude --settings '{"skipDangerousModePermissionPrompt":true}'
+--dangerously-skip-permissions --verbose`, `analysis/jackin.md:153`).
+Codex CLI runs with `--dangerously-bypass-approvals-and-sandbox`, the
+Codex CLI flag for that mode: in jackin role containers it is already the
+default launch line (`codex --enable goals
+--dangerously-bypass-approvals-and-sandbox [--profile …]`,
+`analysis/jackin.md:154`), and the D-082 interim host process keeps the
+same flag. No permission allowlist and no approval policy is configured
+anywhere; `.claude/settings.json` keeps only the D-120 `deny` list for
+`git push --force` and `git push -f`.
+
+**Rationale.** Isolation is a property of the container, not of an
+approval prompt: jackin runs each role in a Docker profile with an
+explicit filesystem, network, and credential boundary, and a prompt inside
+that boundary adds no safety while it does add a way for an unattended run
+to stall forever. Two runtimes with two different approval postures would
+also mean two failure modes to diagnose; one posture — yolo everywhere,
+isolation from the container — is a single rule that is either true or
+visibly false. The one irreversible host operation stays denied by name.
+
+**Consequences.** `SPEC.md` §9c and §9e state the rule for both runtimes.
+`AGENTS.md` "Delegation law" says Codex lanes L4..L6 run in jackin role
+containers in yolo mode. `goal/PREFLIGHT.md` §1 adds a standing check that
+`codex --version` succeeds and that the Codex launch line carries
+`--dangerously-bypass-approvals-and-sandbox`. `README.md`, `GOAL.md`, and
+`goal/EXECUTION.md` carry the sentence "Every agent runtime runs in its
+yolo mode — Claude Code with `--dangerously-skip-permissions`, Codex CLI
+with `--dangerously-bypass-approvals-and-sandbox` — on the host and in
+every container; isolation comes from the container, not from approvals,
+and no permission allowlist exists anywhere (D-121)." A future runtime is
+added to this decision with its own yolo flag, never with an allowlist.

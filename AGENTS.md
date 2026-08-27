@@ -43,8 +43,11 @@ delegates it to a subagent and commits the subagent's edit (D-104).
 - One subagent per checklist item, in parallel wherever the wave and the caps of
   `ROADMAP.md` §3 allow.
 - Codex lanes (L4..L6) never run as Claude subagents: they run in jackin role containers on
-  the `container` path of `goal/EXECUTION.md` §4; Claude lanes L1..L3 may take the
-  `subagents` path. The session writes only this repository (D-086).
+  the `container` path of `goal/EXECUTION.md` §4, in Codex yolo mode
+  (`--dangerously-bypass-approvals-and-sandbox`); Claude lanes L1..L3 may take the
+  `subagents` path, in Claude yolo mode (`--dangerously-skip-permissions`). Isolation comes
+  from the container, not from approvals; no permission allowlist exists anywhere (D-121).
+  The session writes only this repository (D-086).
 
 ## Never ask the human
 

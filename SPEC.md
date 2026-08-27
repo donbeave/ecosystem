@@ -364,6 +364,13 @@ in this repository and pins the host model, sets
 `README.md` "Start the run" names the launcher line and what the function
 expands to. (D-095, D-120)
 
+Every agent runtime runs in its yolo mode — Claude Code with
+`--dangerously-skip-permissions`, Codex CLI with
+`--dangerously-bypass-approvals-and-sandbox` — on the host and in every
+container; isolation comes from the container, not from approvals, and no
+permission allowlist exists anywhere. jackin's own entrypoint already
+launches both runtimes that way inside role containers. (D-121)
+
 Parallel work in one repository is serialised by leases, not by a shared
 branch: each task runs in its own worktree and branch, and one integrator
 lease per repository admits merges (D-112, D-113).
@@ -442,7 +449,9 @@ both print `status: READY` for the same lock hash, recorded in
 `bypassPermissions`: the session is launched with
 `--dangerously-skip-permissions` (the `claude-yolo` function), so no tool
 call can stop the run on a prompt, and only `git push --force` and `git
-push -f` stay denied (D-120). Every `analysis/` findings archive a run touches
+push -f` stay denied (D-120). The same gate checks the Codex runtime:
+`codex --version` succeeds and every Codex launch carries
+`--dangerously-bypass-approvals-and-sandbox` (D-121). Every `analysis/` findings archive a run touches
 must carry `findings/disposition.toml` with one row per finding before
 that run may start (D-115). The host
 session is Fable and spends its context on coordination only: every
