@@ -240,7 +240,7 @@ schema bumps, and jackin allows one bump per pull request.
 
 **Closed by D-053** (recommended answer adopted): land them in one PR as
 `v1alpha7` if M3-02 and M4-01 ship together, otherwise accept two consecutive
-versions. Round-3 review (`analysis/bulletproof-round3-findings.md`) narrows
+versions. The round-3 review (dispositioned in `findings/disposition.toml`) narrows
 this further: `default_agent` is the single manifest bump of the run, and
 M4-01 carries the prompt in the launch env `JACKIN_INITIAL_PROMPT` with no
 manifest field, because `cargo xtask schema-check` diffs against `main` at

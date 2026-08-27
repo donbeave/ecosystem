@@ -2,7 +2,7 @@
 # Written by plan row 1.1 (K-47, D-115). Re-verified against HEAD 71814be.
 
 [archive]
-path = "analysis/bulletproof-round3-findings.md"
+path = "removed on 2026-08-28; the archive file was deleted and every row below is self-contained"
 count = 76
 
 [[finding]]

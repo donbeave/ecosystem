@@ -2563,9 +2563,9 @@ cheapest-model sentence is struck.
 
 ## D-093 — 2026-08-27 — Exhausted rows are closed by the human; fixed final-message shape; task-folder files are not "implementation"
 
-Adopted under D-053; applies the `/goal`-semantics findings of
-`analysis/bulletproof-round3-findings.md` (R3-38, R3-62 documentation
-part, R3-63, R3-66, R3-67). Amends D-084, D-083, D-069, D-038.
+Adopted under D-053; applies the `/goal`-semantics findings of the
+round-3 review, dispositioned in `findings/disposition.toml` (R3-38,
+R3-62 documentation part, R3-63, R3-66, R3-67). Amends D-084, D-083, D-069, D-038.
 
 **Decision.** (1) Resume: an `exhausted: <id>` row in
 `PREFLIGHT-DEFECTS.md` is closed only when the human has filled its
@@ -2606,9 +2606,8 @@ only thing a judge can check without reading prose.
 `GOAL.md` prompt clause (b) and both terminal clauses; `goal/EXECUTION.md`
 §1 step 2, §5 steps 3 and 5, §6, §7 and the new §8;
 `PREFLIGHT-DEFECTS.md` and `tasks/README.md` header prose; `SPEC.md` §6
-step 8; `README.md` working rules. The remaining findings of
-`analysis/bulletproof-round3-findings.md` stay unapplied and keep their
-archive status.
+step 8; `README.md` working rules. The disposition of every round-3 finding,
+applied or not, is recorded in `findings/disposition.toml`.
 
 ## D-094 — 2026-08-27 — `GOAL.md` is the pure `/goal` prompt; the invocation lives in `README.md`
 
