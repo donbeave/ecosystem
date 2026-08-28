@@ -1,0 +1,7 @@
+D-063 analysis, attempt 3, 2026-08-28: jackin load the-architect task-M1-04a hung at "Opening hardline… 91%".
+Class: code defect in jackin (failing check), not environment.
+Cause: current_thread tokio runtime (crates/jackin/src/main.rs:23); launch holds role repo flock
+(launch_pipeline.rs:958, launch_core.rs:44); sibling prewarm spawned at launch_runtime.rs:1181/1187
+re-acquires the same lock via blocking FileExt::lock at repo_cache.rs:474/266 on a second fd -> self-deadlock.
+Evidence: lsof fd 10w/24w on ~/.jackin/data/the-architect.locks/default.repo.lock; sample stack leaf flock().
+Fix: jackin worker branch managed/goal-run-1/M1-04a (spawn_blocking + no re-acquire), integrate, rebuild host, relaunch.
