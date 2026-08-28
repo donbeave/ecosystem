@@ -34,7 +34,7 @@ LOCK_PATH = REPO / "run" / "LOCK.toml"
 
 # The plan snapshot reviewed by the external round; row 0.2 (tagging it) is a
 # human-only step, so `tag` stays empty until the human creates the tag.
-PLAN_COMMIT_REF = "f60d59c"
+PLAN_COMMIT_REF = "92d26b00b38ca3ee3314f509ec4c5aae6714f4eb"
 
 EXTERNAL_REPOS = [
     ("jackin", "https://github.com/jackin-project/jackin"),
