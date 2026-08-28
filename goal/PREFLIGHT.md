@@ -44,10 +44,10 @@ pass and a live pass can be shown to belong to the same plan.
   `--dangerously-skip-permissions` and
   `skipDangerousModePermissionPrompt`). It runs `claude --version` but
   never `claude -p`, never launches an AI agent, and makes no AI-provider
-  request. Then the human-only rows: `1Password signed in`,
-  `gh auth`, `operator browser profile`, `GitHub App jackin-daemon`,
-  `delete_branch_on_merge off`, `the-architect ruleset`, and
-  `pinned role refs`.
+  request. Then the human-only rows: `1Password signed in`, `operator service account`
+  (`op read op://tailrocks/op-service-account-jackin-operator/credential </dev/null |
+  grep -q .`; `PREFLIGHT-DEFECTS.md` #7), `gh auth`, `operator browser profile`, `GitHub App jackin-daemon`,
+  `delete_branch_on_merge off`, `the-architect ruleset`, and `pinned role refs`.
 
 `tools/invariant_lint.py` is the cross-document lint (D-116): it fails
 when two authoritative documents disagree — the D-119 runnable predicate

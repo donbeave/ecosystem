@@ -150,10 +150,8 @@ live_gate() {
     "cfg=\${JACKIN_CONFIG_DIR:-\$HOME/.config/jackin}/config.toml; \
      command -v jackin >/dev/null 2>&1 || { echo 'pending: M1-02 (jackin not installed yet)'; exit 0; }; \
      grep -q 'dco = true' \"\$cfg\""
-  # `op whoami` prints "account is not signed in" until the desktop app unlocks
-  # the session, so it cannot serve as the tool check. An account being
-  # configured is what proves the CLI is installed and wired to the right
-  # tenant; the sign-in itself is the human row below (PREFLIGHT-DEFECTS #4).
+  # Account metadata proves the CLI is installed and wired to a tenant; the
+  # harmless read below separately proves the desktop session is unlocked.
   oksh "op configured"   "op account list </dev/null | grep -q ."
   # The launcher is a shell function, so it only exists in an interactive zsh.
   oksh "claude-yolo"     "zsh -ic 'type claude-yolo' >/dev/null"
@@ -174,9 +172,11 @@ live_gate() {
   # Human-only inputs. Each one is a browser login, an OTP, a consent screen,
   # a UI-created credential or a repository setting only the owner can flip.
   # Signed-in proof (PREFLIGHT-DEFECTS row 4). A configured account is checked
-  # live above; only an unlocked session makes `op whoami` succeed.
+  # live above; prove the unlocked desktop integration with a harmless read.
   human "1Password signed in" "PREFLIGHT-DEFECTS: op-signin" \
-    "op whoami </dev/null"
+    "op read 'op://Private/Context7/API Keys/Claude' </dev/null >/dev/null"
+  human "operator service account" "PREFLIGHT-DEFECTS #7: M1-05d operator-service-account" \
+    "op read 'op://tailrocks/op-service-account-jackin-operator/credential' </dev/null | grep -q ."
   human "gh auth" "PREFLIGHT-DEFECTS: gh-auth" \
     "gh auth status"
   human "operator browser profile" "PREFLIGHT-DEFECTS: browser-profile" \

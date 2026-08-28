@@ -31,11 +31,11 @@ the prompt the runner executes and holds nothing else.
 
 ### Operator kickoff
 
-Enter this repository, then run the complete fresh-start sequence below. Replace the example
-path with the checkout's absolute path:
+Paste each command block below from any directory inside this checkout. Every block resolves the
+repository root before running its lifecycle command. Start with the complete fresh-start sequence:
 
 ```sh
-cd /path/to/ecosystem && \
+cd "$(git rev-parse --show-toplevel)" && \
   sh tools/readiness.sh static && \
   sh tools/readiness.sh live && \
   sh tools/supervisor.sh start --dry-run && \
@@ -70,7 +70,8 @@ The detector is read-only and names every process to stop.
 From another terminal, attach to the running Claude UI:
 
 ```sh
-herdr session attach ecosystem-coordinator
+cd "$(git rev-parse --show-toplevel)" && \
+  herdr session attach ecosystem-coordinator
 ```
 
 Detach without stopping any pane by pressing `Ctrl-b`, releasing it, then pressing `q`. Closing
@@ -81,20 +82,26 @@ delivery failed.
 Inspect durable run state without attaching:
 
 ```sh
-sh tools/supervisor.sh status
+cd "$(git rev-parse --show-toplevel)" && \
+  sh tools/supervisor.sh status
 ```
 
 Read the latest 200 lines of coordinator output without attaching:
 
 ```sh
-sh tools/supervisor.sh read --lines 200
+cd "$(git rev-parse --show-toplevel)" && \
+  sh tools/supervisor.sh read --lines 200
 ```
 
 To stop intentionally, stop the named Herdr session and confirm the result:
 
 ```sh
-sh tools/supervisor.sh stop
-sh tools/supervisor.sh status
+cd "$(git rev-parse --show-toplevel)" && \
+  sh tools/supervisor.sh stop && \
+  status_output="$(sh tools/supervisor.sh status)" && \
+  printf '%s\n' "$status_output" && \
+  printf '%s\n' "$status_output" | grep -Fqx 'herdr: not running' && \
+  printf '%s\n' "$status_output" | grep -Fqx 'coordinator: not running'
 ```
 
 `stop` runs `herdr session stop ecosystem-coordinator --json`; Herdr terminates every pane process in
@@ -105,7 +112,7 @@ After a crash, an intentional stop, or a BLOCKED result, first satisfy every ope
 `PREFLIGHT-DEFECTS.md` proof command. Then run the complete resume sequence from this repository:
 
 ```sh
-cd /path/to/ecosystem && \
+cd "$(git rev-parse --show-toplevel)" && \
   sh tools/readiness.sh static && \
   sh tools/readiness.sh live && \
   sh tools/supervisor.sh resume --dry-run && \
@@ -120,7 +127,13 @@ after any stop, use `resume`, never `start`. Do not launch Claude separately or 
 `resume` attaches to a live coordinator; if none survives, it reconciles durable state, prints
 every command again, relaunches the named Claude agent, submits the same `/goal`, and attaches.
 If interactive attach fails, the command exits 4 but preserves the live coordinator and session;
-retry `herdr session attach ecosystem-coordinator`.
+retry from anywhere inside the checkout:
+
+```sh
+cd "$(git rev-parse --show-toplevel)" && \
+  herdr session attach ecosystem-coordinator
+```
+
 Completed tasks are not repeated. Never run `start` or `resume` merely to inspect status. See
 `goal/EXECUTION.md` §1 "Supervisor".
 
@@ -128,8 +141,9 @@ Herdr is a pinned host dependency for this run. Install it only when absent, the
 version before readiness:
 
 ```sh
-brew install herdr
-herdr --version
+cd "$(git rev-parse --show-toplevel)" && \
+  brew install herdr && \
+  herdr --version
 ```
 
 The required output is `herdr 0.8.2`. Herdr's official direct installer is
