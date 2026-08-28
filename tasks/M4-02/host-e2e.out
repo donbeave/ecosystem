@@ -1,0 +1,4 @@
+ Nextest run ID 48be137f-e4de-4ef1-9bb0-5d71674a6dae with nextest profile: docker-e2e
+    Starting 1 test across 1 binary (29 binaries skipped)
+        PASS [  15.691s] (1/1) jackin::session_send_e2e session_send_reaches_the_pty_and_events_report_the_working_transition
+     Summary [  15.696s] 1 test run: 1 passed, 0 skipped

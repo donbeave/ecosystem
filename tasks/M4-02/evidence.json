@@ -1,0 +1,42 @@
+{
+  "task": "M4-02",
+  "bundle_hash": "50c4d20f21862f40f44af52da9bb728cc8285325354026cf510ce52ac7de9f05",
+  "integrated_sha": "59f862f0505794ae52ad38e5ab17c49fb1d464d3",
+  "repositories": [
+    {
+      "repo": "jackin",
+      "branch": "managed/goal-run-1/M4-02",
+      "integrated_sha": "59f862f0505794ae52ad38e5ab17c49fb1d464d3",
+      "checkout": "/Users/donbeave/.jackin/managed/M4-02/jackin"
+    }
+  ],
+  "attempt": 2,
+  "epoch": 1,
+  "fencing_token": 0,
+  "created": "2026-08-28T09:05:22Z",
+  "commands": [
+    {
+      "cmd": [
+        "sh",
+        "tasks/M4-02/verify.sh",
+        "host"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "804aaae7bd1b6d3585d7f60cd58893771aa9439bbbfc76f62293ef7acb6898b4",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "started": "2026-08-28T09:05:23Z",
+      "finished": "2026-08-28T09:05:23Z"
+    }
+  ],
+  "external_object_ids": {},
+  "tool_versions": {
+    "git": "git version 2.50.1 (Apple Git-155)",
+    "jq": "jq-1.7.1-apple",
+    "python3": "Python 3.14.7",
+    "gitleaks": "8.30.1",
+    "gh": "gh version 2.98.0 (2026-08-20)",
+    "docker": "Docker version 29.4.0, build 9d7ad9f"
+  },
+  "result_class": "DONE",
+  "updated": "2026-08-28T09:05:23Z"
+}
