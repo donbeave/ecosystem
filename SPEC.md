@@ -320,6 +320,30 @@ code lives in the involved jackin, termrock, and role repositories.
   When the mirror is created, it MUST backfill those four early-start tasks at
   their current durable status without delegating or rerunning them.
 
+- **ISSUE-007** Linear candidate filtering MUST read the manager-level setting
+  `[manager.linear] required_labels` from
+  `${JACKIN_CONFIG_DIR:-$HOME/.config/jackin}/config.toml`. It is an optional
+  array of unique, non-empty label-name strings. Absence resolves to `[]`, the
+  canonical writer materializes `required_labels = []`, and the empty array
+  disables the opt-in gate. Matching is trimmed, case-insensitive AND: every
+  configured name is required. Duplicate names after normalization, a
+  non-string value, an unknown label in the configured team/project, or a
+  required label that conflicts with ISSUE-005 makes the manager configuration
+  invalid. Startup MUST fail before polling on invalid initial configuration.
+  An invalid reload MUST preserve the last known-good value, emit an
+  operator-visible error, and block new dispatch under the bad configuration
+  while reconciliation of active runs continues.
+
+  A candidate MUST carry every configured required label. The empty default
+  imposes no opt-in label. Labels forbidden by ISSUE-005, including duplicate
+  or conflicting values in a single-value group, remain validation failures
+  and cannot be made valid by inclusion in `required_labels`.
+  Removing any required label from an active issue MUST stop/eject its live
+  session and container, release its claim and capacity, retain its workspace,
+  and create a durable routing hold without consuming retry budget. Re-adding
+  the complete required set explicitly clears that label hold and permits a
+  fresh secondary claim through SCHED-003; restart or replay MUST NOT clear it.
+
 - **ISSUE-010** Assignment to the jackin app user is the trigger. Creation,
   mention, or label alone MUST NOT dispatch work.
 - **ISSUE-011** The parser MUST validate repository syntax, branch/base names,
@@ -408,29 +432,41 @@ merging = "Merging"
   in the following list hold:
 
 1. delegate equals the jackin app user;
-2. workflow state type is `unstarted` or `started`, but the state is neither
+2. configured organization, team, and optional project scope match;
+3. every ISSUE-007 required label is present and no ISSUE-005 forbidden,
+   duplicate, or conflicting label is present;
+4. workflow state type is `unstarted` or `started`, but the state is neither
    the configured review state nor merging state;
-3. every inverse `blocks` relation has workflow type `completed` or `canceled`;
-4. issue and repository workflow validation pass; and
-5. the manager-host ledger has no active claim for the issue.
+5. every inverse `blocks` relation has workflow type `completed` or `canceled`;
+6. issue and repository workflow validation pass;
+7. the manager-host ledger has no active claim for the issue; and
+8. no unresolved STATE-006 stop intent or stop-suppression cursor exists.
 
   A terminal state (`completed` or `canceled`) stops the run and removes the
-  workspace. Any other non-active state, or delegate removal, stops the run and
-  retains the workspace. Reopening a blocker does not stop a run already active.
+  workspace. Any other non-active state stops the live attempt, releases its
+  claim/capacity, records a durable routing hold, and retains the workspace
+  until an explicit move back to an eligible active state clears that hold.
+  Delegate removal follows STATE-006; required-label removal follows ISSUE-007.
+  Restart does not clear any hold. Reopening a blocker does not stop a run
+  already active.
 
 - **SCHED-001** Dispatchability MUST be computed by the Linear adapter as one
   value with reason codes. The scheduler MUST NOT duplicate the predicate.
 - **SCHED-002** A held issue MUST receive at most one activity for the same
   unchanged hold reason. It is re-evaluated each reconciliation tick.
-- **SCHED-003** A continuation, retry, fallback, exhausted-claim resume, merge,
-  or rework does not use initial dispatchability. It is secondarily claimable
+- **SCHED-003** A continuation, retry, fallback, routing-hold or stopped-run
+  re-enable, exhausted-claim resume, merge, or rework does not use initial
+  dispatchability. It is secondarily claimable
   only when: the app remains delegate; issue/workflow/role/lane validation
-  passes; every blocking relation is terminal; no `claimed` or `running` claim
+  passes, including ISSUE-007 labels; every blocking relation is terminal; no
+  unresolved STATE-006 stop suppression and no `claimed` or `running` claim
   exists; every SCHED-005 capacity is atomically available; and its durable
   kind-specific trigger is current. Continuation/retry/fallback may claim from
-  the workflow state of the active run; exhausted resume may claim only after
-  the human reply/clear recorded by the manager that owns the durable blocked
-  claim; merge may claim from configured `Merging` or explicit task
+  the workflow state of the active run; a required-label or non-active-state
+  routing hold may claim only after its tracker predicate is restored; a
+  stopped run may claim only after STATE-006's fresh delegation and session;
+  exhausted resume may claim only after the human reply/clear recorded by the
+  manager that owns the durable blocked claim; merge may claim from configured `Merging` or explicit task
   authorization; and rework may claim from `Review`, `Merging`, or another
   ordinarily eligible active state only after GitHub proves the prior PR closed
   or merged. `completed` and `canceled` are never secondarily claimable.
@@ -457,7 +493,10 @@ merging = "Merging"
 
   These are configuration values, not compiled constants. Candidate order is
   Linear priority (1 first, no priority last), then oldest `createdAt`, then
-  identifier. A saturated scheduler waits; it does not change execution mode.
+  identifier. Team/project scope is a filter, not a hidden precedence key. A
+  saturated scheduler waits; it does not change execution mode. Proof-plane
+  task status, Roadmap milestone, dependency wave, and delivery-task priority
+  MUST NOT enter product candidate ordering or eligibility.
 - **SCHED-006** The following six lane profiles are exact. The accepted
   `tasks/M1-13/lanes.json` MUST record the same `model_id`, effort, account home,
   and corresponding literal `model:<model_id>` Linear label.
@@ -476,10 +515,10 @@ merging = "Merging"
   exhausted account home: from L1/L2/L3 it is `L4→L5→L6→L1`; from L4 it is
   `L5→L6→L1`; from L5 it is `L6→L1→L4`; from L6 it is `L1→L4→L5`.
   A model-only limit MAY select another model on the same account home only
-  when provider headroom is proven. A busy candidate is skipped and the task
-  returns ready at its wave priority until a slot frees; a fully throttled chain
-  enters `waiting` until the earliest reset. Busy and quota fallback consume no
-  retry budget.
+  when provider headroom is proven. A busy candidate is skipped and the issue
+  remains a product candidate at its Linear priority/`createdAt`/identifier
+  position until a slot frees; a fully throttled chain enters `waiting` until
+  the earliest reset. Busy and quota fallback consume no retry budget.
 
 - **SCHED-010** Lane configuration MUST resolve `runtime`, exact `model`,
   `effort`, `account_home`, and `fallback`. Launch MUST use the resolved record
@@ -488,7 +527,9 @@ merging = "Merging"
   lane label. Lanes sharing one home share one quota and one configured cap.
 - **SCHED-012** Merge attempts MUST be serialized to one per repository.
 - **SCHED-013** No candidate may starve behind later work of equal priority;
-  deterministic order MUST be preserved whenever a slot becomes free.
+  the SCHED-005 Linear order MUST be preserved whenever a slot becomes free.
+  Delivery-task `ready`, wave, and critical-path concepts exist only in the
+  proof-plane CTRL requirements and MUST NOT affect this product scheduler.
 - **SCHED-014** A lane is a template merged into the per-task saved workspace
   `task-<id>`; the saved workspace, not a launcher environment prefix, selects
   its account home. Claude lanes set exact model and effort through workspace
@@ -569,6 +610,43 @@ merging = "Merging"
   `blocked` caused by a live runtime prompt keeps claim `running`; claim
   `blocked` is reserved for exhaustion or another persisted hold after no live
   attempt remains.
+- **STATE-006** Explicit operator stop has exactly two durable tracker inputs:
+  removal of the jackin app delegate, or a Linear `prompt` activity on the
+  current app-user session with canonical `signal: stop`. Creation, mention,
+  an ordinary label, a plain-text message containing the word "stop", or a
+  daemon-local command is not a tracker stop input. The manager MUST persist a
+  stop intent keyed by `(issue_id, session_id, stop_activity_id)` before acting.
+  For delegate removal, the issue update identity/cursor is the stop activity
+  identity. For `signal: stop`, the manager MUST idempotently remove itself as
+  delegate so delegate absence becomes the durable tracker-side suppression.
+
+  Completion of that intent MUST stop/eject the container, emit one terminal
+  `response` on the current session stating that the operator stopped it,
+  clear its run label and external URL,
+  atomically move any `claimed|running|retry_queued|blocked` claim to
+  `released`, release every capacity slot, and retain the workspace unless the
+  issue is independently terminal. The manager-ledger commit that completes
+  stop MUST atomically bind the terminal response id, released claim, and
+  capacity release before reporting completion; tracker and container effects
+  replay idempotently around that commit. The pending intent suppresses every
+  initial or secondary claim even if a tracker write or container stop is
+  interrupted.
+  The terminal session response acknowledges stop only; it MUST NOT move the
+  issue to a completed/canceled state or represent verified work.
+  Restart and replay MUST resume the same idempotent intent and MUST NOT create
+  another response, session, attempt, or container.
+
+  Stop suppression clears only after Linear first records the app delegate as
+  absent and then records a fresh explicit assignment to the app user with a
+  new non-terminal app-user session. Merely restarting, moving between active
+  states, editing labels, replying on the stopped session, or retaining a
+  workspace MUST NOT re-enable dispatch. The fresh delegation/session is the
+  operator's explicit re-enable action. After observing the post-stop
+  assignment, the manager MAY run only EXEC-003's idempotent missing-session
+  creation while suppression still blocks claims; binding that new session to
+  the fresh assignment clears suppression and enters EXEC-004. A new
+  continuation claim MUST then satisfy every current SCHED-000 condition plus
+  SCHED-003; the stopped attempt is never resumed in place.
 
 ### 7.2 Attempt kinds and lifecycle
 
@@ -578,7 +656,7 @@ merging = "Merging"
 | Attempt kind | Trigger | Required state/claim workflow | Workspace |
 | --- | --- | --- | --- |
 | initial | First valid claim | `unclaimed→claimed→running`; visible `starting→working`. | Clone/create or reuse clean issue workspace. |
-| continuation | Clean runtime exit with incomplete checklist | End old `running` claim as `retry_queued`, release capacity, wait one second, then `retry_queued→claimed→running`; visible `working→starting→working`. | Same branch and workspace; always a new container. |
+| continuation | Clean runtime exit with incomplete checklist, restored required-label/non-active routing hold, or STATE-006 fresh re-enable | A clean exit uses `running→retry_queued`; a routing/stop hold has already released the prior claim. After the current tracker predicate and SCHED-003 pass, use `retry_queued|released→claimed→running`; visible state enters `starting→working`. | Same branch and retained workspace; always a new container and session. |
 | retry | Agent-class failure | Visible state reaches `failed`; `running→retry_queued`, capacity release, bounded backoff, then `retry_queued→claimed→running` and `failed→starting→working`. | Same branch and workspace; always a new container. |
 | fallback | Quota or diagnosed/recovered stuck condition | End old claim as `retry_queued`, release capacity, select the next eligible full lane profile, then reacquire `claimed→running`; visible `failed|waiting→starting→working`. | Same branch/workspace; new lane and container. |
 | rework | A closed or merged PR's issue becomes active again | Prior claim is `released`; after capacity reacquisition use `released→claimed→running` and visible `done→starting→working`. | Reset to current base and create/reuse only the branch allowed by current branch policy; never continue the stale tree. |
@@ -595,7 +673,8 @@ merging = "Merging"
   atomically record the attempt outcome, stop/eject its container when one
   exists, and release every slot; a retry deadline, elicitation, review wait,
   or retained workspace consumes no run slot. Every later attempt, including
-  continuation, retry, fallback, exhausted resume, merge, and rework, MUST
+  continuation, routing/stop re-enable, retry, fallback, exhausted resume,
+  merge, and rework, MUST
   satisfy SCHED-003 and atomically reacquire all applicable slots before the
   claim becomes `claimed`; it then allocates the next ordinal before launch.
   The visible `run:*` label MUST equal the STATE-000 state while work is active;
@@ -616,16 +695,37 @@ merging = "Merging"
 - **EXEC-001** Polling is the correctness path. Defaults are 5 seconds for
   delegated issues, pending/non-terminal sessions, and prompted activities,
   plus 30 seconds for full reconciliation.
-- **EXEC-002** All reads for one tick MUST be aliases in one GraphQL request:
-  delegated candidates, app-user-filtered sessions, activity reads after each
-  session watermark, and requested issue detail. Pages MUST be exhausted in a
-  stable order.
+- **EXEC-002** Discovery reads for one tick MUST be aliases in one GraphQL
+  request: scoped delegated candidates with the fields needed for the
+  delegate/state/label gate, app-user-filtered sessions, and activity reads
+  after each session watermark. Pages MUST be exhausted in a stable order.
+  Full issue and repository detail MUST NOT be included in discovery. Each
+  newly acknowledged candidate receives at most one separately tagged
+  `issue.read` pickup after EXEC-004 has acknowledged it and moved it to the
+  ordinary started state.
 - **EXEC-003** A delegated active issue without a non-terminal session for the
   app user MUST cause one idempotent `agentSessionCreateOnIssue` call. An
   existing non-terminal session suppresses creation.
-- **EXEC-004** The first observation of a pending/new session MUST receive a
-  `thought` acknowledgement within 10 seconds. Validation then runs before
-  workspace or container creation.
+- **EXEC-004** After discovery yields a non-terminal app-user session, the
+  manager's first post-discovery write MUST be one idempotent `thought`
+  acknowledgement on that session. The `agentSessionCreateOnIssue` mutation
+  needed to obtain a missing session id is part of discovery and is the only
+  preceding mutation. The acknowledgement MUST be emitted within 10 seconds of
+  the earlier of session creation or the manager's first observation of the
+  assignment. Before it succeeds, the manager MUST perform no further tracker
+  or repository read, state write, validation, claim, workspace operation, or
+  launch work for that issue.
+
+  The next tracker mutation MUST move the issue to the lowest-position
+  ordinary `started` state in its team, excluding the configured `Review` and
+  `Merging` states; only after that succeeds may the manager perform the single
+  pickup read and validate the full issue/repository contract. Duplicate
+  discovery MUST reuse the same acknowledgement activity id and state intent.
+  A timeout, rate limit, transport error, or partial write is a tracker-class
+  failure: keep the ordered acknowledgement/state intents, retry them
+  idempotently after recovery, perform no later pickup work meanwhile, and
+  consume no attempt or retry budget. Validation failure after pickup follows
+  ISSUE-012 and launches nothing.
 - **EXEC-005** Linear `RATELIMITED` may arrive as HTTP 400. The manager MUST
   read `errors[].extensions.code` and the reset header, pause all tracker
   traffic until reset, queue ordered writes and heartbeats, and log the reset.
@@ -761,8 +861,9 @@ merging = "Merging"
   binding, and transition visible `waiting→starting→working`. Recovery MUST
   adopt a surviving exact tuple or resolve the prior placement through
   SCHED-024 before that reacquisition; the retained workspace alone grants no
-  resume authority. `signal: stop` MUST stop and release the run without
-  pretending it completed.
+  resume authority. Canonical `signal: stop` MUST execute the durable
+  STATE-006 transaction; it terminates and suppresses the run until a fresh
+  delegation/session, without pretending the work completed.
 - **EXEC-051** A host/operator injection through the capsule MUST follow the
   same waiting-to-working transition and produce an activity so Linear records
   remains complete.
@@ -1724,12 +1825,12 @@ audit: PASS
 | ID | Owner repository / component | Roadmap proof producers | Required P / N / F acceptance | Allowed and fresh evidence |
 | --- | --- | --- | --- | --- |
 | **ACC-001** | `tailrocks/ecosystem` / proof-plane state projection and Linear issue mirror | M1-01, M1-07, M1-09 through M1-12, M2-05, M2-07 | P: exact app, callback, token, JACKIN team/project/milestones, every M2+ task mirror regardless of durable status, all nine status projections, exact locked-task/role-manifest/lane-record label precedence, mandatory `auto-dispatch`, assignment trigger, and four permitted backfills work; both passes carry replay-equal `event_seq`/`task_statuses`. N: M1 issues, empty repository, incompatible role/runtime/lane, conflicting labels, duplicate or missing M2+ issues, and dispatch of any non-exempt task before its mirror are rejected; absent webhook launches nothing. F: a state change between observations binds each pass to its own event sequence, while rate limit and stale mirror-map replay remain bounded and idempotent without changing identity or early-attempt counts. | Owning task verifiers, event log and projection snapshots, two-pass GraphQL issue-map bytes, role/lanes source identities, webhook/token transcripts, and Linear browser references captured in the producing attempt. |
-| **ACC-002** | `jackin-project/jackin` / manager Linear poller | M2-02 through M2-04, M2-07 | P: one aliased paginated request per tick, app-user session filtering, ten-second acknowledgement, watermarks, and sole-manager polling work. N: workers and webhooks never decide correctness. F: HTTP-400 `RATELIMITED` pauses until reset and ordered writes resume without consuming an attempt. | Owning task verifiers plus request, fake-clock, watermark, and event transcripts tied to tested adapter SHA and live workspace identity where used. |
+| **ACC-002** | `jackin-project/jackin` / manager Linear poller, acknowledgement, and candidate filter | M2-02 through M2-05, M2-07, M3-06 | P: one aliased paginated discovery request per tick, app-user session filtering, idempotent missing-session creation, acknowledgement as the first post-discovery write within ten seconds, transition to the lowest ordinary `started` state before the single pickup read, watermarks, `[manager.linear] required_labels` empty/default and case-insensitive AND behavior, required-label removal hold/release/workspace retention and re-add re-enable, and sole-manager polling work. N: any tracker/repository read or work before acknowledgement, Review/Merging pickup state, missing required label, ISSUE-005 forbidden/conflicting label, held-issue launch or cleanup, worker poll, or webhook correctness path is rejected. F: acknowledgement/state timeout or partial success replays the same ordered ids before pickup; restart preserves a label hold without duplicate termination or attempt; HTTP-400 `RATELIMITED` pauses until reset and ordered writes resume without consuming an attempt. | M2-02 through M2-05 recording-fake/fake-clock/config fixtures, M2-07 assignment/session/state snapshots, and M3-06 hold/reconciliation fixtures, with write order, activity ids, assignment/session timestamps, labels, hold/claim/capacity records, watermarks, and rate-limit transcript tied to tested adapter SHA and live workspace identity where used. |
 | **ACC-003** | `jackin-project/jackin` / launch, capsule, daemon, and remote APIs | M3-01, M4-01 through M4-05, M10-01, M12-01 | P: interactive CLI compatibility, resolved non-TTY launch, six-runtime attach/prompt/event/exec/blocked behavior, and remote schemas work. N: prompt residue, observer mutation, and remote-to-local fallback are rejected. F: post-ready prompt, timeout, and unreachable peer return explicit outcomes. | Owning task verifiers, binary/version text, runtime labels, protocol transcripts, and live runtime-matrix outputs tied to tested binary and source SHAs. |
-| **ACC-004** | `jackin-project/jackin` / scheduler and manager/worker ledgers | M1-13, M3-05, M5-01, M6-05, M7-02, M9-01, M12-02 | P: exact runnable predicate, order, caps, six M1-13 lane records, account-home accounting, fallbacks, visible/claim transitions, release and full-slot reacquisition for every new attempt, distinct monotonic counters, tuple replay, and merge serialization work. N: queued, blocked, released, or retained-workspace work consumes no run slot; no unsupported product-global lease, CAS, fence, illegal pseudo-state, or second bound tuple exists. F: busy, quota, retry deadline, merge/rework reacquisition, partition, delayed response, and manager restart recompute capacity and wait or fail closed without duplicate effects. | M1-13 `lanes.json` and lane/grant smoke evidence; owning implementation verifiers; deterministic fake-clock, provider, backend, state/claim, ledger, recovery, and concurrency traces bound to integrated SHA. |
+| **ACC-004** | `jackin-project/jackin` / scheduler and manager/worker ledgers | M1-13, M3-05, M5-01, M6-05, M7-02, M9-01, M12-02 | P: exact initial/secondary candidate predicates, Linear priority then `createdAt` then identifier order, caps, six M1-13 lane records, account-home accounting, fallbacks, visible/claim transitions, release and full-slot reacquisition for every new attempt, distinct monotonic counters, tuple replay, and merge serialization work. N: proof-plane status, milestone, wave, or critical path never affects product dispatch; queued, blocked, released, or retained-workspace work consumes no run slot; no unsupported product-global lease, CAS, fence, illegal pseudo-state, or second bound tuple exists. F: busy, quota, retry deadline, merge/rework reacquisition, partition, delayed response, and manager restart recompute capacity and preserve the same Linear order or fail closed without duplicate effects. | M1-13 `lanes.json` and lane/grant smoke evidence; owning implementation verifiers; deterministic fake-clock candidate-order, provider, backend, state/claim, ledger, recovery, and concurrency traces bound to integrated SHA. |
 | **ACC-005** | `jackin-project/jackin` / checklist and plan projection | M6-01 through M6-03 | P: first-list extraction, mandatory delegated research/implementation/fresh verification, one tick/event, fresh read-modify-write, and plan replacement work. N: unrelated human edits and unchanged items survive without writes. F: conflicting edit aborts and replay remains idempotent. | Owning task verifiers, checklist fixtures, delegate records, and write logs captured under current bundle and integrated SHA. |
 | **ACC-006** | `jackin-project/jackin` / verifier, retry, fallback, and diagnostics | M7-01 through M7-04 | P: locked verifier provenance, exact final line/evidence, continuation cap, retry budget, stall timer, exact lane fallback chains, fresh diagnostics, and one exhaustion elicitation work. N: quota and continuation do not consume retry budget; unverifiable agent-written verifier cannot pass. F: exit, timeout, stall, verification, quota, and throttle faults select the specified retry, fallback, wait, or exhaustion outcome. | Owning task verifiers plus fake-clock, attempt-ledger, diagnostic-subagent, and verifier-stream evidence bound to the attempt and tested SHA. |
-| **ACC-007** | `jackin-project/jackin` / capsule guidance and Linear escalation | M4-06, M7-03, M7-04 | P: elicitation/reply and host guidance reach the same PTY with complete activity; stop releases resources; safe follow-up is linked and unassigned. N: no implicit auto-delegation occurs. F: duplicate reply and stop are replay-safe. | Owning task verifiers plus live PTY/session/activity records identifying issue, run, capsule, host, and capture time. |
+| **ACC-007** | `jackin-project/jackin` / capsule guidance, durable stop, and Linear escalation | M3-06, M4-04, M4-06, M7-03, M7-04 | P: elicitation/reply and host guidance reach the same PTY with complete activity; delegate removal and canonical `signal: stop` persist the STATE-006 intent, terminate session/container, release claim/capacity, retain nonterminal workspace, remove the app delegate, and suppress redispatch until a fresh delegation/session; safe follow-up is linked and unassigned. N: plain stop text, restart, active-state move, label edit, stopped-session reply, retained workspace, and implicit auto-delegation cannot re-enable or launch work. F: failure between stop effects and duplicate/restart replay complete one response/removal/release without another attempt or container; only delegate absence followed by fresh assignment/session clears suppression. | M3-06/M4-04 stop fixtures, owning task verifiers, durable intent/claim/capacity ledgers, and live PTY/session/activity/delegate snapshots identifying issue, run, capsule, host, stop activity, effect ids, and capture time. |
 | **ACC-008** | `jackin-project/jackin` / GitHub adapter, merge, rework, and release validator | M8-01 through M8-04, M9-01 through M9-03, M11-01a | P: both `repository_selection=all` installations, scoped tokens, idempotent scratch branch/PR/link, authorized green merge, confirmed cleanup, and M9-01 rework from current base after a closed or merged PR work; preview-main and all-role validation work. N: non-scratch destructive targets, failed checks, unauthorized merge, cross-organization installation, stale-tree continuation, and reuse of a closed/merged PR as open are refused. F: ambiguous PR/merge reads before mutation; close-or-merge then reactivate and crash-after-capacity-release scenarios reacquire slots, use a new ordinal, create one policy-valid rework branch, and produce no duplicate PR or merge. | M8 and M9 owning verifiers, GitHub API/text records, scratch PR/check/merge/rework traces, claim/capacity ledger, preview validator output, and browser references captured against live installations. |
 | **ACC-009** | `jackin-project/jackin` / reconciliation and multi-host placement | M3-07, M12-01 through M12-04 | P: restart adoption by exact tuple, persisted counters/watermarks, least-load and prior-host selection, and saturation wait work. N: mismatched or unlabeled containers are quarantined; ledger state alone never revives work. F: pre-effect loss may re-place, post-effect loss uses a new ordinal, and unknown partition waits without duplication. | Owning task verifiers plus two-host chaos transcripts, ledgers, container inventories, and effect logs tied to host identities and tested daemon SHAs. |
 | **ACC-010** | `tailrocks/termrock` and `jackin-project/jackin` / fleet observability | M5-02 through M5-06, M10-01 through M10-06 | P: complete side-effect-free snapshot/detail/event/evidence, heartbeat timeline, distinct waiting/blocked/stuck, host-loop drain, TerminalPane behavior, fleet rows, and one-action attach work. N: absent console and empty source do not alter execution or redraw. F: control characters, secret canaries, dropped peers, and attachment failures remain redacted and explicit. | Owning task verifiers, forty-minute live timeline, host-blessed golden text, performance output, and attach transcripts tied to source and service identity. |
@@ -1757,7 +1858,7 @@ PRD-001..PRD-006.
 ## D-003
 EXEC-020..EXEC-025; EXEC-030..EXEC-035; CTRL-001.
 ## D-004
-PRD-003; ISSUE-010; SCHED-000..SCHED-003; SCHED-005..SCHED-007; SCHED-010..SCHED-014.
+PRD-003; ISSUE-007; ISSUE-010; SCHED-000..SCHED-003; SCHED-005..SCHED-007; SCHED-010..SCHED-014.
 ## D-005
 EXEC-001..EXEC-006; OBS-001..OBS-005.
 ## D-006
@@ -1769,9 +1870,9 @@ ARCH-001; ARCH-010..ARCH-023; REC-001..REC-005; REC-010..REC-014.
 ## D-009
 PRD-011; ARCH-010.
 ## D-010
-AUTH-001; ISSUE-001..ISSUE-006; ISSUE-010..ISSUE-015; ISSUE-019..ISSUE-023.
+AUTH-001; ISSUE-001..ISSUE-007; ISSUE-010..ISSUE-015; ISSUE-019..ISSUE-023.
 ## D-011
-ISSUE-010.
+ISSUE-007; ISSUE-010; STATE-006.
 ## D-012
 ISSUE-005; ISSUE-010..ISSUE-014; EXEC-012.
 ## D-013
@@ -1787,9 +1888,9 @@ DEP-001; REC-014.
 ## D-018
 ISSUE-019..ISSUE-023.
 ## D-019
-SCHED-020..SCHED-024; STATE-005; STATE-010..STATE-013; REC-001..REC-005.
+SCHED-020..SCHED-024; STATE-005; STATE-006; STATE-010..STATE-013; REC-001..REC-005.
 ## D-020
-SCHED-000..SCHED-003; STATE-000..STATE-005; STATE-012; STATE-013.
+ISSUE-007; SCHED-000..SCHED-003; STATE-000..STATE-006; STATE-012; STATE-013.
 ## D-021
 STATE-004; STATE-010..STATE-013; EXEC-040..EXEC-047.
 ## D-022
@@ -1895,7 +1996,7 @@ SCHED-005; SCHED-007; SCHED-011; CTRL-015.
 ## D-072
 CTRL-014; CTRL-016.
 ## D-073
-ISSUE-006; ISSUE-010; REC-002; REC-005.
+ISSUE-006; ISSUE-007; ISSUE-010; SCHED-000..SCHED-003; REC-002; REC-005.
 ## D-074
 CTRL-023; ROLE-005.
 ## D-075
@@ -1911,7 +2012,8 @@ ROLE-004; ROLE-006; EXEC-062.
 ## D-080
 ISSUE-001; ISSUE-003; SEC-009; SEC-013.
 ## D-081
-SEC-002; SEC-003; CTRL-029..CTRL-034; OBS-002.
+STATE-006; EXEC-002..EXEC-005; EXEC-050; SEC-002; SEC-003;
+CTRL-029..CTRL-034; OBS-002.
 ## D-082
 EXEC-011; EXEC-013; CTRL-064.
 ## D-083
