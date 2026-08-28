@@ -1,1 +1,0 @@
-canary CANARY-01 readiness-2026-08-28

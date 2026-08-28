@@ -2,7 +2,7 @@
 # (D-114). Do not edit by hand; edit the roadmap row and regenerate.
 id = "M1-08"
 milestone = "M1"
-title = "Define the issue field convention (Q-013 adopted, D-053)"
+title = "Materialize the managed-issue field convention"
 repo = "tailrocks/ecosystem"
 repos = [
   "ecosystem",
@@ -19,15 +19,7 @@ size = "S"
 depends_on = [
   "M1-05d",
 ]
-decisions = [
-  "D-012",
-  "D-014",
-  "D-043",
-  "D-044",
-  "D-049",
-  "D-052",
-  "D-053",
-]
+decisions = []
 
 [limits]
 attempts = 3

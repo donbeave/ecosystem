@@ -90,6 +90,32 @@ print(digest)
 PY
 }
 
+fixture_transition() {
+  root="$1"
+  id="$2"
+  target="$3"
+  [ "$target" = "ready" ] && return 0
+  lease="$(cd "$root" && python3 tools/state.py lease "$id" \
+    --owner "fixture:$id" --ttl 600)"
+  token="$(printf '%s\n' "$lease" |
+    python3 -c 'import json,sys; print(json.load(sys.stdin)["token"])')"
+  # Only a task left `done` gets a `verify.out` written for it, so only a
+  # `done` transition may name one: a ledger row that cites evidence the
+  # fixture never wrote is a dangling claim, which is exactly what the gate
+  # exists to reject.
+  if [ "$target" = "done" ]; then
+    ( cd "$root" && python3 tools/state.py transition "$id" in-progress \
+      --token "$token" --lane L1 --path host >/dev/null )
+    ( cd "$root" && python3 tools/state.py transition "$id" "$target" \
+      --token "$token" --lane L1 --path host --result fixture \
+      --evidence "tasks/$id/verify.out" >/dev/null )
+  else
+    ( cd "$root" && python3 tools/state.py transition "$id" "$target" \
+      --token "$token" --lane L1 --path host --result fixture >/dev/null )
+  fi
+  ( cd "$root" && python3 tools/state.py release "$id" --token "$token" >/dev/null )
+}
+
 # build_base <dir> [status-of-last-task]
 # The third task is left in the given status (default `done`).
 build_base() {
@@ -123,14 +149,11 @@ build_base() {
   ( cd "$root" && python3 tools/state.py lock-epoch --epoch 1 \
       --lock-hash "$fixture_lock_hash" --key fixture-lock-epoch-1 \
       --bootstrap >/dev/null )
+  ( cd "$root" && python3 tools/state.py arm >/dev/null )
   for id in M1-01 M1-02; do
-    ( cd "$root" && python3 tools/state.py transition "$id" "done" \
-        --lane L1 --path host --result "fixture" \
-        --evidence "tasks/$id/verify.out" >/dev/null )
+    fixture_transition "$root" "$id" 'done'
   done
-  ( cd "$root" && python3 tools/state.py transition M1-03 "$last_status" \
-      --lane L1 --path host --result "fixture" \
-      --evidence "tasks/M1-03/verify.out" >/dev/null )
+  fixture_transition "$root" M1-03 "$last_status"
 
   git -C "$root" add -A
   git -C "$root" commit -q -m "fixture: bundles, tools, state store"

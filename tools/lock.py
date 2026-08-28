@@ -232,7 +232,7 @@ def render(epoch: int) -> str:
     else:
         lines.append(kv("tag", ""))
         lines.append("# tag is empty: creating the review tag is a human-only step")
-        lines.append("# (readiness plan row 0.2). Fill it in and re-run write.")
+        lines.append("# Fill it in and re-run write.")
     lines.append("")
 
     lines.append("[external]")

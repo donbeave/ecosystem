@@ -1,59 +1,58 @@
-Host Claude Code: execute `ROADMAP.md` (FINAL), unattended through 81 tasks
-until `sh verify.sh` ends `status: DONE`. Coordinate, verify, record;
-subagents work. `goal/PREFLIGHT.md` is done.
+Host: execute `ROADMAP.md`'s derived 81-task graph unattended until `sh verify.sh` ends
+`status: DONE`. Coordinate; subagents execute. Preflight is done.
 
-## Sources of truth
+## Inputs
 
 1. `AGENTS.md` in full, then `goal/EXECUTION.md`.
 2. `tasks/README.md`, `PROGRESS.md`, `PREFLIGHT-DEFECTS.md`, `tasks/<id>/` — run state,
    your only writes.
-3. Owners: `ROADMAP.md` graph/order; `SPEC.md` product + D registry; `GOAL.md` +
-   `goal/EXECUTION.md` procedure; `concept/` non-normative. Subagents `Read` these
-   and `analysis/`.
+3. `SPEC.md` alone defines product and acceptance; `ROADMAP.md` its derived graph/order;
+   this file plus `goal/EXECUTION.md` procedure; others context.
 
 ## Laws
 
-1. Delegate every large-file read, implementation, verification and proof to `model:
-   "opus"` subagents, one per checklist item, ≤15 lines each; waves run parallel.
+1. Delegate large-file reads, implementation, verification, proof to `model: "claude-opus-5"`
+   subagents, one per checklist item, ≤15 lines each; parallelize waves.
 2. Codex lanes L4..L6 run in jackin role containers (§4 `container`), never as subagents.
-3. Never ask, confirm, or wait for a human, review or merge; agents merge when the task
-   names it. Use recommended design answer; a subagent records it in `SPEC.md` registry
-   and affected owners (D-104).
-4. An input only a human can give goes to `PREFLIGHT-DEFECTS.md` with its proving command,
-   that row `blocked`; continue with the other runnable rows.
-5. Stuck (no evidence for 30 min, or 3 verify failures) spawns diagnostic subagents;
+3. Never ask, confirm, or await human review or merge; agents merge when named. Use
+   `SPEC.md`; subagent updates it, then synchronizes derived pointers (D-104).
+4. Human-only input goes to `PREFLIGHT-DEFECTS.md` with proof command, row `blocked`;
+   continue other runnable rows.
+5. Stuck (no evidence for 30 min, or 3 verify failures): spawn diagnostic subagents;
    apply the fix first.
-6. Fix involved projects, never work around them. Per task a worktree and branch
-   `managed/<run-id>/<task-id>` off the `run/LOCK.toml` base SHA, all a worker pushes.
-   `feat/managed-execution` (roles: `main`) is an integration target, not a worker
-   checkout: only the `state.py lease --owner integrator:<repo>` holder merges there;
+6. Fix involved projects, never work around them. Each task gets worktree and branch
+   `managed/<run-id>/<task-id>` from `run/LOCK.toml` base SHA; worker pushes all.
+   `feat/managed-execution` (roles: `main`) is integration target, not worker checkout:
+   only `state.py lease --owner integrator:<repo>` holder merges there;
    verify runs on that SHA, filed as `integrated_sha` (D-112). Us: `main`.
-7. `git commit -s` always, rebase before each push, never `--force`, push at once after each
-   transition; a protected `main` is reached only by a PR the agent merges green (§4).
-8. Credentials only as `op://`; no secret in any file, log or message;
+7. Always `git commit -s`; rebase before push; never `--force`; push each transition.
+   Reach protected `main` only through green PR agent merges (§4).
+8. Credentials only as `op://`; no secrets in files, logs, messages;
    `gitleaks detect --no-git --source tasks/<id>` before each commit.
-9. Here: Markdown plus `tasks/<id>/` machine files only; reviews never block and are in no
+9. Here: Markdown plus `tasks/<id>/` machine files only; reviews never block or enter
    `depends_on`.
 
-## Task loop
+## Loop
 
-1. Take every runnable row in wave order.
+1. Take runnable rows in wave order.
 
-Runnable predicate (D-119). A row is Runnable (D-119) iff: its status is
-`ready`; every `depends_on` id is `done`; a lane slot is free under the
-caps — at most two host subagents on `~/.claude`, at most
-three host subagents in flight (D-071) — plus the §4 reserve rule of
-`goal/EXECUTION.md`; and, for M2+ ids other than M3-01, M3-03, M4-02, M4-03,
-the M1-12 row is `done` (D-088). Rows `planned`, `blocked`, `waiting` or
-`in-progress` are not runnable and do not count as `done` (D-084).
+Runnable predicate (D-119). A row is Runnable (D-119) iff its status is `ready`; every
+`depends_on` id is `done`; a lane slot is free under the caps (at most two
+host subagents on `~/.claude`, at most three in flight, D-071) and the §4
+reserve rule; and, except for M3-01, M3-03, M4-02, M4-03, an M2+ row has
+M1-12 `done` and a valid lock-bound CTRL-006 audit. Those four ids
+bypass both gates, run locked bundles, and receive issue backfill from M1-12
+without rerun (ISSUE-006, CTRL-006, CTRL-014). `planned`, `blocked`,
+`waiting`, and `in-progress` are not runnable or `done` (D-084).
 
 Arming (D-072): `state.py arm` readies wave 0 once; each `done` transition readies tasks
 whose deps are `done`; no task runs from a bare row.
+After valid audit PASS, `state.py promote` reconciles remaining planned rows.
 
 2. Run `goal/EXECUTION.md` §5 steps 0-9 verbatim.
-3. Done requires: `verify.sh` ends `status: DONE`, row `done`, a `PROGRESS.md` row, all
+3. Done requires: `verify.sh` ends `status: DONE`, row `done`, `PROGRESS.md` row, all
    touched repositories pushed.
-4. Re-run `sh verify.sh`; dispatch the next runnable rows.
+4. Re-run `sh verify.sh`; dispatch next runnable rows.
 
 ## Resume
 

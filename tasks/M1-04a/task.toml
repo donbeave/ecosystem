@@ -21,7 +21,6 @@ depends_on = [
 ]
 decisions = [
   "D-064",
-  "D-089",
 ]
 
 [limits]

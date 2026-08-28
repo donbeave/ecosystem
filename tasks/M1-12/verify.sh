@@ -65,7 +65,7 @@ case "$part" in
       printf '%s\n' "status: PENDING"
       exit 1
     fi
-    run_cmd 'jq -r '\''.[].label'\'' tasks/M1-13/lanes.json'
+    run_cmd 'python3 tools/verify_issue_mirror.py tasks/M1-12/issues.json'
     finish
     ;;
   *)

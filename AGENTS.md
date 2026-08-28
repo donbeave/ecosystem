@@ -16,20 +16,15 @@ it to a subagent and commits the subagent's edit (D-104).
 ## Entry point, run mode, source of truth
 
 1. `GOAL.md` is the entry point of any run: its whole text is the prompt the `/goal` runner
-   executes and the whole contract, `goal/EXECUTION.md` the procedure, `goal/PREFLIGHT.md`
+   executes, `goal/EXECUTION.md` the procedure, `goal/PREFLIGHT.md`
    the human's one-time checklist, `README.md` "Start the run" the invocation line to paste.
 2. Run mode: if any `tasks/README.md` row is not `planned`, a `/goal` run is under way and
    this session is the host session. After a context compaction or a re-prompt, re-read
    `GOAL.md` and `goal/EXECUTION.md` §1 and §5, then run §1 steps 2–3; state is re-derived
    from `tasks/README.md`, `PROGRESS.md`, `tasks/<id>/attempts.log`, and `git log` only,
    never from memory.
-3. Domain owners: `ROADMAP.md` owns graph and order; `SPEC.md` owns the product
-   contract and dated D-NNN definition registry; `GOAL.md` + `goal/EXECUTION.md` own
-   run procedure; `concept/` is non-normative elaboration. For overlapping points,
-   `ROADMAP.md` > `SPEC.md` > `concept/`. Correct contradictions in the same commit;
-   update a new or revised D-NNN definition with every affected domain owner.
-4. Undecided design points live in `OPEN-QUESTIONS.md` and never block a run: apply the
-   recommended answer, record its D-NNN definition, and update affected owners (D-053).
+3. Treat SPEC.md as the sole authority for final-product requirements and acceptance conditions; keep ROADMAP.md authoritative only for graph and order, GOAL.md plus goal/EXECUTION.md only for run procedure, and concept/ non-normative; never let those documents override SPEC.md on product behavior or acceptance. Correct contradictions in the same commit.
+4. Treat `VISION.md` and `OPEN-QUESTIONS.md` as non-normative; final-product requirements and acceptance conditions exist only when stated in `SPEC.md`.
 
 ## Delegation law (D-036, D-082, D-092)
 
@@ -141,9 +136,9 @@ credential to rotate, and blocks the commit.
 
 | Content | File |
 | --- | --- |
-| Problem, insights, target state; undecided questions | `VISION.md`, `OPEN-QUESTIONS.md` |
-| Product contract and dated D-NNN definition registry | `SPEC.md` |
-| Manager, task on-disk format and `verify` contract, roles, workflow | `concept/manager.md`, `concept/task-format.md`, `concept/roles.md`, `concept/workflow.md` |
+| Non-normative problem context, insights, and questions | `VISION.md`, `OPEN-QUESTIONS.md` |
+| Final-product requirements and acceptance conditions | `SPEC.md` |
+| Non-normative elaboration of manager, task format, roles, and workflow | `concept/manager.md`, `concept/task-format.md`, `concept/roles.md`, `concept/workflow.md` |
 | Milestones, tasks, dependencies, waves, roles, lanes | `ROADMAP.md` |
 | The `/goal` prompt (that file is the prompt and nothing else), its procedure, the human's checklist | `GOAL.md`, `goal/EXECUTION.md`, `goal/PREFLIGHT.md` (D-069) |
 | The invocation line to paste, prerequisites, the two outcomes | `README.md` "Start the run" (D-083) |

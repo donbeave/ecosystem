@@ -1,11 +1,10 @@
 # Execution guide for the `/goal` run
 
-Read by the host Claude Code session after `GOAL.md`. It restates no
-normative contract or graph rule from `SPEC.md` or `ROADMAP.md`; it only
-wires the prompt in `GOAL.md` to those files and fixes the mechanical
-procedure so every run behaves the same way. Where these files disagree,
-the precedence in `AGENTS.md` applies and the lower-precedence file is
-corrected in the same commit.
+Read by the host Claude Code session after `GOAL.md`. `SPEC.md` alone defines
+the final product and its acceptance conditions. `ROADMAP.md` supplies only
+the derived graph and order. This file owns mechanical run procedure and does
+not add product requirements. Any conflicting derived wording is corrected to
+match `SPEC.md` in the same commit.
 
 ## 1. Session start (every run, including a resume or a re-prompt)
 
@@ -164,8 +163,9 @@ decreases and no `done` task takes a new lease; refusal is
 
 ## 2. What "one task" means
 
-- Input: `tasks/<id>/TASK.md`, `task.toml`, `verify.sh`, and the task's
-  `ROADMAP.md` row. M1-01 (wave 0) writes the three files for every M1..M5
+- Input: `tasks/<id>/TASK.md`, `task.toml`, `verify.sh`,
+  `expected-evidence.toml`, and the task's `ROADMAP.md` row. M1-01 (wave 0)
+  materializes the bundle files for every M1..M12
   id before any other task starts (D-072); no task runs from a bare row —
   which is why a row reaches `ready` only through arming or promotion, see
   the arming rule under the runnable predicate in §3.
@@ -251,13 +251,14 @@ the account home. Before every load the session builds that list and
 refuses a load whose lane's account home, or whose role where the cap is
 per role, already appears in it.
 
-Runnable predicate (D-119). A row is Runnable (D-119) iff: its status is
-`ready`; every `depends_on` id is `done`; a lane slot is free under the
-caps — at most two host subagents on `~/.claude`, at most
-three host subagents in flight (D-071) — plus the §4 reserve rule of
-`goal/EXECUTION.md`; and, for M2+ ids other than M3-01, M3-03, M4-02, M4-03,
-the M1-12 row is `done` (D-088). Rows `planned`, `blocked`, `waiting` or
-`in-progress` are not runnable and do not count as `done` (D-084).
+Runnable predicate (D-119). A row is Runnable (D-119) iff its status is `ready`; every
+`depends_on` id is `done`; a lane slot is free under the caps (at most two
+host subagents on `~/.claude`, at most three in flight, D-071) and the §4
+reserve rule; and, except for M3-01, M3-03, M4-02, M4-03, an M2+ row has
+M1-12 `done` and a valid lock-bound CTRL-006 audit. Those four ids
+bypass both gates, run locked bundles, and receive issue backfill from M1-12
+without rerun (ISSUE-006, CTRL-006, CTRL-014). `planned`, `blocked`,
+`waiting`, and `in-progress` are not runnable or `done` (D-084).
 
 Arming and promotion. Nothing dispatches a `planned` row, so wave 0 is
 armed once, by `python3 tools/state.py arm`: it moves every task whose
@@ -265,22 +266,23 @@ armed once, by `python3 tools/state.py arm`: it moves every task whose
 makes M1-01 author every task bundle before any other task starts, so
 `arm` promotes M1-01 alone; the other dependency-free ids (M1-02, M10-02,
 M10-03) are promoted when M1-01 turns `done`. From then on the promotion
-is automatic: `python3 tools/state.py transition <id> done` promotes every
+is automatic: a leased `python3 tools/state.py transition <id> done --token
+<token>` promotes every
 `planned` task whose dependencies are all `done` to `ready` in the same
 locked append. So a row is `ready` before it is ever dispatched, and "no
 task runs from a bare row" and "a runnable row is not `planned`" say the
 same thing rather than contradicting each other.
 
-M1 exit audit (D-123). Promotion of an M2+ row carries one further
-condition: M1-12 will have written `tasks/M1-12/audit.md` and its last
-non-empty line will read `audit: PASS`. `tools/state.py` refuses the promotion otherwise, in both
-`arm` and the auto-promotion of `transition <id> done`, so an M2+ row
+M1 exit audit (CTRL-006). Promotion of a non-exempt M2+ row requires M1-12's
+audit to bind the current state and immutable-lock epoch/hash, the exact locked
+M1 id/bundle set, every rerun output, and the exit-gate output; its last
+non-empty line is `audit: PASS`. `tools/state.py` refuses promotion otherwise, in both
+`arm` and the auto-promotion of `transition <id> done`, so a non-exempt M2+ row
 physically cannot reach `ready` before the audit passes and nothing has to
-remember the rule. The audit gates every M2+ id: the four early-start ids
-of D-088 (M3-01, M3-03, M4-02, M4-03) are exempt from waiting for the M1-12
-row, because they need only the task bundles, but they are not exempt from
-the audit, which is what proves the M1 foundation they and the rest of the
-run stand on. §5 step 7a says who writes the file.
+remember the rule. M3-01, M3-03, M4-02, and M4-03 are exempt from both the
+M1-12 row and audit gates; they run from their locked bundles before M1-12,
+which later backfills their issues at their durable state without delegation or
+rerun (ISSUE-006, CTRL-006, CTRL-014). §5 step 7a says who writes the file.
 
 A dependent of a `blocked` task keeps its own status (`ready`) and gets no
 row of its own in `PREFLIGHT-DEFECTS.md`. Tasks from a later milestone
@@ -307,7 +309,7 @@ per task:
 | 5b | M1-03 | `crew-operator` container on L6 |
 | 6 | M1-07 | `crew-operator` container |
 | 7 | M1-10 | `crew-operator` container (critical path) |
-| 8 | M1-13 | subagents plus throwaway loads, one at a time, each only when its lane's account home has no running container (L4 only after M1-08 ejected, L6 only after M1-03, M1-07 and M1-10 have ejected, at most one `~/.claude` throwaway at a time, the operator throwaway only when no other `crew-operator` container exists). It has its own wave because those loads queue behind the whole L6 chain; nothing in M1-07 or M1-10 needs M1-13, so the critical path is unchanged (D-088 (2)) |
+| 8 | M1-13 | subagents plus throwaway loads, one at a time, each only when its lane's account home has no running container (L4 only after M1-08 ejected, L6 only after M1-03, M1-07 and M1-10 have ejected, at most one `~/.claude` throwaway at a time, the operator throwaway only when no other `crew-operator` container exists). It has its own wave because those loads queue behind the whole L6 chain; nothing in M1-07 or M1-10 needs M1-13, so the critical path is unchanged (CTRL-017). |
 | 9 | M1-09 | `crew-operator` container; needs M1-10's token and app user and `tasks/M1-13/lanes.json` |
 | 10 | M1-11, M1-12 | `crew-operator` container, sequential; M1-11 verify runs here (D-061) |
 
@@ -318,8 +320,9 @@ the run is under way. M1-01 authors nothing: it seeds the run-state store
 and verifies that every bundle is present and matches its lock hash.
 No M6..M12 task begins before the M1-12 row is `done`. A milestone's first
 task starts only after its row carries a Linear URL; the four early-start
-tasks named above may run before M1-12 exists, and M1-12 creates their
-issues afterwards. Rows are `ready` once M1-01 has seeded the store;
+tasks named above may run before M1-12 or its audit exists, and M1-12 creates
+their issues afterwards at their durable state without rerunning them.
+Rows are `ready` once M1-01 has seeded the store;
 `planned` is reserved for rows the store has not armed yet.
 
 ## 4. Execution paths
@@ -341,7 +344,7 @@ Exactly one path per task, chosen by this table. Record the path in the
 | --- | --- | --- |
 | `host` | `role` is `host`, or the task only changes this repository | This session runs the commands (delegating research and verification to subagents). Host-only `verify.sh` runs here and its output is filed (D-061). A host command that creates a named resource runs the corresponding `get` first and skips when present. Only this session commits to this repository (D-086). |
 | `subagents` | Claude lanes (L1..L3) only: the task changes an involved repository and needs no role-only tool (`agent-browser`, `op` inside a container, DinD) and the daemon cannot dispatch it yet (before M3-05 is merged) | In-session subagents with the lane's model, working in that task's own git worktree at `~/.jackin/managed/<id>/<repo>` (clone or fetch, then `git worktree add` on branch `managed/<run-id>/<id>` created from the base SHA locked in `run/LOCK.toml`; never a checkout of `feat/managed-execution`, D-112). They all share this session's `~/.claude`, so each such task counts against the `~/.claude` cap and an L1→L2→L3 fallback is a model change only. Codex lanes never use this path (D-082). A task whose verify launches or attaches to a jackin instance takes this path (host Docker) before M3-05, never `container` (D-091). |
-| `container` | The task's scope or verify names a role container, `agent-browser`, `jackin-exec`, or the profile mount (every `crew-operator` task; role smoke tests), or the task's lane is a Codex lane (L4..L6), and the daemon cannot dispatch it yet | **Workspace (D-085).** `jackin workspace show task-<id>` or, when absent, `jackin workspace create task-<id> --workdir /workspace --mount <ws>:/workspace`. `<ws>` is the mount source of `/workspace`: the task's worktree `~/.jackin/managed/<id>/<repo>` for a task that changes a repository, the evidence directory `~/.jackin/managed/<id>` for an operator or evidence task; a review adds `:ro` (`<ws>:/workspace:ro`). The `:/workspace` half is never omitted: a bare `--mount <path>` mounts the directory at its own host path (a mount spec without `:dst` uses `dst = src`) and leaves `/workspace` empty, which breaks every `-w /workspace` exec, the container-relative `.jackin/task/...` prompt line, and the-architect's `MISE_TRUSTED_CONFIG_PATHS=/workspace` (an untrusted `mise.toml` means no Rust toolchain). Then merge the lane template into `~/.config/jackin/workspaces/task-<id>.toml`: `tasks/M1-13/lanes/L<n>.toml` once M1-13 is done, before that `tasks/M1-02a/lanes/L<n>.toml` (`[codex] sync_source_dir` or `[claude] sync_source_dir` — that is the sole account selector before M1-13, and host `CODEX_HOME`/`CLAUDE_CONFIG_DIR` select nothing in `jackin load` — plus the template's `[[mounts]]` lines, applied one by one with `jackin workspace edit task-<id> --mount <src>:<dst>`, which is how the per-lane cargo caches reach the container). Then merge the task's **role grant** file `tasks/M1-13/grants/<role>.toml` into the same workspace: a lane template carries `sync_source_dir` and `[env]` only, because every lane serves builder, operator, and reviewer tasks, so Docker grants are per role, not per lane (`the-architect` and `donbeave/crew-builder` get `[docker.grants] dind = "privileged"`, `donbeave/crew-operator` the network allowlist grant, `donbeave/crew-reviewer` neither). Before M1-13 is done no grant file exists and no task on this path needs one. `jackin load <role> task-<id> --agent <runtime> --dry-run --format json` must report `.data.workspace == "task-<id>"` and `jq -e '.data.mounts[]|select(.dst=="/workspace")'` must succeed; an ad-hoc load (no workspace name) is a plan defect, never retried. **Staging.** Into the same `<ws>`, so the folder appears in the container as `/workspace/.jackin/task/`: `mkdir -p <ws>/.jackin/task && cp tasks/<id>/TASK.md tasks/<id>/task.toml tasks/<id>/verify.sh <ws>/.jackin/task/`, the `## References` files into `<ws>/.jackin/task/refs/`, `tasks/<id>/pr.txt` for reviews, and — only when `<ws>` is a git worktree — `echo .jackin/ >> <ws>/.git/info/exclude` (for the read-only reviewer mount the copy is still host-side). The container part of a `verify.sh` reads nothing outside `/workspace`: repository files as `./…`, any evidence file the host produced as `.jackin/task/refs/<name>`, staged here. **Teardown before any launch of the same id** (retry, fallback, re-sync, resume): when `tasks/<id>/herdr-tab.txt` names a live tab, `herdr tab close "$(cat tasks/<id>/herdr-tab.txt)"`; then, for a `crew-operator` container, `docker exec -u agent "$(cat tasks/<id>/container.txt)" agent-browser close --all` so Chromium releases the shared profile; then `jackin eject "$(cat tasks/<id>/container.txt)"` if that file names a live container. Never start a second load for the same id while one is loaded. Before every `crew-operator` launch, once `docker ps --filter label=jackin.role=donbeave/crew-operator` prints nothing, `rm -f ~/.jackin/agent-browser-profile/Singleton{Lock,Socket,Cookie}`: Chromium writes those as `<hostname>-<pid>`, the hostname is the container id, and a stale one makes the next container refuse to start with "profile in use on another computer". The cap of one `crew-operator` guarantees no live holder, so the removal is unconditional; a PID check is meaningless across PID namespaces. **Launch (Herdr 0.8.2, D-124).** Create a background tab in the coordinator workspace with `herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd "$HOME" --label '<id>' --no-focus`; record `.result.tab.tab_id` in `tasks/<id>/herdr-tab.txt` and `.result.root_pane.pane_id` in `tasks/<id>/herdr-pane.txt`. Start the TUI with `herdr pane run "$(cat tasks/<id>/herdr-pane.txt)" "env -u CI TERM=xterm-256color JACKIN_NO_MOTION=1 jackin load <role> task-<id> --agent <runtime>"`. `<role>` is the task's role, or `the-architect` for bootstrap tasks M1-04a and M1-05a..c (`ROADMAP.md` §4). Preconditions so no dialog appears: trust granted (M1-05d), every manifest `[env]` var satisfied, no mount source under jackin's sensitive list. Wait without model polling: `herdr pane wait-output "$(cat tasks/<id>/herdr-pane.txt)" --regex '<runtime prompt regex>' --source recent-unwrapped --lines 200 --timeout 900000`. On timeout, read once with `herdr pane read ... --source recent-unwrapped --lines 200`; repeat one 900000 ms wait only when build/pull lines changed, otherwise apply the stuck rule. Once detected, rename the agent to exactly the lowercase task id (`M2-01` → `m2-01`) with `herdr agent rename "$(cat tasks/<id>/herdr-pane.txt)" '<id-lowercase>'` and write that exact alias to `tasks/<id>/herdr-agent.txt`. On resume, a pane without that agent is live only when `herdr pane process-info` shows a foreground command containing boundary-delimited `task-<id>` plus the task runtime; a recorded pane id alone proves nothing. Then record the container. The workspace component of a jackin container name is lowercased and stripped of every non-alphanumeric character, so `task-M2-01` appears as `taskm201` and a hyphenated pattern matches nothing: `slug=$(printf %s "task-<id>" \| tr -cd '[:alnum:]' \| tr '[:upper:]' '[:lower:]'); docker ps --filter label=jackin.managed=true --filter label=jackin.kind=role --format '{{.Names}}' \| grep -- "-${slug}-" \| head -1 > tasks/<id>/container.txt`. When two names match, `jackin status --format json` filtered by workspace `task-<id>` is authoritative and decides which one is written. **Prompt.** One line only, never multi-line `TASK.md`: `goal` delivery uses `herdr agent prompt "$(cat tasks/<id>/herdr-agent.txt)" '/goal Read this file: .jackin/task/TASK.md — implement it fully until sh .jackin/task/verify.sh container prints status: DONE'`; `prompt` delivery uses the same command with `Read .jackin/task/TASK.md and follow it as your task prompt; the container check is sh .jackin/task/verify.sh container`. `agent prompt` handles paste mode and Enter atomically; note `prompt landed: file` only after it reports success. Wait with `herdr agent wait "$(cat tasks/<id>/herdr-agent.txt)" --timeout 1800000`; inspect `blocked` with `herdr agent read ... --source recent-unwrapped --lines 200`; progress reads happen only after a wait returns. **Container verify** is never typed into the TUI: `docker exec -u agent -w /workspace "$(cat tasks/<id>/container.txt)" sh .jackin/task/verify.sh container > tasks/<id>/verify.container.out 2>&1` (from M4-03: `jackin daemon exec <instance> -- sh .jackin/task/verify.sh container`). **End.** When `verify.out` is `DONE`, run `jackin eject "$(cat tasks/<id>/container.txt)"` — always by container name, never by role class or `--all` — then `herdr tab close "$(cat tasks/<id>/herdr-tab.txt)"`; remove `task-<id>` after the `PROGRESS.md` row. Interim when no loadable role exists: create and record a Herdr tab/pane the same way, then `herdr pane run <pane-id> 'CODEX_HOME=<home> codex exec --dangerously-bypass-approvals-and-sandbox -C ~/.jackin/managed/<id>/<repo> -c model_reasoning_effort=medium "Task marker: task-<id>. $(cat tasks/<id>/TASK.md)" 2>&1 \| tee tasks/<id>/codex.log'`; inspect with `herdr pane process-info` and `herdr pane read`. One process per Codex home. |
+| `container` | The task's scope or verify names a role container, `agent-browser`, `jackin-exec`, or the profile mount (every `crew-operator` task; role smoke tests), or the task's lane is a Codex lane (L4..L6), and the daemon cannot dispatch it yet | **Workspace (D-085).** `jackin workspace show task-<id>` or, when absent, `jackin workspace create task-<id> --workdir /workspace --mount <ws>:/workspace`. `<ws>` is the mount source of `/workspace`: the task's worktree `~/.jackin/managed/<id>/<repo>` for a task that changes a repository, the evidence directory `~/.jackin/managed/<id>` for an operator or evidence task; a review adds `:ro` (`<ws>:/workspace:ro`). The `:/workspace` half is never omitted: a bare `--mount <path>` mounts the directory at its own host path (a mount spec without `:dst` uses `dst = src`) and leaves `/workspace` empty, which breaks every `-w /workspace` exec, the container-relative `.jackin/task/...` prompt line, and the-architect's `MISE_TRUSTED_CONFIG_PATHS=/workspace` (an untrusted `mise.toml` means no Rust toolchain). Then merge the lane template into `~/.config/jackin/workspaces/task-<id>.toml`: `tasks/M1-13/lanes/L<n>.toml` once M1-13 is done, before that `tasks/M1-02a/lanes/L<n>.toml` (`[codex] sync_source_dir` or `[claude] sync_source_dir` — that is the sole account selector before M1-13, and host `CODEX_HOME`/`CLAUDE_CONFIG_DIR` select nothing in `jackin load` — plus the template's `[[mounts]]` lines, applied one by one with `jackin workspace edit task-<id> --mount <src>:<dst>`, which is how the per-lane cargo caches reach the container). Then merge the task's **role grant** file `tasks/M1-13/grants/<role>.toml` into the same workspace: a lane template carries `sync_source_dir` and `[env]` only, because every lane serves builder, operator, and reviewer tasks, so Docker grants are per role, not per lane (`the-architect` and `donbeave/crew-builder` get `[docker.grants] dind = "privileged"`, `donbeave/crew-operator` the network allowlist grant, `donbeave/crew-reviewer` neither). Before M1-13 is done no grant file exists and no task on this path needs one. `jackin load <role> task-<id> --agent <runtime> --dry-run --format json` must report `.data.workspace == "task-<id>"` and `jq -e '.data.mounts[]|select(.dst=="/workspace")'` must succeed; an ad-hoc load (no workspace name) is a plan defect, never retried. **Staging.** Into the same `<ws>`, so the folder appears in the container as `/workspace/.jackin/task/`: `mkdir -p <ws>/.jackin/task && cp tasks/<id>/TASK.md tasks/<id>/task.toml tasks/<id>/verify.sh tasks/<id>/expected-evidence.toml <ws>/.jackin/task/`, the `## References` files into `<ws>/.jackin/task/refs/`, `tasks/<id>/pr.txt` for reviews, and — only when `<ws>` is a git worktree — `echo .jackin/ >> <ws>/.git/info/exclude` (for the read-only reviewer mount the copy is still host-side). The container part of a `verify.sh` reads nothing outside `/workspace`: repository files as `./…`, any evidence file the host produced as `.jackin/task/refs/<name>`, staged here. **Teardown before any launch of the same id** (retry, fallback, re-sync, resume): when `tasks/<id>/herdr-tab.txt` names a live tab, `herdr tab close "$(cat tasks/<id>/herdr-tab.txt)"`; then, for a `crew-operator` container, `docker exec -u agent "$(cat tasks/<id>/container.txt)" agent-browser close --all` so Chromium releases the shared profile; then `jackin eject "$(cat tasks/<id>/container.txt)"` if that file names a live container. Never start a second load for the same id while one is loaded. Before every `crew-operator` launch, once `docker ps --filter label=jackin.role=donbeave/crew-operator` prints nothing, `rm -f ~/.jackin/agent-browser-profile/Singleton{Lock,Socket,Cookie}`: Chromium writes those as `<hostname>-<pid>`, the hostname is the container id, and a stale one makes the next container refuse to start with "profile in use on another computer". The cap of one `crew-operator` guarantees no live holder, so the removal is unconditional; a PID check is meaningless across PID namespaces. **Launch (Herdr 0.8.2, D-124).** Create a background tab in the coordinator workspace with `herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd "$HOME" --label '<id>' --no-focus`; record `.result.tab.tab_id` in `tasks/<id>/herdr-tab.txt` and `.result.root_pane.pane_id` in `tasks/<id>/herdr-pane.txt`. Start the TUI with `herdr pane run "$(cat tasks/<id>/herdr-pane.txt)" "env -u CI TERM=xterm-256color JACKIN_NO_MOTION=1 jackin load <role> task-<id> --agent <runtime>"`. `<role>` is the task's role, or `the-architect` for bootstrap tasks M1-04a and M1-05a..c (`ROADMAP.md` §4). Preconditions so no dialog appears: trust granted (M1-05d), every manifest `[env]` var satisfied, no mount source under jackin's sensitive list. Wait without model polling: `herdr pane wait-output "$(cat tasks/<id>/herdr-pane.txt)" --regex '<runtime prompt regex>' --source recent-unwrapped --lines 200 --timeout 900000`. On timeout, read once with `herdr pane read ... --source recent-unwrapped --lines 200`; repeat one 900000 ms wait only when build/pull lines changed, otherwise apply the stuck rule. Once detected, rename the agent to exactly the lowercase task id (`M2-01` → `m2-01`) with `herdr agent rename "$(cat tasks/<id>/herdr-pane.txt)" '<id-lowercase>'` and write that exact alias to `tasks/<id>/herdr-agent.txt`. On resume, a pane without that agent is live only when `herdr pane process-info` shows a foreground command containing boundary-delimited `task-<id>` plus the task runtime; a recorded pane id alone proves nothing. Then record the container. The workspace component of a jackin container name is lowercased and stripped of every non-alphanumeric character, so `task-M2-01` appears as `taskm201` and a hyphenated pattern matches nothing: `slug=$(printf %s "task-<id>" \| tr -cd '[:alnum:]' \| tr '[:upper:]' '[:lower:]'); docker ps --filter label=jackin.managed=true --filter label=jackin.kind=role --format '{{.Names}}' \| grep -- "-${slug}-" \| head -1 > tasks/<id>/container.txt`. When two names match, `jackin status --format json` filtered by workspace `task-<id>` is authoritative and decides which one is written. **Prompt.** One line only, never multi-line `TASK.md`: `goal` delivery uses `herdr agent prompt "$(cat tasks/<id>/herdr-agent.txt)" '/goal Read this file: .jackin/task/TASK.md — implement it fully until sh .jackin/task/verify.sh container prints status: DONE'`; `prompt` delivery uses the same command with `Read .jackin/task/TASK.md and follow it as your task prompt; the container check is sh .jackin/task/verify.sh container`. `agent prompt` handles paste mode and Enter atomically; note `prompt landed: file` only after it reports success. Wait with `herdr agent wait "$(cat tasks/<id>/herdr-agent.txt)" --timeout 1800000`; inspect `blocked` with `herdr agent read ... --source recent-unwrapped --lines 200`; progress reads happen only after a wait returns. **Container verify** is never typed into the TUI: `docker exec -u agent -w /workspace "$(cat tasks/<id>/container.txt)" sh .jackin/task/verify.sh container > tasks/<id>/verify.container.out 2>&1` (from M4-03: `jackin daemon exec <instance> -- sh .jackin/task/verify.sh container`). **End.** When `verify.out` is `DONE`, run `jackin eject "$(cat tasks/<id>/container.txt)"` — always by container name, never by role class or `--all` — then `herdr tab close "$(cat tasks/<id>/herdr-tab.txt)"`; remove `task-<id>` after the `PROGRESS.md` row. Interim when no loadable role exists: create and record a Herdr tab/pane the same way, then `herdr pane run <pane-id> 'CODEX_HOME=<home> codex exec --dangerously-bypass-approvals-and-sandbox -C ~/.jackin/managed/<id>/<repo> -c model_reasoning_effort=medium "Task marker: task-<id>. $(cat tasks/<id>/TASK.md)" 2>&1 \| tee tasks/<id>/codex.log'`; inspect with `herdr pane process-info` and `herdr pane read`. One process per Codex home. |
 | `daemon` | From the moment M3-05 and M3-06 are merged on `feat/managed-execution`, the branch build is installed (§5 step 4a), and `jackin daemon status` answers on this host, for every M2+ task whose row carries a Linear URL and whose delivery the daemon supports at that time (M4-01 for prompt delivery, M7-01 for verify, M8-02 for PRs, D-073) | This session delegates the issue to jackin (`issueUpdate(id, input:{delegateId})` with the workspace token obtained per the Linear-token rule below, D-023 holds) when the task becomes runnable; the daemon itself creates the agent session for a delegated issue that has none (`agentSessionCreateOnIssue`, M2-02, D-087), so the host step is the one mutation. It watches `jackin daemon status --format json` and Linear, answers elicitations by PTY injection through `jackin hardline <instance>` or `jackin daemon exec` (never as a Linear `prompt`, which only a human actor can post; Linear-UI replies are made by the proof task's own `crew-operator`), applies the stuck rule, and files evidence when the run reaches `done`. Nothing is started by hand that the daemon can dispatch; a task the daemon cannot serve takes the `subagents` or `container` path with no delegate set. Before the first daemon start against the real workspace, at every daemon restart, and at every session start, reconcile per D-073. |
 
 Throwaway load (role smoke test: M1-05a, M1-05b, M1-05c, M1-06, M1-13,
@@ -473,8 +476,10 @@ Rules that hold on every path:
   target — `feat/managed-execution` in involved projects, `main` in role
   repositories (`donbeave/jackin-crew-*`, `donbeave/jackin-role-template`,
   D-074) — only through the holder of that repository's single integrator
-  lease, taken with `python3 tools/state.py lease --owner
-  integrator:<repo>` and released after the push. The integrator
+  lease, taken with `python3 tools/state.py lease <id> --owner
+  integrator:<repo> --ttl 300`; capture its JSON `token`, gate the merge/push
+  with a keyed `state.py event <id> --token <token>`, then `state.py release
+  <id> --token <token>`. The integrator
   fast-forwards where it can (`git merge --ff-only`), otherwise `git fetch
   origin && git merge` and push (up to five retries), never `--force`.
   Verification then runs against each exact integrated SHA — `git rev-parse
@@ -521,7 +526,7 @@ Rules that hold on every path:
   back into the branch with `git fetch origin main && git merge --no-ff
   --signoff origin/main` and pushes it (the trailer keeps the merge-back
   itself signed off; the DCO gate above ignores merge commits either way).
-- DCO (D-089 (4) amended): the sign-off trailer comes from jackin's own
+- DCO (CTRL-034): the sign-off trailer comes from jackin's own
   feature, not from a hook a role image ships. M1-02a runs `jackin config
   git dco enable` once on this host (`grep -q 'dco = true'
   ~/.config/jackin/config.toml`), so every container launched here carries
@@ -556,12 +561,24 @@ A strict checklist. Run every step, in this order, for every task; skip a
 step only where its own text says it does not apply. A subagent handed this
 section follows it verbatim.
 
+Every host-authored status uses a short proof lease. Run `python3 tools/state.py
+lease <id> --owner host:coordinator --ttl 300`, parse the returned JSON `token`,
+pass that exact token to `state.py transition`, then immediately run `state.py
+release <id> --token <token>` and `state.py render`. Acquisition projects a
+`ready` row as `leased`; cancellation by release alone projects it back to
+`ready`. `arm`, `promote`, initialization, and lock-epoch migration are the
+only unfenced status writers.
+The host-only `ready` ↔ `resource-waiting` cap bookkeeping edges are the one
+transition exception: they carry no task lease because they claim no worker or
+external resource.
+
 0. `git fetch origin && git rebase origin/main` in this repository before
    every edit of `tasks/README.md`, `PROGRESS.md`, or
    `PREFLIGHT-DEFECTS.md` (never `--force`; on a conflict keep both sides'
    rows — the README table is replace-by-id, the ledgers are append-only —
    and note the conflict in the result cell).
-1. Set the `tasks/README.md` row to `in-progress`; commit and push. If the
+1. Claim the `ready` row with the short-lease sequence above, transition it
+   from `leased` to `in-progress`, release, render, commit, and push. If the
    task is M2+, its row has no Linear URL, and M1-12 is `done`, run the
    M1-12 procedure first (idempotent, `crew-operator`, L5, cap 1). Before
    M1-12 is `done`, only M3-01, M3-03, M4-02, and M4-03 dispatch without
@@ -650,7 +667,7 @@ section follows it verbatim.
    `integrated_sha:` line. The task is verified only when its last line is `status: DONE`. Otherwise
    fix and repeat: after the D-063 analysis, the next attempt runs on the
    next lane of the D-057 chain; after `limits.attempts` attempts (default
-   3, `task.toml`; `SPEC.md` §6 step 8) counted in
+   3, `task.toml`; `SPEC.md` §8.5, EXEC-041) counted in
    `tasks/<id>/attempts.log` for the current epoch, without wrapping past
    the starting lane, the task is exhausted (§6, D-070, D-084, D-093). `verify.sh` is POSIX `sh` (`dash -n` and `shellcheck -s sh`
    clean), runs with `set +x`, never `curl -v`/`--trace`, secrets only via
@@ -701,7 +718,8 @@ section follows it verbatim.
    --source tasks/<id>` or the D-081 regex over every file in the folder;
    a hit deletes the file, files a preflight defect naming the credential
    to rotate, and blocks the commit.
-7. Step 0, then set the row to `done`; if the task has a Linear issue that
+7. Step 0, then claim the current row, transition it to `done`, release,
+   render, and continue; if the task has a Linear issue that
    is not already in a `completed`-type state, move it there on every path,
    for the whole run (`issueUpdate` with the §4 token; query `team.states`
    by `type`; a review-state issue left by the daemon after M7-01 is
@@ -713,15 +731,22 @@ section follows it verbatim.
    `PROGRESS.md` row; commit and push this repository. A task that finished
    before M1-12 ran gets its issue from the next M1-12 run, created in the
    `completed`-type state.
-7a. M1 exit audit (D-123). When the transition of step 7 makes the last M1
+7a. M1 exit audit (CTRL-006). When the transition of step 7 makes the last M1
    row `done`, launch one fresh subagent (`model: "claude-opus-5"`, no
    context from this run) that re-runs every M1 task's `sh
    tasks/<id>/verify.sh host`, checks the M1 exit gate of `ROADMAP.md` §2
-   (the CREATE set), and writes `tasks/M1-12/audit.md`: one line per M1 id
-   with its result, then the failures, then a last line `audit: PASS` or
-   `audit: FAIL`. Commit and push that file. Until it ends with `audit:
-   PASS`, `tools/state.py` promotes no M2+ row (§3), so the run has nothing
-   runnable outside M1 and a failing audit is fixed as an ordinary defect of
+   (the CREATE set), writing each complete verifier transcript to
+   `tasks/M1-12/audit-<id>.out` and the exit-gate transcript to
+   `tasks/M1-12/audit-exit-gate.out`; each ends `status: DONE` only on success.
+   Write `tasks/M1-12/audit.md` in exact order: `lock_epoch: <n>`, `lock_hash:
+   <sha256>`, `exit_gate_sha256: <artifact-sha256>`, then one sorted line per
+   locked M1 id as `<id>: bundle=<locked-sha256> verify=<artifact-sha256>`, then
+   last line `audit: PASS` (use `audit: FAIL` without promotion on failure).
+   Commit and push those files, then run `python3 tools/state.py
+   promote` to reconcile the external audit gate under the state lock. Until
+   it ends with `audit:
+   PASS`, `tools/state.py` promotes no non-exempt M2+ row (§3); the four
+   early-start ids remain eligible from their locked bundles. A failing audit is fixed as an ordinary defect of
    the M1 task it names — re-run the audit after the fix, which overwrites
    the file. The audit is not a roadmap task and gets no `tasks/README.md`
    row; it is recorded as one `PROGRESS.md` row `M1-00 audit`.
@@ -766,7 +791,7 @@ the same `GOAL BLOCKED` block (D-093). A second exhaustion files a new row. On t
 (M7-03) the session cannot answer is filed the same way instead of waiting.
 
 Handling: append the row (task, exact item, the command or UI path that
-proves it is in place, or `re-run`), set the task row to `blocked`
+proves it is in place, or `re-run`), claim and transition the task row to `blocked`
 (dependents keep their status), finish the parts of the task that do not
 depend on it, commit, and continue with every other runnable task. The run
 ends BLOCKED only when `sh verify.sh` says so: it counts the rows itself
@@ -780,7 +805,7 @@ only if that run's last line is `status: BLOCKED HUMAN`. The human clears the it
 (leaving the `Resolved` cell empty is fine for missing-input rows — the
 session re-runs each proof command at the next start and fills it; an
 `exhausted:` row is closed only by the human filling `Resolved`, D-093)
-and re-runs the invocation; the session sets those rows back to `ready`
+and re-runs the invocation; the session claims and transitions those rows back to `ready`
 and resumes.
 
 ## 7. Done
@@ -794,8 +819,8 @@ inside that script, not claims made in the message. COMPLETE is
 `status: DONE`, BLOCKED is `status: BLOCKED HUMAN`, `GOAL FAILED` is
 `status: FAILED SYSTEM` (no human input clears it), and `status: PENDING`
 means the run continues. `status: PENDING` with nothing runnable and every
-M1 row `done` is the M1 exit audit outstanding (D-123, §5 step 7a): write
-`tasks/M1-12/audit.md` and the promotion of the M2+ rows follows; it is not
+M1 row `done` is the M1 exit audit outstanding (CTRL-006, §5 step 7a): write
+`tasks/M1-12/audit.md` and the promotion of the remaining M2+ rows follows; it is not
 a terminal state and never ends the run.
 
 The final message has one fixed shape in both cases (D-093), and nothing
@@ -833,12 +858,12 @@ What this session may do itself, and nothing more:
 - Write: `tasks/README.md`, `PROGRESS.md`, `PREFLIGHT-DEFECTS.md`, and
   `tasks/<id>/` files — in this repository only, then commit and push at
   once (D-086).
-- Updating a contract rule (D-053 applies): the session never edits
+- Updating a product or acceptance rule (D-053 applies): the session never edits
   `SPEC.md` itself, because it may not read it. It delegates the edit to a
-  subagent, which updates the `SPEC.md` registry and every affected domain
-  owner (`SPEC.md`, `ROADMAP.md`, `GOAL.md`, or this procedure), corrects any
-  stale `concept/` elaboration, and returns the rule id and touched paths; the
-  session then commits and pushes those files together (D-104).
+  subagent, which updates the sole contract in `SPEC.md`, synchronizes any
+  affected derived graph or procedural pointer, corrects stale non-normative
+  explanation, and returns the touched paths; the session then commits and
+  pushes those files together (D-104).
 - Delegate: everything else, with `model: "claude-opus-5"` (D-092, D-095),
   in parallel up
   to three host subagents in flight and the §4 reserve rule.

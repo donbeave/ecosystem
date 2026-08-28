@@ -60,7 +60,7 @@ container-relative (D-086).
 
 Container part (run inside the task container):
 
-> Repo is a GitHub template, has no `jackin.role.toml`, ships the listed files; `grep -q 'jackin-version: latest-build' .github/workflows/ci.yml` and `! grep -q 'core.hooksPath' Dockerfile` (DCO trailers come from jackin's `JACKIN_GIT_DCO` hook, D-089 (4) amended); hadolint clean; `! grep -rqE 'velnor|self-hosted' .github/workflows`; `gh workflow list -R donbeave/jackin-role-template` shows the three names
+> Repo is a GitHub template, has no `jackin.role.toml`, ships the listed files; `grep -q 'jackin-version: latest-build' .github/workflows/ci.yml` and `! grep -q 'core.hooksPath' Dockerfile` (DCO trailers come from jackin's `JACKIN_GIT_DCO` hook under CTRL-034); hadolint clean; `! grep -rqE 'velnor|self-hosted' .github/workflows`; `gh workflow list -R donbeave/jackin-role-template` shows the three names
 
 Host part (run by the host Claude Code session, D-061):
 

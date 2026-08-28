@@ -1,28 +1,14 @@
-> **Amended by D-048 (2026-08-27):** jackin development always uses the
-> existing `jackin-the-architect` role. In this document, `crew-builder`'s
-> scope is therefore termrock, ecosystem authoring, and the role
-> repositories — not jackin. Read "builder serves jackin tasks" below as
-> "the-architect serves jackin tasks".
->
-> **Adopted by D-053 (2026-08-27):** the role set proposed here (family
-> `crew`: `crew-builder`, `crew-operator`, `crew-reviewer`; template
-> repository; local-only builds until the server milestone; role `host` for
-> human steps) and the D-032 amendment (browser proof by the operator role)
-> are the working contract. The role set is adopted under D-053; §8 points at
-> its normative specification instead of restating it (D-103).
-
 # Roles that build this product (Q-016, D-045)
 
-Status: **ADOPTED (D-053), 2026-08-27**. Consolidates the four analyses
-under `analysis/roles/` into one role set, one naming scheme, one spec per
-role, and the contract that D-053 adopted. Any item may be overridden by a
-later revision to `SPEC.md`. Sources are cited as `dev §n`
+Status: **non-normative role rationale and examples, 2026-08-27**.
+`SPEC.md` alone defines the final role set, permissions, security boundaries,
+and acceptance. This document consolidates four dated analyses; nothing here
+can extend or override the specification. Sources are cited as `dev §n`
 (`analysis/roles/jackin-dev-needs.md`), `tr §n`
 (`analysis/roles/termrock-and-docs-needs.md`), `op §n`
 (`analysis/roles/operator-needs.md`), and `rev A.n` / `conv B.n`
-(`analysis/roles/review-role-and-conventions.md`). Q-017..Q-024 were the
-questions in `ROADMAP.md` §7; their recommended answers, including those in
-§6 below, are adopted (D-053).
+(`analysis/roles/review-role-and-conventions.md`). Historical question and
+conflict discussions below explain how the examples were reached.
 
 ## 1. The set: three roles
 
@@ -290,7 +276,7 @@ Claude the reviewer runs the official plugins plus `tailrocks-review-pr`.
 | Role | Mechanism | Scope |
 | --- | --- | --- |
 | builder | `[github] auth_forward = "sync"` (host `~/.config/gh/` copied in, `gh auth setup-git`, host never written); per-agent provider forwarding from the lane's `CLAUDE_CONFIG_DIR` / `CODEX_HOME` (M1-13; OAuth-token mode for Claude lanes where M1-13 adopts it, D-082) | the human's `gh` identity until the GitHub App (M8-01) supplies a per-repo token |
-| operator | role env entry in **operator config** `~/.config/jackin/config.toml` (not manifest, and never `~/.jackin/config.toml`, which jackin does not read, D-090): `OP_SERVICE_ACCOUNT_TOKEN = { op = "op://tailrocks/op-service-account-jackin-operator/credential", on_demand = true }`; the agent runs `jackin-exec op item create …`; after checking the displayed command, the host session confirms in the task's recorded Herdr pane with `herdr pane send-keys "$(cat tasks/<id>/herdr-pane.txt)" space enter` (D-082 as superseded by D-124); the entry is hand-written with the mandatory `path` field, D-078 | 1Password service account with `read_items` + `write_items` on vault **`jackin` only**; cannot reach `Private`; token stored in `tailrocks` (op §4) |
+| operator | role env entry in **operator config** `~/.config/jackin/config.toml` (not manifest, and never `~/.jackin/config.toml`, which jackin does not read, D-090): `OP_SERVICE_ACCOUNT_TOKEN = { op = "op://tailrocks/op-service-account-jackin-operator/credential", on_demand = true }`; the agent runs `jackin-exec op item create …`; after checking the displayed command, the host session confirms in the task's recorded Herdr pane with `herdr pane send-keys "$(cat tasks/<id>/herdr-pane.txt)" space enter` (D-124); the entry is hand-written with the mandatory `path` field, D-078 | 1Password service account with `read_items` + `write_items` on vault **`jackin` only**; cannot reach `Private`; token stored in `tailrocks` (op §4) |
 | reviewer | `gh` forward only | review + comment |
 
 **Correction to ROADMAP** (§4 role table "host-side `op`" and §7 Q-018 row
@@ -340,10 +326,7 @@ Task deltas: the ROADMAP rows these deltas produced are live in
 there rather than here, so the applied instructions cannot drift from the
 rows they produced.
 
-## 8. Normative contract (adopted under D-053)
+## 8. Relationship to the specification
 
-D-053 ("Recommended answers are adopted as defaults") adopted the role set,
-the template repository, the local-only builds until the server milestone,
-the role `host` for human steps, and the D-032 amendment (the role that
-performs the browser proof ships `agent-browser`). `SPEC.md` owns the
-normative role contract; §1..§6 above elaborate it (D-103).
+`SPEC.md` is the sole role contract and acceptance oracle. Sections 1..7 are
+non-normative rationale, examples, and historical implementation notes.

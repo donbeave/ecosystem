@@ -1,10 +1,8 @@
 # The manager
 
-Working name: "the manager" (Q-002, closed by D-066). This document describes how it is
-meant to work. Everything here elaborates the normative contract in `SPEC.md`;
-the Symphony-derived rules D-018..D-031 are adopted (D-053) and cited by number.
-The manager logic ships inside the jackin daemon binary for the prototype
-(Q-001 adopted, D-053; revisited at multi-host, D-026).
+This is a non-normative architectural explanation retained for context.
+`SPEC.md` alone defines final behavior and acceptance; if any lifecycle,
+example, or historical decision below differs, the specification wins.
 
 ## Responsibilities
 
@@ -28,7 +26,7 @@ does not reimplement isolation. jackin is the executor.
 
 `analysis/jackin.md` shows jackin today runs one agent per container in the
 foreground, with no programmatic session API, no scheduler, and a host daemon
-that is an empty shell. The recommended split, adopted as the working model:
+that is an empty shell. The explanatory split used when this concept was drafted:
 
 - **Manager (new):** roadmap and run ledger, plan graph, scheduler, task
   dispatch, verification, artifacts, decision inbox, reporting, multi-host

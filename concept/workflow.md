@@ -1,9 +1,8 @@
 # The workflow, end to end
 
-This is the complete workflow as it is meant to work for the person using
-it, written to be confirmed or corrected. It is also the workflow used to
-build the product itself (D-033). Numbered decisions are cited; unnumbered
-sentences are the current understanding and are open to correction.
+This is a non-normative walkthrough for the person using the system and for
+the run that builds it. `SPEC.md` alone defines final workflow behavior and
+acceptance; examples here explain that contract but cannot extend it.
 
 ## 0. One-time setup
 

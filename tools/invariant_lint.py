@@ -20,10 +20,10 @@ import tempfile
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# The documents that bind the run. `analysis/` records facts about other
-# repositories and `KICKOFF-READINESS-PLAN.md` quotes defects verbatim, so
-# neither is authoritative and both are excluded from the text checks.
-AUTHORITATIVE = [
+# Documents inspected for cross-document consistency. Only SPEC.md defines
+# product requirements; ROADMAP.md supplies graph/order and the others are
+# procedure or non-normative context. `analysis/` records dated repository facts.
+CHECKED_DOCS = [
     "AGENTS.md",
     "GOAL.md",
     "README.md",
@@ -71,12 +71,12 @@ def globbed(pattern_dir, suffix=".md"):
 
 
 def doc_set():
-    return [p for p in AUTHORITATIVE if os.path.exists(os.path.join(REPO, p))] \
+    return [p for p in CHECKED_DOCS if os.path.exists(os.path.join(REPO, p))] \
         + globbed("goal") + globbed("concept")
 
 
 def all_markdown():
-    """Every Markdown file except the two non-authoritative sources."""
+    """Every Markdown file except non-authoritative analysis sources."""
     out = []
     for root, dirs, names in os.walk(REPO):
         dirs[:] = [d for d in dirs if d not in (".git", "analysis")]
@@ -84,8 +84,6 @@ def all_markdown():
             if not name.endswith(".md"):
                 continue
             path = os.path.join(root, name)
-            if rel(path) == "KICKOFF-READINESS-PLAN.md":
-                continue
             if os.path.islink(path):
                 continue
             out.append(rel(path))
@@ -168,7 +166,7 @@ def check_retired_strings():
         for match in re.finditer(r"v1alpha8", text):
             line = text.count("\n", 0, match.start()) + 1
             fail("v1alpha8", "%s:%d" % (path, line),
-                 "the run carries one manifest schema bump only (readiness plan row 2.4)")
+                 "the run carries one manifest schema bump only (ROADMAP.md M3-02)")
 
     for path in ("goal/EXECUTION.md", "ROADMAP.md"):
         text = read(path)
@@ -194,7 +192,7 @@ def check_retired_strings():
 # appears: the human cannot create an item called `<org>` and `op read` cannot
 # resolve one. The check is deliberately wider than the `<org>` retired-string
 # check above, which covers two files only; this one covers every Markdown
-# file of the repository except the two non-authoritative sources.
+# file of the repository except non-authoritative analysis sources.
 OP_REFERENCE = re.compile(r"op://[^\s`|)\]]+")
 
 
@@ -211,36 +209,152 @@ def check_op_org_placeholder():
 
 
 # --------------------------------------------------------------------------
-# 4. Every cited D-NNN definition and question resolves
+# 4. SPEC IDs, compatibility aliases, selectors, and pointers resolve
 # --------------------------------------------------------------------------
 
-def check_citations():
-    decisions = set(re.findall(r"^## (D-\d{3})", read("SPEC.md"), re.M))
-    questions = set(re.findall(r"^## (Q-\d{3})", read("QUESTIONS.md"), re.M))
+NORMATIVE_DEF = re.compile(
+    r"^- \*\*([A-Z][A-Z0-9]*-\d{3})\*\*", re.M)
+ACC_ROW_DEF = re.compile(r"^\| \*\*(ACC-\d{3})\*\* \|", re.M)
+ALIAS_DEF = re.compile(r"^## (D-\d{3})\s*$", re.M)
+QUESTION_DEF = re.compile(r"^## (Q-\d{3})\b", re.M)
+NORMATIVE_PREFIXES = frozenset((
+    "PRD", "AUTH", "ARCH", "ISSUE", "SCHED", "STATE", "EXEC", "REC",
+    "SEC", "ROLE", "OBS", "DEP", "CTRL", "ACC",
+))
+REFERENCE_PREFIXES = NORMATIVE_PREFIXES | {"D", "Q"}
+STABLE_ID = re.compile(r"\b[A-Z][A-Z0-9]*-\d{3}\b")
+NUMBERED_ALIAS = re.compile(r"\bD-\d{3}\s*\(\d+\)")
+SELECTOR = re.compile(
+    r"(?<![A-Z0-9-])([A-Z][A-Z0-9]*-(?:\*|\d{3}(?:\.\.[A-Z][A-Z0-9]*-\d{3})?))")
+SPEC_POINTER = re.compile(
+    r"`?SPEC(?:\.md)?`?\s*§\s*(\d+(?:\.\d+)*)", re.I)
+SPEC_SECTION = re.compile(r"^#{2,3}\s+(\d+(?:\.\d+)*)(?:\.\s|\s)", re.M)
+HISTORY_FRAMING = re.compile(
+    r"\b(?:decision registry|proposal alias|working decision|"
+    r"adopted as written|historical proposal)\b", re.I)
 
-    for path in CITING + globbed("goal") + globbed("concept"):
+
+def _definitions(pattern, text):
+    """Return id -> definition line, reporting duplicate definitions."""
+    out = {}
+    for match in pattern.finditer(text):
+        ident = match.group(1)
+        line = text.count("\n", 0, match.start()) + 1
+        if ident in out:
+            fail("spec-id", "SPEC.md:%d" % line,
+                 "%s is defined more than once (first at line %d)"
+                 % (ident, out[ident]))
+        else:
+            out[ident] = line
+    return out
+
+
+def _expand_selector(selector, normative):
+    if selector.endswith("-*"):
+        prefix = selector[:-1]
+        return {ident for ident in normative if ident.startswith(prefix)}
+    if ".." not in selector:
+        return {selector} if selector in normative else set()
+    first, last = selector.split("..", 1)
+    first_prefix, first_num = first.rsplit("-", 1)
+    last_prefix, last_num = last.rsplit("-", 1)
+    if first_prefix != last_prefix or first not in normative or last not in normative:
+        return set()
+    low, high = int(first_num), int(last_num)
+    if low > high:
+        return set()
+    return {ident for ident in normative
+            if ident.startswith(first_prefix + "-")
+            and low <= int(ident.rsplit("-", 1)[1]) <= high}
+
+
+def _near_reference_prefix(prefix):
+    """True for a canonical prefix or a one-edit typo of one."""
+    for expected in REFERENCE_PREFIXES:
+        if prefix == expected:
+            return True
+        if abs(len(prefix) - len(expected)) > 1:
+            continue
+        shorter, longer = sorted((prefix, expected), key=len)
+        if len(shorter) == len(longer):
+            if sum(a != b for a, b in zip(shorter, longer)) == 1:
+                return True
+        elif any(shorter == longer[:i] + longer[i + 1:]
+                 for i in range(len(longer))):
+            return True
+    return False
+
+
+def check_spec_contract():
+    spec = read("SPEC.md")
+    normative = _definitions(NORMATIVE_DEF, spec)
+    for ident, line in _definitions(ACC_ROW_DEF, spec).items():
+        if ident in normative:
+            fail("spec-id", "SPEC.md:%d" % line,
+                 "%s is defined more than once (first at line %d)"
+                 % (ident, normative[ident]))
+        else:
+            normative[ident] = line
+    for ident, line in normative.items():
+        prefix = ident.rsplit("-", 1)[0]
+        if prefix not in NORMATIVE_PREFIXES:
+            fail("spec-id", "SPEC.md:%d" % line,
+                 "%s uses unknown normative prefix %s" % (ident, prefix))
+    aliases = _definitions(ALIAS_DEF, spec)
+    questions = _definitions(QUESTION_DEF, read("QUESTIONS.md"))
+
+    for match in HISTORY_FRAMING.finditer(spec):
+        line = spec.count("\n", 0, match.start()) + 1
+        fail("spec-history", "SPEC.md:%d" % line,
+             "historical decision framing %r is forbidden" % match.group(0))
+
+    alias_heads = list(ALIAS_DEF.finditer(spec))
+    for index, head in enumerate(alias_heads):
+        end = alias_heads[index + 1].start() if index + 1 < len(alias_heads) else len(spec)
+        body = spec[head.end():end].strip()
+        selectors = [match.group(1) for match in SELECTOR.finditer(body)]
+        if not selectors:
+            fail("alias-selector", "SPEC.md:%d" % aliases[head.group(1)],
+                 "%s maps to no normative selector" % head.group(1))
+        for selector in selectors:
+            if not _expand_selector(selector, normative):
+                fail("alias-selector", "SPEC.md:%d" % aliases[head.group(1)],
+                     "%s has unknown or empty selector %s"
+                     % (head.group(1), selector))
+        residue = SELECTOR.sub("", body)
+        if residue.strip(";., \t\r\n"):
+            fail("alias-selector", "SPEC.md:%d" % aliases[head.group(1)],
+                 "%s contains non-selector mapping text %r"
+                 % (head.group(1), residue.strip()))
+
+    known = set(normative) | set(aliases) | set(questions)
+    pointer_paths = CITING + globbed("goal") + globbed("concept") \
+        + ["findings/disposition.toml"]
+    sections = set(SPEC_SECTION.findall(spec))
+    for path in pointer_paths:
         text = read(path)
-        if path == "SPEC.md":
-            # Definition bodies preserve historical proposal labels and
-            # rationale. As when the registry was a separate source file,
-            # only documents that cite the registry are citation-checked.
-            text = text.split("\n# Decision registry", 1)[0]
-        for match in re.finditer(r"\bD-[01]\d{2}\b", text):
+        for match in NUMBERED_ALIAS.finditer(text):
+            line = text.count("\n", 0, match.start()) + 1
+            fail("semantic-pointer", "%s:%d" % (path, line),
+                 "%s cites a removed numbered alias subclause"
+                 % match.group(0))
+        for match in STABLE_ID.finditer(text):
             cited = match.group(0)
-            if cited in decisions:
+            if cited in known:
+                continue
+            if not _near_reference_prefix(cited.rsplit("-", 1)[0]):
                 continue
             line = text.count("\n", 0, match.start()) + 1
-            fail("decision-citation", "%s:%d" % (path, line),
-                 "cites %s, which has no `## %s` heading in SPEC.md"
-                 % (cited, cited))
-        for match in re.finditer(r"\bQ-0\d{2}\b", text):
-            cited = match.group(0)
-            if cited in questions:
+            fail("semantic-pointer", "%s:%d" % (path, line),
+                 "%s has no normative definition, compatibility alias, or question"
+                 % cited)
+        for match in SPEC_POINTER.finditer(text):
+            section = match.group(1)
+            if section in sections:
                 continue
             line = text.count("\n", 0, match.start()) + 1
-            fail("question-citation", "%s:%d" % (path, line),
-                 "cites %s, which has no `## %s` heading in QUESTIONS.md"
-                 % (cited, cited))
+            fail("semantic-pointer", "%s:%d" % (path, line),
+                 "SPEC section %s does not exist" % section)
 
 
 # --------------------------------------------------------------------------
@@ -249,19 +363,24 @@ def check_citations():
 
 def check_no_open_questions():
     spec = read("SPEC.md")
-    index = spec.find("\n## 11. Open questions")
-    if index < 0:
+    head = re.search(r"^## 11\. Open questions\s*$", spec, re.M)
+    if head is None:
         fail("open-questions", "SPEC.md:0", "section 11 is missing")
     else:
-        body, _ = paragraph(spec[index + 1:], "\n")
-        tail = spec[index:index + 400]
-        if "None" not in tail:
-            fail("open-questions", "SPEC.md:%d" % (spec.count("\n", 0, index) + 2),
-                 "section 11 does not state that there are no open questions")
+        tail = spec[head.end():]
+        next_head = re.search(r"^## ", tail, re.M)
+        body = tail[:next_head.start()] if next_head else tail
+        marker = body.split("\n- **", 1)[0].strip()
+        if marker != "None.":
+            fail("open-questions", "SPEC.md:%d" %
+                 (spec.count("\n", 0, head.end()) + 1),
+                 "section 11 must begin with the exact closed marker `None.`")
     open_questions = read("OPEN-QUESTIONS.md")
-    if not re.search(r"^None\b", open_questions, re.M):
+    body = re.sub(r"\A# Open questions\s*\n", "", open_questions).lstrip()
+    marker = body.split("\n\n", 1)[0].strip()
+    if marker != "None.":
         fail("open-questions", "OPEN-QUESTIONS.md:0",
-             "the file does not state that there are no open questions (D-053)")
+             "the first body paragraph must be the exact closed marker `None.` (D-053)")
 
 
 # --------------------------------------------------------------------------
@@ -330,142 +449,12 @@ def check_clean_tree():
 
 
 # --------------------------------------------------------------------------
-# 10. Amendments are reciprocal (D-107, D-116)
-# --------------------------------------------------------------------------
-
-def _decision_bodies():
-    """(id, body, first line number) per `## D-0xx` section of SPEC.md."""
-    text = read("SPEC.md")
-    heads = list(re.finditer(r"^## (D-\d{3})\b.*$", text, re.M))
-    out = []
-    for index, head in enumerate(heads):
-        end = heads[index + 1].start() if index + 1 < len(heads) else len(text)
-        out.append((head.group(1), text[head.end():end],
-                    text.count("\n", 0, head.start()) + 1))
-    return out
-
-
-EXPLICIT_AMEND = re.compile(
-    r"((?:`?D-\d{3}`?(?:,| and|,? and)?\s*)+)\s*(?:is|are) amended by\s+([^.]*)")
-
-
-def _sentence(body, start):
-    """The rest of the sentence at `start`, parentheticals included.
-
-    A note lists several amendments in one sentence, each with its own
-    parenthetical gloss ("Amended by D-083 (… ends on script output) and
-    D-084 (… never propagates)."). Stopping at the first `(` or `.` read
-    only the first id and reported every later one as a missing note, so
-    the scan ends at the first period outside parentheses instead.
-    """
-    depth = 0
-    for index in range(start, len(body)):
-        char = body[index]
-        if char == "(":
-            depth += 1
-        elif char == ")":
-            depth = max(0, depth - 1)
-        elif char == "." and depth == 0:
-            return body[start:index]
-    return body[start:]
-
-
-def check_amendments_reciprocal():
-    bodies = _decision_bodies()
-    body_of = {ident: body for ident, body, _ in bodies}
-    line_of = {ident: line for ident, _, line in bodies}
-
-    # An explicit "D-046, D-047 and D-074 are amended by this decision" (or by
-    # a named decision) states both halves of the pair at once: it is a
-    # forward claim by the amending decision and the reciprocal note for each
-    # subject. Consume those spans first so the generic scans below never read
-    # them as a self-note in the wrong section.
-    explicit_forward = {}
-    explicit_reverse = {}
-    stripped = {}
-    for ident, body, _ in bodies:
-        forward, reverse = set(), set()
-        remainder = []
-        last = 0
-        for match in EXPLICIT_AMEND.finditer(body):
-            subjects = set(re.findall(r"\bD-\d{3}\b", match.group(1)))
-            agents = set(re.findall(r"\bD-\d{3}\b", match.group(2)))
-            if "this decision" in match.group(2):
-                agents.add(ident)
-            if not agents:
-                continue
-            for subject in subjects:
-                for agent in agents:
-                    if subject == agent:
-                        continue
-                    explicit_forward.setdefault(agent, set()).add(subject)
-                    explicit_reverse.setdefault(subject, set()).add(agent)
-            remainder.append(body[last:match.start()])
-            last = match.end()
-        remainder.append(body[last:])
-        stripped[ident] = "".join(remainder)
-        forward, reverse = forward, reverse
-    bodies = [(ident, stripped[ident], line) for ident, _, line in bodies]
-
-    # forward: what each decision claims to amend
-    amends = {}
-    for ident, body, _ in bodies:
-        targets = set()
-        # "Amends D-057 and the D-027 interpretation", "Amends the last
-        # sentence of D-071": every id in the sentence opened by "amends".
-        for match in re.finditer(r"\b[Aa]mends\b", body):
-            targets.update(re.findall(r"\bD-\d{3}\b",
-                                     _sentence(body, match.end())))
-        # passive form: "D-001 is amended", "D-013 is amended a second time"
-        for match in re.finditer(r"\b(D-\d{3}) is amended\b", body):
-            targets.add(match.group(1))
-        targets.update(explicit_forward.get(ident, set()))
-        targets.discard(ident)
-        amends[ident] = targets
-
-    # backward: what each decision is declared to be amended by
-    amended_by = {}
-    for ident, body, _ in bodies:
-        found = set()
-        for match in re.finditer(r"[Aa]mended by\b", body):
-            # A quoted note about a third decision ("D-056 carries an
-            # \"Amended by D-071\" note") is prose, not this decision's note.
-            before = body[max(0, match.start() - 40):match.start()]
-            if '"' in before[-3:] or "carries" in before:
-                continue
-            found.update(re.findall(r"\bD-\d{3}\b",
-                                    _sentence(body, match.end())))
-        found.update(explicit_reverse.get(ident, set()))
-        found.discard(ident)
-        amended_by[ident] = found
-
-    for ident, targets in sorted(amends.items()):
-        for target in sorted(targets):
-            if target not in body_of:
-                continue  # the citation check already reports an unknown id
-            if ident not in amended_by[target]:
-                fail("amendments-reciprocal",
-                     "SPEC.md:%d" % line_of[target],
-                     "%s says it amends %s, but %s carries no "
-                     '"Amended by %s" note' % (ident, target, target, ident))
-
-    for target, sources in sorted(amended_by.items()):
-        for source in sorted(sources):
-            if source not in body_of:
-                continue
-            if target not in amends[source]:
-                fail("amendments-reciprocal",
-                     "SPEC.md:%d" % line_of[source],
-                     '%s carries "Amended by %s", but %s does not say it '
-                     "amends %s" % (target, source, source, target))
-
-
-# --------------------------------------------------------------------------
 # 11. Every task file claimed to exist NOW resolves (D-116)
 # --------------------------------------------------------------------------
 
-EXISTS_CLAIM = re.compile(r"\b(exists|existing|is committed|are committed|"
-                          r"is present|committed and pushed)\b")
+EXISTS_CLAIM = re.compile(
+    r"\b(?:currently|already)\s+(?:exists|is present|is committed)\b|"
+    r"\b(?:exists|is present|is committed)\s+now\b|\bchecked[- ]in\b", re.I)
 
 
 def check_existence_claims():
@@ -496,11 +485,10 @@ CHECKS = (
     ("claude-cap", check_claude_cap),
     ("retired-strings", check_retired_strings),
     ("op-org-placeholder", check_op_org_placeholder),
-    ("citations", check_citations),
+    ("spec-contract", check_spec_contract),
     ("open-questions", check_no_open_questions),
     ("goal-size", check_goal_size),
     ("projections", check_projections),
-    ("amendments-reciprocal", check_amendments_reciprocal),
     ("existence-claims", check_existence_claims),
     ("clean-tree", check_clean_tree),
 )

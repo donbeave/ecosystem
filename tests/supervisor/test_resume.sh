@@ -69,6 +69,28 @@ for task in snapshot["order"]:
 PY
 }
 
+fixture_ready() {
+	python3 - "$WORK" "$@" <<'PY'
+import os, sys
+repo, *tasks = sys.argv[1:]
+sys.path.insert(0, os.path.join(repo, "tools"))
+import state  # noqa: E402
+state.RUN_DIR = os.path.join(repo, "run")
+state.LOG_PATH = os.path.join(state.RUN_DIR, "events.jsonl")
+state.LOCK_PATH = os.path.join(state.RUN_DIR, "events.lock")
+events = state.read_events()
+snapshot = state.project(events)
+for task in tasks:
+    if snapshot["tasks"][task]["status"] != "planned":
+        continue
+    state.append(events, {
+        "type": "transition", "task": task, "status": "ready",
+        "lane": "", "path": "", "result": "fixture promotion", "evidence": "",
+        "attempt": 0, "token": None, "idempotency": "fixture-promote-" + task,
+    })
+PY
+}
+
 state_has_lease() {
 	python3 - "$WORK" "$1" <<'PY'
 import os, sys
@@ -155,6 +177,7 @@ printf '== 4. reconciliation uses exact recorded agent, pane, and container iden
 AGENT_TASK="$(planned_tasks | sed -n '1p')"
 PANE_TASK="$(planned_tasks | sed -n '2p')"
 CONTAINER_TASK="$(planned_tasks | sed -n '3p')"
+fixture_ready "$AGENT_TASK" "$PANE_TASK" "$CONTAINER_TASK"
 for task in "$AGENT_TASK" "$PANE_TASK" "$CONTAINER_TASK"; do
 	mkdir -p "$WORK/tasks/$task"
 	cp "$SRC/tasks/$task/task.toml" "$WORK/tasks/$task/task.toml"
@@ -269,6 +292,7 @@ grep -q "legacy coordinator process(es) detected: pids=$$" "$WORK/legacy-pid.out
 
 printf '== 11. a done task holding a lease is rejected as failed-system\n'
 BAD_TASK="$(planned_tasks | sed -n '1p')"
+fixture_ready "$BAD_TASK"
 python3 "$WORK/tools/state.py" lease "$BAD_TASK" --owner fixture-bad --ttl 600 >/dev/null
 BAD_TOKEN="$(python3 - "$WORK" "$BAD_TASK" <<'PY'
 import os, sys
@@ -281,6 +305,8 @@ state.LOCK_PATH = os.path.join(state.RUN_DIR, "events.lock")
 print(state.project(state.read_events())["leases"][task]["token"])
 PY
 )"
+python3 "$WORK/tools/state.py" transition "$BAD_TASK" 'in-progress' --token "$BAD_TOKEN" \
+	--result fixture-bad >/dev/null
 python3 "$WORK/tools/state.py" transition "$BAD_TASK" 'done' --token "$BAD_TOKEN" \
 	--result fixture-bad >/dev/null
 if sh "$WORK/tools/supervisor.sh" resume --repo "$WORK" --session "$SESSION" \

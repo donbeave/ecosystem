@@ -1,6 +1,6 @@
 # Operator preflight for the `/goal` run
 
-Everything the human provides, once, before running the `/goal` invocation
+Procedural checklist for everything the human provides, once, before running the `/goal` invocation
 line printed in `README.md` "Start the run" (copied verbatim, never
 shortened to `/goal Follow GOAL.md`; D-050, D-083). Consolidated from the per-milestone "Operator preflight" lists in
 `ROADMAP.md` §2. The host session runs every host *command* itself (trust
@@ -50,12 +50,12 @@ pass and a live pass can be shown to belong to the same plan.
   `delete_branch_on_merge off`, `the-architect ruleset`, and `pinned role refs`.
 
 `tools/invariant_lint.py` is the cross-document lint (D-116): it fails
-when two authoritative documents disagree — the D-119 runnable predicate
+when a procedural or graph projection disagrees with its owner — the D-119 runnable predicate
 stated differently in `GOAL.md` and `goal/EXECUTION.md`, a `~/.claude`
 concurrency cap other than 2 (D-071), a retired `v1alpha8`, an
 unexpanded `<org>`, a `jackin workspace` teardown written as `delete`
 where the subcommand is `remove` (D-085), a cited `D-0nn`/`D-1nn` with no
-heading in the `SPEC.md` registry, a cited `Q-0nn` with no heading in
+stable alias in `SPEC.md` Appendix A, a cited `Q-0nn` with no heading in
 `QUESTIONS.md`, a claim that open questions
 remain, a `GOAL.md` over its 4000-byte prompt cap, a `tasks/README.md` or
 `PROGRESS.md` that differs from what `tools/state.py render` produces
@@ -166,7 +166,7 @@ never lowers the bar. Clear those items in §1..§5 below and re-run it.
       and `mise run bless-previews` in the termrock checkout. Installed by
       the session, never a defect. Proof: `mise --version`.
 - [ ] jackin's own DCO trailer injection is enabled for this host, so every
-      container it launches signs its commits off (D-089 (4) amended; M1-02a
+      container it launches signs its commits off (CTRL-034; M1-02a
       enables it, and the role images ship no sign-off hook of their own
       because jackin's global `core.hooksPath` would shadow it). Enabled by
       the session, never a defect: it runs `jackin config git dco enable`

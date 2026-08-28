@@ -1,4 +1,4 @@
-# M1-08 Define the issue field convention (Q-013 adopted, D-053)
+# M1-08 Materialize the managed-issue field convention
 
 Generated from the `ROADMAP.md` row for this task by `tools/bundle.py`
 (D-114). Do not edit by hand: an edit here is lost on the next
@@ -20,11 +20,11 @@ roadmap row instead.
 
 ## Objective
 
-Define the issue field convention (Q-013 adopted, D-053).
+Materialize the managed-issue field convention.
 
 ## Scope
 
-Write the adopted Q-013 convention (`SPEC.md` §4, `concept/task-format.md`) into `concept/task-format.md` "authoring in `tasks/`" and `SPEC.md` §4: where repository, branch, base branch, role, runtime, model, effort (D-043), delivery (D-044), prompt, checklist, references, verification, and the daemon-maintained run state (D-049) live on an issue, the container identity entry (D-052), and what a validation failure comment says. Give three example issues.
+Derive `concept/task-format.md` "authoring in `tasks/`" from the stable contracts ISSUE-005 and ISSUE-011 through ISSUE-015: document where repository, branch, base branch, role, runtime, lane, model, effort, delivery, prompt, checklist, references, verification, dependencies, auto-dispatch, daemon-maintained run state, container identity, and validation errors live on an issue. Do not edit `SPEC.md`; it is the authority this task projects. Give three example issues.
 
 ## References
 
@@ -57,7 +57,7 @@ container-relative (D-086).
 
 Container part (run inside the task container):
 
-> The section exists and every D-012/D-014/D-043/D-044/D-049 field name appears in it; the three example issues are stored as `tasks/M1-08/example-<n>.md` and a grep asserts each carries `repo:`, `role:`, `agent:`, `model:`, `delivery:`, and a `- [ ]` list (the subagent review of the examples is a checklist item, not the verify)
+> The section names every field of ISSUE-005 plus the validation/projection rules of ISSUE-011 through ISSUE-015; the generated bundle includes `expected-evidence.toml`; the three example issues are stored as `tasks/M1-08/example-<n>.md` and a grep asserts each carries `repo:`, `role:`, `agent:`, `lane:`, `model:`, `delivery:`, and a `- [ ]` list (the subagent review of the examples is a checklist item, not the verify)
 
 Host part (run by the host Claude Code session, D-061):
 

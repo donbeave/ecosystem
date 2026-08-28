@@ -1,10 +1,12 @@
 # Tailrocks Ecosystem — Agent Manager concept
 
-This repository is the **plan of record and the run state** for a new project:
-a manager that runs many AI coding agents on big tasks inside the Tailrocks
-ecosystem (jackin, termrock, parallax, velnor, tailrocks-skills, ...). It holds
-the vision, decisions, and concept documents; the task bundles and evidence of
-the `/goal` run; and the machine files that run and gate it — `tools/`,
+This repository holds the specification, derived implementation plan, and run
+state for a manager that runs many AI coding agents on big tasks inside the
+Tailrocks ecosystem (jackin, termrock, parallax, velnor, tailrocks-skills,
+...). `SPEC.md` alone defines the final product and its acceptance conditions.
+The other planning documents provide non-normative context or derive execution
+order from that contract. The repository also holds the task bundles and
+evidence of the `/goal` run, and the machine files that run and gate it — `tools/`,
 `tests/`, `run/`, `findings/`, the root `verify.sh`, and `tasks/<id>/`, at
 exactly the paths D-118 permits.
 
@@ -203,29 +205,29 @@ compaction itself.
 
 | File | Purpose |
 | --- | --- |
-| [SPEC.md](SPEC.md) | Living product contract and dated D-NNN definition registry. Improved every conversation. |
-| [ROADMAP.md](ROADMAP.md) | Milestones, tasks, dependencies, roles, and the decisions that gate each milestone. Proposal until finalized. |
-| [VISION.md](VISION.md) | The problem, today's workflow, observed insights, and the target we are building toward. Start here. |
-| [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) | Questions not yet settled. Each closes through its owning document and a `SPEC.md` registry update. |
-| [concept/manager.md](concept/manager.md) | The manager itself: daemon, roadmap watching, task scheduling, agent launching, verification. |
-| [concept/task-format.md](concept/task-format.md) | The on-disk format of a plan and its tasks, and the `verify` contract. |
-| [concept/roles.md](concept/roles.md) | Proposed jackin agent roles that build the product: builder, operator, reviewer; naming, specs, trust, credentials. |
-| [concept/credentials.md](concept/credentials.md) | 1Password inventory: what exists, what must be created, naming (metadata only). |
-| [concept/workflow.md](concept/workflow.md) | Current manual workflow versus the target workflow, step by step. |
-| [analysis/jackin.md](analysis/jackin.md) | What jackin is today, with citations, and its gaps for this goal. |
-| [analysis/termrock.md](analysis/termrock.md) | What termrock is today, with citations, and its gaps for this goal. |
-| [analysis/symphony.md](analysis/symphony.md) | openai/symphony: the closest existing execution concept, and what to adopt or reject. |
-| [analysis/linear-agents.md](analysis/linear-agents.md) | Linear Agents platform facts, jackin role contract facts, and a proposed issue convention. |
+| [SPEC.md](SPEC.md) | Sole source of truth for the final product, required behavior, invariants, and acceptance conditions. |
+| [ROADMAP.md](ROADMAP.md) | Derived implementation graph: milestones, task ids, dependencies, order, roles, and lanes. It does not define product behavior or acceptance. |
+| [VISION.md](VISION.md) | Non-normative problem statement, observations, and target summary. Start here for context. |
+| [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) | Non-normative question inbox. A resolved product answer is authoritative only when incorporated into `SPEC.md`. |
+| [concept/manager.md](concept/manager.md) | Non-normative explanation of the manager architecture and lifecycle. |
+| [concept/task-format.md](concept/task-format.md) | Non-normative examples of issue, task, evidence, and verifier formats. |
+| [concept/roles.md](concept/roles.md) | Non-normative rationale and examples for the roles used to build the product. |
+| [concept/credentials.md](concept/credentials.md) | Dated 1Password inventory and readiness context; metadata only. |
+| [concept/workflow.md](concept/workflow.md) | Non-normative walkthrough of the manual and target workflows. |
+| [analysis/jackin.md](analysis/jackin.md) | Dated evidence about jackin, with cited gaps and historical recommendations. |
+| [analysis/termrock.md](analysis/termrock.md) | Dated evidence about termrock, with cited gaps and historical recommendations. |
+| [analysis/symphony.md](analysis/symphony.md) | Dated evidence about openai/symphony and historical recommendations. |
+| [analysis/linear-agents.md](analysis/linear-agents.md) | Dated Linear and jackin evidence plus historical proposals. |
 | [AGENTS.md](AGENTS.md) | Rules for agents (and humans) working in this repository: the two modes, the delegation law, the status contract, the token economy. `CLAUDE.md` is a symlink to it. |
-| [GOAL.md](GOAL.md) | The `/goal` prompt itself, nothing else: mission, sources of truth, operating laws, task loop, resume, termination (D-069, D-083). Under 4000 characters. The invocation line to paste is in "Start the run" above. |
-| [goal/EXECUTION.md](goal/EXECUTION.md) | How the host session runs it: session start, per-task procedure, wave order, execution paths, resume, STOP, host session budget. |
+| [GOAL.md](GOAL.md) | The `/goal` prompt and run-procedure entry point. It does not define the final product or acceptance. |
+| [goal/EXECUTION.md](goal/EXECUTION.md) | Mechanical host-session procedure: start, per-task loop, execution paths, resume, STOP, and budget. |
 | [goal/PREFLIGHT.md](goal/PREFLIGHT.md) | Everything the human provides once before the run (D-050), consolidated from `ROADMAP.md`. |
-| [verify.sh](verify.sh) | Roadmap-level gate: derives the run's terminal class — `DONE`, `BLOCKED HUMAN`, `FAILED SYSTEM`, `PENDING` — from the state store, the compiled graph and the repository (D-069, D-110). `sh tools/gate_fixtures.sh` proves it against the adversarial fixtures in `tests/fixtures/`. |
+| [verify.sh](verify.sh) | Execution-completion gate: derives the run's terminal class from the state store, compiled graph, and repository. Product acceptance remains defined by `SPEC.md`. |
 | [PROGRESS.md](PROGRESS.md) | Append-only ledger of the run: one row per task with lane, path, result, evidence. |
 | [PREFLIGHT-DEFECTS.md](PREFLIGHT-DEFECTS.md) | Operator inputs found missing mid-run; the only reason the run stops. |
 
 ## Working rules
 
 - Planning only in the planning documents. No source code, no prototypes, no scaffolding in this repository; that rule never forbids the run's own machine files, which are permitted at exactly these paths (D-118): `tools/` (POSIX `sh` or Python 3 stdlib only), `tests/` (fixtures and harnesses, same two languages), `run/LOCK.toml`, `run/state.db` or `run/events.jsonl`, `findings/disposition.toml`, `.claude/settings.json` (D-095), the root `verify.sh` (D-069), and under `tasks/<id>/` — `TASK.md`, `task.toml`, `verify.sh`, `expected-evidence.toml`, `evidence.json`, `refs/`, and text evidence (D-038, D-093).
-- Domain ownership is explicit: `ROADMAP.md` graph/order, `SPEC.md` product contract and D-NNN registry, `GOAL.md` + `goal/EXECUTION.md` run procedure; `concept/` is non-normative.
+- Authority is explicit: `SPEC.md` alone owns final-product behavior and acceptance; `ROADMAP.md` owns only the derived task graph and order; `GOAL.md` + `goal/EXECUTION.md` own procedure; `VISION.md`, `QUESTIONS.md`, `concept/`, and `analysis/` are non-normative context or evidence.
 - Analyses cite files and lines in the real repositories; opinions are labeled as such.

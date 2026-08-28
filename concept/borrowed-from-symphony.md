@@ -3,29 +3,23 @@
 Date: 2026-08-27. Source: `SPEC.md` of https://github.com/openai/symphony (Draft v1,
 HEAD `8001b52`), read in full. `analysis/symphony.md` already describes the project and its Elixir
 implementation; this document does not repeat that. It walks the specification section by section
-and records, for each, what Symphony specifies, whether we adopt, adapt, or reject it, and which of
-our contract rules (`SPEC.md`, D-NNN) and open questions (`OPEN-QUESTIONS.md`, Q-NNN) it touches.
+and records, for each, the historical adopt/adapt/reject recommendation and which planning
+questions it touched.
 Every claim about Symphony cites a SPEC section. A few items the prompt asked about (the
 "Completion bar", the `land`/`pull` skills) are not in the SPEC; they come from the reference
 `elixir/WORKFLOW.md` and `.codex/skills/` and are treated in a separate section at the end of the
 walk.
 
-> **Status (D-053, 2026-08-27): ADOPTED.** Every proposal below, D-018..D-031, is adopted as
-> written by D-053, keeping its number as the reference; the question closures and
-> narrowings for Q-004..Q-015 are adopted with them. The polling answer for Q-015 is the adopted
-> event path. "PROPOSED" wording that survives in the walk is historical; the headings under
-> "Consolidated proposals" carry the adopted status. Any item may be overridden by a later adopted
-> rule recorded under the same domain-ownership policy.
-
-Decisions D-018 onward and question closures are collected at the end; they were drafted here
-before D-053 adopted them.
+> **Status: non-normative comparative research, 2026-08-27.** ADOPT, ADAPT,
+> and REJECT below record planning history only. `SPEC.md` alone defines the
+> final product and acceptance; no verdict here adds a requirement.
 
 ## Fixed differences from Symphony
 
 Recorded as D-015 (any runtime, no harness), D-016 (capsule attach preserved), D-010/D-014 (Linear only, GitHub repo+PR), D-017 (local-first prototype).
 
-These are decided and frame every verdict below. Where a Symphony rule conflicts with one of them,
-the difference wins and the verdict is ADAPT or REJECT.
+These were the planning assumptions used for the verdicts below. Current
+behavior is determined only by `SPEC.md`.
 
 1. **Any agent runtime, not Codex only.** We run Claude Code, Codex, Amp, Kimi, OpenCode, and Grok.
    We never build a harness; we build the ecosystem around existing harnesses. Symphony's §3.3 and
@@ -264,9 +258,8 @@ three invariants: agent cwd equals the workspace path; workspace path stays unde
 sanitized.
 
 **Verdict: ADOPT the layout, reuse policy, and invariants; ADAPT hooks and population.** Layout and
-key derivation are adopted. Reuse across attempts is adopted, and this deliberately supersedes the
-lean in `analysis/symphony.md` §10 (Q-008 row) toward a fresh container per attempt: D-014 already
-reuses the branch, uncommitted work between attempts is exactly what a retry should resume from, and
+key derivation are adopted. Reuse across attempts follows D-014: it reuses the branch, uncommitted
+work between attempts is exactly what a retry should resume from, and
 jackin containers persist after exit anyway (`analysis/jackin.md` §3.2). The rule becomes: one
 attempt equals one container session; the workspace directory (clone or worktree under the daemon's
 root, on the issue's branch) persists across attempts and is removed only on terminal state. The
@@ -551,23 +544,17 @@ credential and authority rules.
 mirrored to the issue description and the Linear session plan (`analysis/linear-agents.md` A3),
 which Linear renders natively; a free-form workpad would be a second progress record.
 
-## Consolidated proposals
+## Historical consolidated proposals
 
-### Adopted rules D-018..D-031
+### Proposals recorded as adopted during planning
 
-All dated 2026-08-27, adopted by D-053 with these numbers as references. Numbering continues from D-017.
+These proposals were recorded as adopted on 2026-08-27. Their text is retained
+only as provenance; only behavior present in `SPEC.md` is required.
 
-The normative effects of D-018..D-031 are incorporated into their owning
-product, graph, or run-procedure documents; `SPEC.md` holds their canonical
-definitions (D-103). This section records only that these fourteen rules
-originated as proposals in the walk above and were adopted by D-053.
+### Historical closures and narrowings for Q-004..Q-015
 
-### Closures and narrowings for Q-004..Q-015 (adopted, D-053)
-
-Q-004..Q-015 are closed or narrowed by D-053 through D-020..D-031. The full
-text of each question and its closing outcome is in `QUESTIONS.md`; owning
-documents carry normative effects and `SPEC.md` carries canonical definitions.
-No normative closure text is kept here (D-103).
+The full historical text and recorded outcome of each question is in
+`QUESTIONS.md`. Neither file defines current behavior.
 
 ### What Symphony has that jackin lacks
 

@@ -1,5 +1,9 @@
 # Vision
 
+This document is non-normative context: it explains the problem, observations,
+and intended direction. `SPEC.md` alone defines the final product and every
+acceptance condition. If a summary here differs, `SPEC.md` wins.
+
 ## One sentence
 
 Turn "work with an agent" into "hand a roadmap to a manager": a daemon inside
@@ -89,7 +93,7 @@ and *whether the result is acceptable*.
 
 That gap is the manager.
 
-## The target
+## Non-normative target summary
 
 A manager, which may live inside jackin as a daemon, that:
 
@@ -109,14 +113,14 @@ A manager, which may live inside jackin as a daemon, that:
 The human's job becomes: write or approve the roadmap, say "ready", and answer
 questions. The system's job becomes everything else.
 
-## The bar
+## Non-normative quality bar
 
 The destination is a production-ready product and a production-ready
 process for building software with Linear + jackin: issues are the work,
 jackin roles do it, humans decide (D-041). Everything in this repository —
 milestones, tasks, decisions — is measured against that bar.
 
-## Scope boundaries
+## Non-normative scope summary
 
 - The manager orchestrates; it is **not** another agent runtime and does not
   compete with Claude Code, Codex, Amp, or any other. Neither jackin nor the

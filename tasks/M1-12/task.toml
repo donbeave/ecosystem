@@ -2,7 +2,7 @@
 # (D-114). Do not edit by hand; edit the roadmap row and regenerate.
 id = "M1-12"
 milestone = "M1"
-title = "Turn finalized task folders into Linear issues (D-038, D-040, D-060)"
+title = "Mirror locked task bundles into Linear issues"
 repo = "tailrocks/ecosystem"
 repos = [
   "ecosystem",
@@ -24,18 +24,7 @@ depends_on = [
   "M1-13",
 ]
 decisions = [
-  "D-038",
-  "D-040",
-  "D-055",
-  "D-058",
-  "D-060",
   "D-061",
-  "D-065",
-  "D-073",
-  "D-079",
-  "D-086",
-  "D-091",
-  "D-114",
 ]
 
 [limits]
@@ -48,7 +37,7 @@ container = [
   "jackin workspace create task-M1-12 --workdir /workspace --mount <ws>:/workspace",
 ]
 host = [
-  "jq -r '.[].label' tasks/M1-13/lanes.json",
+  "python3 tools/verify_issue_mirror.py tasks/M1-12/issues.json",
 ]
 
 [[evidence]]

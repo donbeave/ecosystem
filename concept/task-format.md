@@ -1,13 +1,12 @@
 # Issue and checklist format
 
-Elaborates D-003, D-004, D-012, D-013, D-014, D-043, D-044, D-049..D-053.
-Since D-010 the source of truth is Linear; GitHub only hosts the repository and the pull request. This
-document describes what an issue must contain and
-what its local working copy looks like. The folder layout further down is
-the local mirror the daemon creates from the issue, not something the human
-authors in git.
+Non-normative examples of the issue, task, evidence, and verifier formats.
+`SPEC.md` alone defines their required final shape and acceptance. Linear is
+the runtime authority for issue state; that data-ownership fact does not make
+this document a product contract. The folder layout below illustrates the
+daemon's local mirror.
 
-## What an issue must contain (convention adopted, Q-013 / D-053)
+## Illustrative issue shape
 
 | Field | Required | Where on the issue |
 | --- | --- | --- |
@@ -331,14 +330,13 @@ run while any of them is missing or invalid.
 
 Status values per task, lowercase, exactly these: `planned`, `ready`,
 `in-progress`, `waiting`, `blocked`, `done`, plus the flags `leased`,
-`resource-waiting`, and `failed-system` (`SPEC.md` §"Authoritative state",
-D-110, D-111). `AGENTS.md` §"Status contract — `tasks/README.md`" is the
-authority; `blocked` means a missing human *input* recorded in
+`resource-waiting`, and `failed-system` (`SPEC.md` §14.2, CTRL-012).
+`blocked` means a missing human *input* recorded in
 `PREFLIGHT-DEFECTS.md`, never a design decision (D-050, D-070).
 
 On the Linear side the same run carries one label from the `run:*` group —
 `run:starting`, `run:working`, `run:waiting`, `run:blocked`, `run:stuck`,
 `run:failed`, `run:verifying`, `run:done` — plus the workflow state
-(`SPEC.md` §"Issue fields", D-010, D-049). The authoritative store is under
+(`SPEC.md` §5.2, `run label` projection). The authoritative store is under
 `run/`; `tasks/README.md` and the Linear labels are projections of it, never
 hand-edited (D-019, D-111).

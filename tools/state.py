@@ -38,9 +38,9 @@ from datetime import datetime, timezone
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# `ECOSYSTEM_STORE` points the store at another directory, so a rehearsal --
-# the canary of the readiness plan, a fixture, a test -- can exercise the real
-# code against a copy of the log without touching the run of record. The two
+# `ECOSYSTEM_STORE` points the store at another directory, so an isolated test
+# can exercise the real code against a copy of the log without touching the run
+# of record. The two
 # Markdown projections follow the store, because rendering them into the
 # repository from a rehearsal log would corrupt the real projections.
 STORE_DIR = os.environ.get("ECOSYSTEM_STORE", "").strip()
@@ -99,6 +99,30 @@ CODEX_LANES = ("L4", "L5", "L6")
 # terminal, blocked, or not-yet-promoted task is preserved exactly.
 INTERRUPTED_STATUSES = ("leased", "in-progress", "waiting", "resource-waiting")
 
+# Host-authored transitions. `planned -> ready` belongs only to arm/promote;
+# `ready -> leased` and `leased -> ready` belong only to lease/release.  Keeping
+# those control-plane edges out of `transition` prevents a caller from bypassing
+# either promotion or claim ownership.
+LEGAL_TRANSITIONS = {
+    "leased": ("in-progress", "blocked", "failed-system"),
+    "in-progress": ("waiting", "resource-waiting", "ready", "blocked",
+                    "failed-system", "done"),
+    "waiting": ("in-progress", "ready", "blocked", "failed-system", "done"),
+    "resource-waiting": ("ready",),
+    "blocked": ("ready",),
+    "planned": (),
+    "ready": ("resource-waiting",),
+    "failed-system": (),
+    "done": (),
+}
+
+# Capacity bookkeeping is host-internal: it claims no worker or external
+# resource, so these two edges neither require nor accept a task lease.
+UNFENCED_INTERNAL_TRANSITIONS = {
+    ("ready", "resource-waiting"),
+    ("resource-waiting", "ready"),
+}
+
 
 # --------------------------------------------------------------------------
 # log primitives
@@ -146,7 +170,7 @@ def lock_hash_of(text: str) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
-def read_run_lock() -> tuple[int, str]:
+def read_run_lock_details() -> tuple[int, str, dict]:
     try:
         with open(RUN_LOCK_PATH, "r", encoding="utf-8") as handle:
             text = handle.read()
@@ -163,6 +187,11 @@ def read_run_lock() -> tuple[int, str]:
     recorded_hash = recorded_hash.lower()
     if lock_hash_of(text) != recorded_hash:
         raise ValueError("[run].lock_hash does not match file content")
+    return epoch, recorded_hash, data
+
+
+def read_run_lock() -> tuple[int, str]:
+    epoch, recorded_hash, _ = read_run_lock_details()
     return epoch, recorded_hash
 
 
@@ -337,8 +366,18 @@ def project(events: list) -> dict:
                 "epoch": event["epoch"],
                 "expires_at": event["expires_at"],
             }
+            # A task claim is the sole ready -> leased edge. Repository
+            # integration leases are mutation-scoped and do not replace the
+            # task's delivery status.
+            row = state["tasks"].get(event["task"])
+            if row is not None and row["status"] == "ready" and \
+                    not str(event.get("owner", "")).startswith("integrator:"):
+                row["status"] = "leased"
         elif kind == "release":
             state["leases"].pop(event["task"], None)
+            row = state["tasks"].get(event["task"])
+            if row is not None and row["status"] == "leased":
+                row["status"] = "ready"
         elif kind == "lock_epoch":
             state["lock_epoch"] = event["epoch"]
             state["lock_hash"] = event["lock_hash"]
@@ -355,14 +394,28 @@ def project(events: list) -> dict:
     return state
 
 
-def require_fresh_token(state: dict, events: list, task: str, token) -> None:
-    """A token below the highest one ever issued for the task is superseded."""
+def require_active_lease(state: dict, events: list, task: str, token,
+                         allow_expired: bool = False) -> dict:
+    """Require the exact active lease token, not merely a non-stale integer."""
     if token is None:
-        return
-    current = state["tokens"].get(task)
-    if current is not None and int(token) < int(current):
-        reject(events, "stale fencing token",
-               {"task": task, "token": int(token), "current": int(current)})
+        reject(events, "missing fencing token", {"task": task, "token": None})
+    lease = state["leases"].get(task)
+    if lease is None:
+        floor = state["tokens"].get(task)
+        if floor is not None and int(token) < int(floor):
+            reject(events, "stale fencing token",
+                   {"task": task, "token": int(token), "current": int(floor)})
+        reject(events, "task has no active lease",
+               {"task": task, "token": int(token)})
+    current = int(lease["token"])
+    if int(token) != current:
+        reject(events, "fencing token is not the active lease token",
+               {"task": task, "token": int(token), "current": current})
+    if not allow_expired and int(lease["expires_at"]) <= int(time.time()):
+        reject(events, "active lease is expired",
+               {"task": task, "token": current,
+                "expires_at": int(lease["expires_at"])})
+    return lease
 
 
 # --------------------------------------------------------------------------
@@ -442,22 +495,28 @@ def render(state: dict) -> None:
 
 def runnable(state: dict) -> list:
     """Runnable: every depends_on row is `done`; the row is not `planned`; for
-    M2+ ids other than the four early-start ids, M1-12 is `done` (D-088); and
-    the caps allow it."""
+    M2+ ids other than the four early-start ids, M1-12 is `done` and the M1
+    audit currently passes; and the caps allow it."""
     tasks = state["tasks"]
     m112_done = tasks.get("M1-12", {}).get("status") == "done"
+    audit_ok = m1_audit_passed(state)
     running = [r for r in tasks.values()
                if r["status"] in ("in-progress", "leased")]
     used_lanes = [r["lane"] for r in running if r["lane"]]
     out = []
     for tid in state["order"]:
         row = tasks[tid]
+        # Lease acquisition is the atomic claim. Even before a caller records
+        # the next delivery status, a claimed row cannot be dispatched twice.
+        if tid in state["leases"]:
+            continue
         if row["status"] in NOT_RUNNABLE:
             continue
         if any(tasks.get(d, {}).get("status") != "done" for d in row["depends_on"]):
             continue
         milestone = row["milestone"]
-        if milestone != "M1" and tid not in EARLY_START and not m112_done:
+        if milestone != "M1" and tid not in EARLY_START and \
+                (not m112_done or not audit_ok):
             continue
         if len(running) >= CAPS["containers"]:
             continue
@@ -485,27 +544,68 @@ BOOTSTRAP = "M1-01"
 AUDIT_PASS_LINE = "audit: PASS"
 
 
-def m1_audit_passed() -> bool:
-    """The M1 exit audit of D-123.
+def text_artifact_sha256(path: str) -> str | None:
+    try:
+        with open(path, "rb") as handle:
+            raw = handle.read()
+        text = raw.decode("utf-8")
+    except (OSError, UnicodeDecodeError):
+        return None
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if not lines or lines[-1] != "status: DONE":
+        return None
+    return hashlib.sha256(raw).hexdigest()
+
+
+def m1_audit_passed(state: dict) -> bool:
+    """The M1 exit audit of CTRL-006.
 
     After the last M1 task turns `done`, the host session launches a fresh
-    audit subagent that re-runs every M1 `tasks/<id>/verify.sh host`, checks
-    the M1 exit gate, and writes `tasks/M1-12/audit.md` ending with the line
-    `audit: PASS`. Until that file exists and ends with that line, no M2+ row
-    may reach `ready`.
-
-    The audit gates every M2+ id without exception. The four early-start ids
-    of D-088 (M3-01, M3-03, M4-02, M4-03) are exempt from waiting for the
-    M1-12 *row* to be `done`, because they only need the task bundles; they
-    are not exempt from the audit, whose whole purpose is to prove that the
-    M1 foundation the rest of the run stands on actually holds.
+    audit subagent that re-runs every M1 `tasks/<id>/verify.sh host` and the M1
+    exit gate. The audit binds their DONE transcripts and exact M1 bundle set
+    to the current state and immutable lock epoch/hash. Until every binding
+    matches and the final line is `audit: PASS`, no non-exempt M2+ row may
+    reach `ready`. EARLY_START ids are exempt from M1-12 and audit gates.
     """
     try:
+        lock_epoch, lock_hash, lock_data = read_run_lock_details()
+        bundles = lock_data["bundles"]
+        if not isinstance(bundles, dict):
+            return False
+        locked_m1 = {tid: value.lower() for tid, value in bundles.items()
+                     if tid.startswith("M1-") and isinstance(value, str)
+                     and is_sha256(value)}
+        state_m1 = {tid for tid, row in state["tasks"].items()
+                    if row["milestone"] == "M1"}
+        if set(locked_m1) != state_m1 or not locked_m1:
+            return False
+        if any(state["tasks"][tid]["status"] != "done" for tid in state_m1):
+            return False
+        if (state["lock_epoch"], state["lock_hash"]) != (lock_epoch, lock_hash):
+            return False
+        artifact_dir = os.path.dirname(AUDIT_PATH)
+        exit_sha = text_artifact_sha256(
+            os.path.join(artifact_dir, "audit-exit-gate.out"))
+        if exit_sha is None:
+            return False
+        expected = [
+            "lock_epoch: %d" % lock_epoch,
+            "lock_hash: %s" % lock_hash,
+            "exit_gate_sha256: %s" % exit_sha,
+        ]
+        for tid in sorted(locked_m1):
+            verify_sha = text_artifact_sha256(
+                os.path.join(artifact_dir, "audit-%s.out" % tid))
+            if verify_sha is None:
+                return False
+            expected.append("%s: bundle=%s verify=%s" %
+                            (tid, locked_m1[tid], verify_sha))
+        expected.append(AUDIT_PASS_LINE)
         with open(AUDIT_PATH, "r", encoding="utf-8") as handle:
             lines = [line.strip() for line in handle if line.strip()]
-    except OSError:
+    except (OSError, KeyError, TypeError, ValueError, tomllib.TOMLDecodeError):
         return False
-    return bool(lines) and lines[-1] == AUDIT_PASS_LINE
+    return lines == expected
 
 
 def promote(events: list, state: dict, only: str = None) -> list:
@@ -522,15 +622,16 @@ def promote(events: list, state: dict, only: str = None) -> list:
     task starts, so `arm` promotes M1-01 alone (`only`); the other three are
     promoted by the auto-promotion when M1-01 turns `done`.
 
-    The M1 audit gate (D-123) is enforced here, and only here, because
+    The M1 audit gate (CTRL-006) is enforced here, and only here, because
     promotion is the sole way a row leaves `planned`: while
     `tasks/M1-12/audit.md` is missing or does not end with `audit: PASS`, no
-    M2+ id is promoted, so none can ever be `ready` and none can satisfy the
-    runnable predicate of §3. That covers `arm` (which promotes M1-01 alone)
-    and the auto-promotion of `transition <id> done` alike.
+    non-exempt M2+ id is promoted. EARLY_START ids promote as soon as their
+    dependencies are done. That covers `arm` (which promotes M1-01 alone),
+    auto-promotion after `transition <id> done`, and explicit post-audit
+    `promote` reconciliation.
     """
     tasks = state["tasks"]
-    audit_ok = m1_audit_passed()
+    audit_ok = m1_audit_passed(state)
     promoted = []
     for tid in state["order"]:
         row = tasks[tid]
@@ -538,7 +639,7 @@ def promote(events: list, state: dict, only: str = None) -> list:
             continue
         if row["status"] != "planned":
             continue
-        if row["milestone"] != "M1" and not audit_ok:
+        if row["milestone"] != "M1" and tid not in EARLY_START and not audit_ok:
             continue
         if any(tasks.get(d, {}).get("status") != "done" for d in row["depends_on"]):
             continue
@@ -561,6 +662,15 @@ def cmd_arm(args) -> None:
         promoted = promote(events, project(events), only=BOOTSTRAP)
         render(project(events))
     print("armed: %s" % (", ".join(promoted) if promoted else "nothing to arm"))
+
+
+def cmd_promote(args) -> None:
+    """Promote every newly eligible task after an external gate changes."""
+    with Lock():
+        events = read_events()
+        promoted = promote(events, project(events))
+        render(project(events))
+    print("promoted: %s" % (", ".join(promoted) if promoted else "nothing"))
 
 
 def cmd_init(args) -> None:
@@ -599,9 +709,33 @@ def cmd_transition(args) -> None:
         if args.task not in state["tasks"]:
             sys.stderr.write("unknown task: %s\n" % args.task)
             sys.exit(2)
-        require_fresh_token(state, events, args.task, args.token)
+        current_status = state["tasks"][args.task]["status"]
+        if args.status not in LEGAL_TRANSITIONS.get(current_status, ()):
+            reject(events, "illegal task transition", {
+                "task": args.task,
+                "from_status": current_status,
+                "to_status": args.status,
+            })
+        edge = (current_status, args.status)
+        if edge in UNFENCED_INTERNAL_TRANSITIONS:
+            if args.task in state["leases"]:
+                reject(events, "resource bookkeeping requires an unleased task", {
+                    "task": args.task,
+                    "from_status": current_status,
+                    "to_status": args.status,
+                })
+            if args.token is not None:
+                reject(events, "resource bookkeeping does not accept a fencing token", {
+                    "task": args.task,
+                    "from_status": current_status,
+                    "to_status": args.status,
+                    "token": args.token,
+                })
+        else:
+            require_active_lease(state, events, args.task, args.token)
         key = args.key or task_idempotency_key(
-            state, args.task, args.attempt, "transition:" + args.status)
+            state, args.task, args.attempt,
+            "transition:%s->%s" % (current_status, args.status))
         if key in state["keys"]:
             reject(events, "duplicate idempotency key",
                    {"task": args.task, "operation": "transition", "idempotency": key})
@@ -623,22 +757,83 @@ def cmd_lease(args) -> None:
         if args.task not in state["tasks"]:
             sys.stderr.write("unknown task: %s\n" % args.task)
             sys.exit(2)
+        prior = state["leases"].get(args.task)
+        if prior is not None:
+            if prior["owner"] == args.owner and \
+                    int(prior["expires_at"]) > int(time.time()):
+                render(state)
+                print(json.dumps({"task": args.task, "owner": prior["owner"],
+                                  "token": prior["token"], "epoch": prior["epoch"],
+                                  "expires_at": prior["expires_at"], "replayed": True}))
+                return
+            reject(events, "task already has an active lease", {
+                "task": args.task,
+                "owner": args.owner,
+                "current_owner": prior["owner"],
+                "current_token": prior["token"],
+                "expires_at": prior["expires_at"],
+            })
+        status = state["tasks"][args.task]["status"]
+        integration = args.owner.startswith("integrator:")
+        if integration and (not args.owner[len("integrator:"):].strip() or
+                            status != "in-progress"):
+            reject(events, "integrator lease requires an in-progress task and repository", {
+                "task": args.task, "owner": args.owner, "status": status,
+            })
+        if not integration and status not in (
+                "ready", "in-progress", "waiting", "resource-waiting", "blocked"):
+            reject(events, "task status cannot acquire a lease", {
+                "task": args.task, "owner": args.owner, "status": status,
+            })
         token = int(state["tokens"].get(args.task, 0)) + 1
-        epoch = token
+        epoch = int(state["lock_epoch"])
         expires_at = int(time.time()) + int(args.ttl)
         append(events, {"type": "lease", "task": args.task, "owner": args.owner,
                         "token": token, "epoch": epoch, "ttl": int(args.ttl),
                         "expires_at": expires_at})
+        render(project(events))
     print(json.dumps({"task": args.task, "owner": args.owner, "token": token,
-                      "epoch": epoch, "expires_at": expires_at}))
+                      "epoch": epoch, "expires_at": expires_at, "replayed": False}))
 
 
 def cmd_release(args) -> None:
     with Lock():
         events = read_events()
         state = project(events)
-        require_fresh_token(state, events, args.task, args.token)
+        if args.task not in state["tasks"]:
+            sys.stderr.write("unknown task: %s\n" % args.task)
+            sys.exit(2)
+        # A retry after the exact release reached durable storage is a safe
+        # no-op. A lock-epoch fencing floor with no matching lease is not.
+        lease = state["leases"].get(args.task)
+        if lease is None and args.token is not None and any(
+                event.get("type") == "release" and
+                event.get("task") == args.task and
+                event.get("token") == args.token for event in events):
+            render(state)
+            print("released %s (replayed)" % args.task)
+            return
+        require_active_lease(state, events, args.task, args.token,
+                             allow_expired=args.expired)
+        if args.expired:
+            lease = state["leases"][args.task]
+            if int(lease["expires_at"]) > int(time.time()):
+                reject(events, "--expired requires an expired active lease", {
+                    "task": args.task, "token": args.token,
+                    "expires_at": int(lease["expires_at"]),
+                })
+            operation = "supervisor-reconcile-expired-ttl:%s" % args.token
+            key = task_idempotency_key(state, args.task,
+                                       state["tasks"][args.task].get("attempt", 0),
+                                       operation)
+            if key not in state["keys"]:
+                append(events, {"type": "event", "task": args.task,
+                                "operation": operation,
+                                "attempt": state["tasks"][args.task].get("attempt", 0),
+                                "token": args.token, "result": "expired-ttl",
+                                "evidence": "", "idempotency": key})
         append(events, {"type": "release", "task": args.task, "token": args.token})
+        render(project(events))
     print("released %s" % args.task)
 
 
@@ -648,7 +843,7 @@ def cmd_event(args) -> None:
     with Lock():
         events = read_events()
         state = project(events)
-        require_fresh_token(state, events, args.task, args.token)
+        require_active_lease(state, events, args.task, args.token)
         key = args.key or task_idempotency_key(
             state, args.task, args.attempt, args.operation)
         if key in state["keys"]:
@@ -928,6 +1123,8 @@ def main() -> None:
     p = sub.add_parser("release", help="drop a lease")
     p.add_argument("task")
     p.add_argument("--token", type=int)
+    p.add_argument("--expired", action="store_true",
+                   help="supervisor-only cleanup of an exact expired lease")
     p.set_defaults(func=cmd_release)
 
     p = sub.add_parser("event", help="record one external mutation")
@@ -954,6 +1151,8 @@ def main() -> None:
 
     sub.add_parser("arm", help="promote every dependency-free task to ready") \
         .set_defaults(func=cmd_arm)
+    sub.add_parser("promote", help="promote tasks eligible after an external gate change") \
+        .set_defaults(func=cmd_promote)
     sub.add_parser("render", help="regenerate the two Markdown projections") \
         .set_defaults(func=cmd_render)
     p = sub.add_parser("status", help="print the run state as JSON")

@@ -31,6 +31,10 @@ AUTHOR_RE = re.compile(
 # A task that can itself provide a live managed run: the dispatch step, or the
 # task that creates the scratch repository every later live proof reads.
 DISPATCH_RE = re.compile(r"^Dispatch\b", re.I)
+CODE_SPAN_RE = re.compile(r"`([^`\n]+)`")
+COMMAND_CUE_RE = re.compile(
+    r"\b(?:command|execute|executes|invoke|invokes|run|runs|running)\s*$", re.I
+)
 
 COLS = ["id", "title", "scope", "repos", "depends_on", "role", "lane",
         "delivery", "size", "verify", "proof"]
@@ -110,6 +114,26 @@ def ancestors(tasks, tid):
         seen.add(x)
         stack.extend(tasks[x]["deps"])
     return seen
+
+
+def verify_command_tokens(text):
+    """Yield executable names from shell-like verify-cell code spans.
+
+    Markdown code spans also carry filenames, states, activity kinds, and
+    field names.  A span is command-like only when its first token has shell
+    arguments, or when prose explicitly introduces a single-token command.
+    """
+    for match in CODE_SPAN_RE.finditer(text):
+        span = match.group(1)
+        token = re.match(r"([a-z][a-z0-9_-]{1,20})(.*)", span)
+        if token is None:
+            continue
+        tail = token.group(2)
+        if not tail[:1].isspace():
+            before = text[max(0, match.start() - 40):match.start()]
+            if tail or not COMMAND_CUE_RE.search(before):
+                continue
+        yield token.group(1)
 
 
 def check(tasks, dupes, inject):
@@ -225,8 +249,7 @@ def bundles(tasks, root):
                 if not shutil.which(tok) and \
                         f"{tok}()" not in body and f"{tok} ()" not in body:
                     probs.append(f"verify.sh command not found: {tok}")
-        for tok in sorted(set(re.findall(r"`([a-z][a-z0-9_-]{1,20})[ `]",
-                                         row["verify"]))):
+        for tok in sorted(set(verify_command_tokens(row["verify"]))):
             if tok in ("test", "grep", "true", "false") or shutil.which(tok):
                 continue
             probs.append(f"verify cell command not found: {tok}")

@@ -242,8 +242,14 @@ PY
 release_lease() {
 	# $1 task, $2 fencing token, $3 reason.
 	log "reconcile: releasing lease on $1 (token $2): $3"
+	if [ "$3" = "expired-ttl" ]; then
+		state_py release "$1" --token "$2" --expired >/dev/null 2>&1 ||
+			log "reconcile: expired release of $1 was refused by the store"
+		return
+	fi
 	state_py event "$1" --operation "supervisor-reconcile-$3" \
-		--key "supervisor-$1-$2-$3" --result "$3" >/dev/null 2>&1 || true
+		--token "$2" --key "supervisor-$1-$2-$3" \
+		--result "$3" >/dev/null 2>&1 || true
 	state_py release "$1" --token "$2" >/dev/null 2>&1 ||
 		log "reconcile: release of $1 was refused by the store"
 }
@@ -372,6 +378,7 @@ legacy_coordinator_pids() {
 			[ "$(process_cwd "$pid")" = "$REPO" ] && printf '%s\n' "$pid"
 		done
 	fi
+	return 0
 }
 
 refuse_legacy_runners() {

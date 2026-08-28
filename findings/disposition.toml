@@ -20,8 +20,8 @@ title = """Two manifest schema bumps on one rolling PR (M3-02 v1alpha7, M4-01 v1
 disposition = "fixed"
 evidence = """Fixed: SPEC.md names `default_agent`/v1alpha7 as the run's single schema bump and M4-01 delivers the prompt through `JACKIN_INITIAL_PROMPT` with no second bump (plan row 2.4 landed)."""
 file = "SPEC.md"
-line = 407
-quote = """the only manifest schema bump of the run"""
+line = 1013
+quote = """sole manifest schema increment"""
 
 [[finding]]
 id = "R3-03"
@@ -38,7 +38,7 @@ title = """DCO pre-push gate counts merge commits, so merge-backs break the shar
 disposition = "fixed"
 evidence = """Fixed: the DCO pre-push gate now counts with `--no-merges` on both sides, so the mandated merge-backs no longer break the shared branch."""
 file = "goal/EXECUTION.md"
-line = 535
+line = 540
 quote = """git log --no-merges origin/main..HEAD"""
 
 [[finding]]
@@ -48,7 +48,7 @@ disposition = "fixed"
 evidence = """Fixed: M1-13 and M11-01a now prescribe `git merge --no-ff --signoff origin/main` when the PR is behind and forbid rebasing the shared branch, so no force push is implied."""
 file = "ROADMAP.md"
 line = 147
-quote = """never a rebase of the shared branch"""
+quote = """never a rebase of the shared branch, which would need the forbidden `--force`), merge"""
 
 [[finding]]
 id = "R3-06"
@@ -65,8 +65,8 @@ title = """Rolling PR and squash merge ignore jackin .github/AGENTS.md PR contra
 disposition = "fixed"
 evidence = """Fixed: the rolling PR body is built from the repository pull request template and the squash body comes from `jackin-pr-trailers`, so jackin's PR contract is met."""
 file = "goal/EXECUTION.md"
-line = 668
-quote = """PULL_REQUEST_TEMPLATE"""
+line = 685
+quote = """<repo>/.github/PULL_REQUEST_TEMPLATE.md"""
 
 [[finding]]
 id = "R3-08"
@@ -101,8 +101,8 @@ title = """GOAL prompt Runnable formula has no milestone gate while goal/EXECUTI
 disposition = "fixed"
 evidence = """Fixed by D-119: the runnable predicate is one paragraph, byte-identical in GOAL.md and goal/EXECUTION.md; `python3 tools/invariant_lint.py` check d119-predicate passes at HEAD."""
 file = "GOAL.md"
-line = 42
-quote = """Runnable predicate (D-119). A row is Runnable (D-119) iff: its status is"""
+line = 39
+quote = """Runnable predicate (D-119). A row is Runnable (D-119) iff its status is"""
 
 [[finding]]
 id = "R3-12"
@@ -111,7 +111,7 @@ disposition = "fixed"
 evidence = """Fixed: the M10-03 depends_on cell is now `M10-02`, no longer an em dash, so the gate is an edge and not prose."""
 file = "ROADMAP.md"
 line = 323
-quote = """M10-03"""
+quote = """| M10-03"""
 
 [[finding]]
 id = "R3-13"
@@ -120,7 +120,7 @@ disposition = "fixed"
 evidence = """Fixed: wave 5b is M1-03 alone with M1-13 in its own later wave, and the stuck clock stops for lane-cap and eject waits."""
 file = "goal/EXECUTION.md"
 line = 221
-quote = """eject"""
+quote = """to eject"""
 
 [[finding]]
 id = "R3-14"
@@ -137,8 +137,8 @@ title = """M2-08 review anchor ambiguous; pr.txt head fixed by a non-jackin task
 disposition = "fixed"
 evidence = """Fixed: the review record pins tasks/<id>/pr.txt to three lines and never rewrites the reviewed head sha, so the review anchor cannot drift."""
 file = "goal/EXECUTION.md"
-line = 688
-quote = """never rewritten"""
+line = 705
+quote = """never rewritten on"""
 
 [[finding]]
 id = "R3-16"
@@ -147,7 +147,7 @@ disposition = "fixed"
 evidence = """Fixed: M1-03, M1-07, M1-09 and M1-10 now carry the `host (D-061)` marker, so the op and Linear token checks are generated into the host part."""
 file = "ROADMAP.md"
 line = 134
-quote = """host (D-061)"""
+quote = """host (D-061): `op"""
 
 [[finding]]
 id = "R3-17"
@@ -156,7 +156,7 @@ disposition = "fixed"
 evidence = """Fixed: D-085 and the task format now fix the container working directory at `/workspace` on every path, and the staging root is bound as the mount source of it."""
 file = "concept/task-format.md"
 line = 73
-quote = """/workspace"""
+quote = """/workspace --mount"""
 
 [[finding]]
 id = "R3-18"
@@ -173,7 +173,7 @@ title = """Linear `<org>` urlKey and app user id never filed as evidence"""
 disposition = "fixed"
 evidence = """Fixed by D-108 (Phase 0 row 0.14): `grep -c '<org>' goal/EXECUTION.md ROADMAP.md` prints 0 for both, and M1-10 now stores the urlKey and app user id as fields of `op://jackin/linear-workspace` plus the named non-secret evidence file `tasks/M1-10/linear-org.txt`."""
 file = "concept/credentials.md"
-line = 201
+line = 205
 quote = """The Linear organization `urlKey` and the app user id are not secrets,"""
 
 [[finding]]
@@ -183,7 +183,7 @@ disposition = "fixed"
 evidence = """Fixed: M10-03 splits the container gate from a host part that runs after the session blesses the goldens, and the procedure adds that bless step."""
 file = "ROADMAP.md"
 line = 323
-quote = """host"""
+quote = """host blesses"""
 
 [[finding]]
 id = "R3-21"
@@ -224,8 +224,8 @@ title = """Server preflight omits the `op` CLI and any transfer of the daemon se
 disposition = "fixed"
 evidence = """Fixed: M11-03 installs `op` on the server and writes the daemon service-account token to `~/.config/jackin/daemon.env` over ssh stdin, and the server preflight proves `op --version`."""
 file = "concept/credentials.md"
-line = 119
-quote = """M11-03"""
+line = 123
+quote = """M11-03:"""
 
 [[finding]]
 id = "R3-26"
@@ -240,7 +240,7 @@ disposition = "fixed"
 evidence = """Fixed: the preflight now states the host login is the only form M4-05 can use on this laptop, and the daemon API key items belong to M11 alone."""
 file = "goal/PREFLIGHT.md"
 line = 344
-quote = """M4-05"""
+quote = """M4-05 can"""
 
 [[finding]]
 id = "R3-28"
@@ -249,7 +249,7 @@ disposition = "fixed"
 evidence = """Fixed: the gh scope item now requires `admin:org` and proves it with a scope grep plus an organisation installations call."""
 file = "goal/PREFLIGHT.md"
 line = 133
-quote = """admin:org"""
+quote = """`admin:org`;"""
 
 [[finding]]
 id = "R3-29"
@@ -257,8 +257,8 @@ title = """Docker Hub namespace contradiction: credentials.md projectjackin/* vs
 disposition = "fixed"
 evidence = """Fixed: the Docker Hub row now names the `donbeave` namespace, matching what M11-02 pushes."""
 file = "concept/credentials.md"
-line = 117
-quote = """donbeave"""
+line = 121
+quote = """`donbeave/jackin-crew-*`,"""
 
 [[finding]]
 id = "R3-30"
@@ -276,7 +276,7 @@ disposition = "fixed"
 evidence = """Fixed: M1-12 attaches task.toml, verify.sh and every ref pinned to the `task_source:` sha, and M4-04 fetches them over HTTPS, so the daemon path can run a roadmap task container verify."""
 file = "ROADMAP.md"
 line = 219
-quote = """attachments"""
+quote = """attachments M1-12"""
 
 [[finding]]
 id = "R3-32"
@@ -284,7 +284,7 @@ title = """Issue convention agent:<lane value> contradicts M2-05 validation; dae
 disposition = "fixed"
 evidence = """Fixed: `agent:<runtime>` is now `claude` or `codex` only, a separate `lane:L<n>` label carries the lane, and the daemon resolves the per-launch account home from a `[lanes]` config table."""
 file = "SPEC.md"
-line = 66
+line = 264
 quote = """agent:"""
 
 [[finding]]
@@ -303,7 +303,7 @@ disposition = "fixed"
 evidence = """Fixed: M11-05 and M10-06 post role-repository reviews as commit comments and branch on whether the review record names a PR, so a repository with no PR is handled."""
 file = "ROADMAP.md"
 line = 366
-quote = """D-074"""
+quote = """PR (D-074,"""
 
 [[finding]]
 id = "R3-35"
@@ -312,7 +312,7 @@ disposition = "fixed"
 evidence = """Fixed: the M11-01 depends_on cell is now `M10-05`; `grep -c 'starts with M11, after' ROADMAP.md` prints 0, so the gate is no longer prose-only."""
 file = "ROADMAP.md"
 line = 361
-quote = """M11-01"""
+quote = """M11-01 |"""
 
 [[finding]]
 id = "R3-36"
@@ -321,7 +321,7 @@ disposition = "fixed"
 evidence = """Fixed: M1-13 writes per-role grant files and the lane templates carry only the sync source and environment, so no lane template holds role-specific Docker grants."""
 file = "ROADMAP.md"
 line = 147
-quote = """grants"""
+quote = """grants cannot"""
 
 [[finding]]
 id = "R3-37"
@@ -329,7 +329,7 @@ title = """Daemon ~/.claude cap: D-056/SPEC/M3-05 say 3, D-071/EXECUTION say 2, 
 disposition = "fixed"
 evidence = """Fixed: the procedure now writes the daemon account caps into the daemon config before the first start, so `~/.claude` is 2 everywhere and each Codex home is 1."""
 file = "goal/EXECUTION.md"
-line = 593
+line = 610
 quote = """max = 2"""
 
 [[finding]]
@@ -338,8 +338,8 @@ title = """Documents read first still forbid actions the run requires (D-045/D-0
 disposition = "fixed"
 evidence = """Fixed: D-048 now records the exception that lets M1-13 and M3-02 change the-architect, with a reciprocal note on D-045."""
 file = "SPEC.md"
-line = 1642
-quote = """D-074"""
+line = 1043
+quote = """reciprocal role-bootstrap exception"""
 
 [[finding]]
 id = "R3-39"
@@ -348,7 +348,7 @@ disposition = "fixed"
 evidence = """Fixed: M4-04 proves the prompted round trip against a container fixture and the live reply is deferred to M4-06, whose crew-operator posts it, so the deadlock is gone."""
 file = "ROADMAP.md"
 line = 219
-quote = """M4-04"""
+quote = """M4-04 | Prompt"""
 
 [[finding]]
 id = "R3-40"
@@ -357,7 +357,7 @@ disposition = "fixed"
 evidence = """Fixed: M1-10 starts a one-shot loopback listener on the redirect port before clicking Authorize, so the code is captured from a served redirect instead of a refused connection."""
 file = "ROADMAP.md"
 line = 144
-quote = """53682"""
+quote = """`https://linear.app/oauth/authorize?client_id=…&redirect_uri=http://localhost:53682/callback&response_type=code&actor=app&scope=read,write,issues:create,comments:create,app:assignable,app:mentionable&state=<random>`"""
 
 [[finding]]
 id = "R3-41"
@@ -381,7 +381,7 @@ disposition = "fixed"
 evidence = """Fixed: the M3-05 host verify asserts the first activity of the session is a thought rather than a transient status value."""
 file = "ROADMAP.md"
 line = 199
-quote = """thought"""
+quote = """"thought""""
 
 [[finding]]
 id = "R3-44"
@@ -399,7 +399,7 @@ disposition = "fixed"
 evidence = """Fixed: M1-09 fixes `Review` and `Merging` as started-type states positioned after In Progress, and M2-04 picks the lowest-position started state that is neither of them."""
 file = "ROADMAP.md"
 line = 143
-quote = """started"""
+quote = """`started` and"""
 
 [[finding]]
 id = "R3-46"
@@ -407,8 +407,8 @@ title = """Auto-disabled webhook may drop the app's agent status mid-run; nothin
 disposition = "fixed"
 evidence = """Fixed: the procedure re-checks the agent webhook every session with a scratch delegation, and on failure the next crew-operator task re-enables it from the filed app URL."""
 file = "goal/EXECUTION.md"
-line = 81
-quote = """webhook"""
+line = 83
+quote = """every session with"""
 
 [[finding]]
 id = "R3-47"
@@ -416,8 +416,8 @@ title = """Stale Chromium SingletonLock in the shared operator profile kills lat
 disposition = "fixed"
 evidence = """Fixed: teardown closes the browser before ejecting, and every crew-operator launch removes stale Singleton files once no operator container is running."""
 file = "goal/EXECUTION.md"
-line = 344
-quote = """Singleton"""
+line = 347
+quote = """~/.jackin/agent-browser-profile/Singleton{Lock,Socket,Cookie}`:"""
 
 [[finding]]
 id = "R3-48"
@@ -426,7 +426,7 @@ disposition = "fixed"
 evidence = """Fixed: the D-119 runnable predicate folds the §4 reserve rule into runnability, so a reserve-refused Claude-lane row is simply `ready` and not runnable, and cap waits have the `resource-waiting` status (tools/state.py) (plan rows 1.4, 1.9)."""
 file = "goal/EXECUTION.md"
 line = 257
-quote = """reserve rule"""
+quote = """reserve rule;"""
 
 [[finding]]
 id = "R3-49"
@@ -434,8 +434,8 @@ title = """Hop target lanes share ~/.claude; 'next lane busy' undefined so hops 
 disposition = "fixed"
 evidence = """Fixed: the fallback rule now defines a busy lane and sends the row back to `ready` at the head of its wave, consuming no attempt, instead of stalling as `waiting`."""
 file = "goal/EXECUTION.md"
-line = 409
-quote = """busy"""
+line = 412
+quote = """busy or"""
 
 [[finding]]
 id = "R3-50"
@@ -449,7 +449,7 @@ title = """Every container attempt is a cold cargo build; per-lane cargo/target 
 disposition = "fixed"
 evidence = """Fixed: the lane template now declares per-lane cargo registry, git and target mounts, so a container attempt is no longer a cold build."""
 file = "concept/roles.md"
-line = 138
+line = 124
 quote = """CARGO_TARGET_DIR"""
 
 [[finding]]
@@ -459,7 +459,7 @@ disposition = "fixed"
 evidence = """Fixed and migrated by D-124: pane waiting uses Herdr's blocking `pane wait-output` or `agent wait`, so it costs no model turn and drains no account bucket."""
 file = "goal/EXECUTION.md"
 line = 225
-quote = """herdr pane wait-output"""
+quote = """`herdr pane wait-output`"""
 
 [[finding]]
 id = "R3-53"
@@ -473,8 +473,9 @@ title = """Six-container cap and same-account-home check count DinD sidecars and
 disposition = "fixed"
 evidence = """Fixed: the container count is label-filtered to role containers so DinD sidecars never count, and the account home is read from the task lane."""
 file = "goal/EXECUTION.md"
-line = 243
-quote = """jackin.kind=role"""
+line = 242
+quote = """duration. The one countable list is `docker ps --filter
+label=jackin.managed=true --filter label=jackin.kind=role --format"""
 
 [[finding]]
 id = "R3-55"
@@ -491,14 +492,14 @@ title = """Per-task saved workspace has no /workspace: workdir and mount mirror 
 disposition = "fixed"
 evidence = """Fixed: the workspace mount always names `/workspace` as its target, so the per-task saved workspace no longer mirrors the host path."""
 file = "goal/EXECUTION.md"
-line = 344
-quote = """/workspace"""
+line = 347
+quote = """task-<id> --workdir /workspace"""
 
 [[finding]]
 id = "R3-57"
 title = """M1-05d primary verify calls `jackin config env list --format json`, a flag that may not exist"""
 disposition = "host-probe-required"
-evidence = """ROADMAP.md:137 names it primary and SPEC.md D-090 (3) makes it authoritative; settled by: jackin config env list --role donbeave/crew-operator --format json"""
+evidence = """ROADMAP.md task M1-05d names this exact primary host verifier; settled by: jackin config env list --role donbeave/crew-operator --format json"""
 
 [[finding]]
 id = "R3-58"
@@ -506,7 +507,7 @@ title = """Container-name lookup grep -- "-task-<id slug>-" can never match the 
 disposition = "fixed"
 evidence = """Fixed: the container lookup computes the compacted lowercase slug before grepping, so it matches the workspace component jackin actually writes."""
 file = "goal/EXECUTION.md"
-line = 344
+line = 347
 quote = """tr -cd"""
 
 [[finding]]
@@ -527,16 +528,16 @@ title = """jackin workspace delete task-<id> is not a command; the subcommand is
 disposition = "fixed"
 evidence = """Fixed by Phase 0 row 0.13: `grep -rn 'workspace delete' --include='*.md' .` returns nothing, and goal/EXECUTION.md now ends the task lifecycle with `jackin workspace remove`."""
 file = "goal/EXECUTION.md"
-line = 344
+line = 347
 quote = """remove `task-<id>`"""
 
 [[finding]]
 id = "R3-62"
 title = """Runner has a third terminal outcome the plan never handles: goal CLEARED on context limit or impossible verdict"""
 disposition = "fixed"
-evidence = """Fixed: tools/supervisor.sh re-invokes the coordinator after any exit whose log carries neither GOAL COMPLETE nor GOAL BLOCKED, context-limit clears included, after reconciling the durable store (plan rows 1.12, 1.7)."""
+evidence = """Fixed: `tools/supervisor.sh resume` reconciles durable state and restarts whenever the coordinator is absent, including after a context-limit clear; GOAL.md requires resume after every non-terminal exit."""
 file = "GOAL.md"
-line = 62
+line = 61
 quote = """`tools/supervisor.sh resume` restarts you after a non-terminal exit."""
 
 [[finding]]
@@ -545,7 +546,7 @@ title = """Runner re-prompt after BLOCKED silently opens a new attempt epoch for
 disposition = "fixed"
 evidence = """Unchanged at HEAD: an `exhausted:` row is closed by the human alone (goal/EXECUTION.md:52), repeated for the section 6 re-prompt."""
 file = "goal/EXECUTION.md"
-line = 57
+line = 56
 quote = """closed by the human"""
 
 [[finding]]
@@ -554,17 +555,17 @@ title = """Outcome (B) and half of (A) are prose the evaluator cannot check"""
 disposition = "fixed"
 evidence = """Fixed: the outcomes are now the exact strings verify.sh prints, with the prose conditions moved inside the script's checks."""
 file = "goal/EXECUTION.md"
-line = 788
+line = 813
 quote = """sh verify.sh` at the repository root derives the outcome"""
 
 [[finding]]
 id = "R3-65"
 title = """Attempt counter of an in-progress task lives only in the model's context"""
 disposition = "fixed"
-evidence = """`tasks/<id>/attempts.log` is the authority at HEAD (goal/EXECUTION.md:547, AGENTS.md, GOAL.md, SPEC.md, D-093)."""
+evidence = """`tasks/<id>/attempts.log` is the authority at HEAD (goal/EXECUTION.md:591, AGENTS.md, GOAL.md, SPEC.md, D-093)."""
 file = "goal/EXECUTION.md"
-line = 574
-quote = """attempts.log"""
+line = 591
+quote = """to `tasks/<id>/attempts.log`"""
 
 [[finding]]
 id = "R3-66"
@@ -581,7 +582,7 @@ title = """Final-message shape contradicts the evaluator; (A) has no first-line 
 disposition = "fixed"
 evidence = """Fixed: the final-message shape names the exact first-line markers the evaluator reads, so outcome (A) carries a marker too."""
 file = "goal/EXECUTION.md"
-line = 804
+line = 829
 quote = """Line 1"""
 
 [[finding]]
@@ -591,7 +592,7 @@ disposition = "fixed"
 evidence = """Fixed: the preflight now carries the interactive-session precondition and an item proving no Bash-rewriting hook is active for the evidence commands."""
 file = "goal/PREFLIGHT.md"
 line = 199
-quote = """PreToolUse"""
+quote = """`PreToolUse`"""
 
 [[finding]]
 id = "R3-69"
@@ -609,7 +610,7 @@ disposition = "fixed"
 evidence = """Fixed: the standing check reads the sha from the file M1-05a writes, so the placeholder is gone."""
 file = "goal/PREFLIGHT.md"
 line = 220
-quote = """tailrocks-skills"""
+quote = """tailrocks-skills pin"""
 
 [[finding]]
 id = "R3-71"
@@ -617,7 +618,7 @@ title = """M1-05a..c 'inside the role' checks and jackin role validate have no r
 disposition = "fixed"
 evidence = """Fixed: the procedure defines a labelled Herdr probe tab and recorded pane for the M1-05a..c throwaway loads, and the roadmap cells split host role validation from container checks."""
 file = "goal/EXECUTION.md"
-line = 347
+line = 350
 quote = """Throwaway load"""
 
 [[finding]]
@@ -627,7 +628,7 @@ disposition = "fixed"
 evidence = """Fixed: M1-04a pins `jackin-version: latest-build`, the only value resolvable while jackin publishes no versioned release."""
 file = "ROADMAP.md"
 line = 135
-quote = """latest-build"""
+quote = """latest-build` —"""
 
 [[finding]]
 id = "R3-73"
@@ -645,7 +646,7 @@ disposition = "fixed"
 evidence = """Fixed: M1-05a pre-warms termrock's own mise.toml from a named clone, and concept/roles.md was amended to agree."""
 file = "ROADMAP.md"
 line = 136
-quote = """termrock"""
+quote = """D-078), termrock's"""
 
 [[finding]]
 id = "R3-75"
@@ -663,4 +664,4 @@ disposition = "fixed"
 evidence = """Fixed: the M1-05d verify uses a real `jackin config` subcommand instead of the bare command, and the hook contract states the default Codex home."""
 file = "ROADMAP.md"
 line = 139
-quote = """config"""
+quote = """configure host"""

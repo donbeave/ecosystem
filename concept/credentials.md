@@ -1,11 +1,15 @@
 # Credentials inventory — jackin managed execution
 
-Status: **inventory, 2026-08-27**. Records what already exists in 1Password
+Status: **non-normative inventory, 2026-08-27**. Records what already exists in 1Password
 that this project can reuse, what is already wired through `op://`, and
 what still has to be created. Follows D-035 (every credential lives in
 1Password and is referenced as `op://`). This document contains item
 metadata only: vault names, item titles, categories, field *names*, URLs,
 dates. No secret value appears here and none may be added.
+
+`SPEC.md` alone defines required credential behavior, security boundaries,
+and acceptance. Statuses and recommendations below are dated readiness
+evidence and cannot add product requirements.
 
 ## 2. Existing credentials
 
@@ -92,7 +96,7 @@ Observations:
 
 ## 4. Needed credentials for this project
 
-Derived from `SPEC.md` §5, §6, §9a, §10; D-032, D-035; `concept/workflow.md`
+Derived from `SPEC.md` §10.1–10.3; D-032, D-035; `concept/workflow.md`
 §0; `analysis/linear-agents.md` A7/A8. Proposed names use a new vault
 `jackin` (section 5). "Runtime" means the daemon reads it on every launch;
 "setup" means it is used once by a human or the browser profile.

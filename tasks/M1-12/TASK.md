@@ -1,4 +1,4 @@
-# M1-12 Turn finalized task folders into Linear issues (D-038, D-040, D-060)
+# M1-12 Mirror locked task bundles into Linear issues
 
 Generated from the `ROADMAP.md` row for this task by `tools/bundle.py`
 (D-114). Do not edit by hand: an edit here is lost on the next
@@ -20,11 +20,11 @@ roadmap row instead.
 
 ## Objective
 
-Turn finalized task folders into Linear issues (D-038, D-040, D-060).
+Mirror locked task bundles into Linear issues.
 
 ## Scope
 
-In team `JACKIN`, create the one Linear project and its milestones M1..M12. Mandatory pre-step: subagents verify the current state of the work in every involved repository (what is already merged or on `feat/managed-execution`) and each issue reflects it. Then, for every M2+ `tasks/<id>/` whose `tasks/README.md` row is not `planned` (M1 tasks never get issues; they run by hand from their folders), create an issue from the template: title `<id> <title>`, description whose first line is `task_source: https://github.com/tailrocks/ecosystem/tree/<sha of HEAD>/tasks/<id>` (refreshed on every idempotent re-run) followed by the full `TASK.md` text (the container never sees this repository, D-086) including the checklist and the Authorization section (D-079), labels per convention (role, agent, model per `tasks/M1-13/lanes.json` only — never a guessed value (D-058, D-091), `lane:<the lane of the task's own `task.toml`>`, effort, delivery, `auto-dispatch`), a workflow state matching the row (`ready` and `blocked` → `Todo`, type `unstarted`, a `blocked` row with a comment naming its `PREFLIGHT-DEFECTS.md` row; `in-progress`/`waiting` → the first `started`-type state; `done` → the `completed`-type state), blocking relations from `depends_on` (review tasks are never a blocker, D-055). For every issue, `attachmentCreate` one link per staged bundle file, idempotent by title — `task.toml`, `verify.sh`, and `refs/<name>` for each `## References` entry — with url `https://raw.githubusercontent.com/tailrocks/ecosystem/<that sha>/tasks/<id>/<file>` (the repository is public, D-065, so the daemon fetches them over HTTPS with no token); reconcile titles and urls on re-run. This is the only channel by which a daemon-dispatched task receives its `verify.sh` and references (M4-04 fetches them). No delegate is set: the host session delegates each issue when the daemon can serve it (D-073). Write the id → issue URL map to `tasks/M1-12/issues.json` (merged on re-run); the host session, the only writer of this repository, merges the URLs into `tasks/README.md` in the same commit that sets this row (D-086). Repeatable and idempotent (skips ids that already have an issue; reconciles labels and state on existing ones); re-run whenever a row gains `ready` (D-073, D-114).
+In team `JACKIN`, create the one Linear project and milestones M1..M12. Mandatory pre-step: subagents verify the current state of every involved repository so each issue reflects what is already merged or present on `feat/managed-execution`. Read the immutable source commit from `[plan].commit` in `run/LOCK.toml`; it contains the locked SPEC, ROADMAP, and task bundles (CTRL-002), and must never be replaced with `HEAD`. For every non-`planned` M2+ `tasks/<id>/` row, plus all four early-start ids M3-01, M3-03, M4-02, and M4-03 regardless of current durable state, create or reconcile exactly one issue: title `<id> <title>`; description first line `task_source: https://github.com/tailrocks/ecosystem/tree/<plan.commit>/tasks/<id>` followed by the locked `TASK.md`; canonical role, agent, model, lane, effort, delivery, repository, and auto-dispatch labels; workflow state matching durable status (`ready` or `blocked` → ordinary `unstarted`, `in-progress` or `waiting` → ordinary first `started`, `done` → `completed`); and blocking relations from `depends_on` except non-blocking reviews. Attach immutable raw links, idempotent by title, for `task.toml`, `verify.sh`, `expected-evidence.toml`, and every `refs/<name>`, all pinned to that same `<plan.commit>` (ISSUE-006, ISSUE-014). Never preset a delegate or rerun an early-start task; backfill it at its current durable status. Run reconciliation twice and write the two GraphQL observations to `tasks/M1-12/issues.json`: one object with `team{id,key}`, `project{id,milestones[{id,name}]}`, `workflow_states{unstarted,first_started,completed}` (each `{id,name,type}`), and exactly two `passes`; each pass contains `early_start_attempts` for the four early ids and one issue per mirrored task with `task_id,id,identifier,url,title,team_id,project_id,milestone,milestone_id,source_commit,task_source,description,labels,state_type,state_id,delegate_id,blockers,attachments[{title,url}]`. Merge URLs through the state projection; the second pass must retain every issue identity, source commit, and early-start attempt count. This is the sole channel by which daemon-dispatched roadmap tasks receive their locked verifier, evidence declaration, and references.
 
 ## References
 
@@ -49,7 +49,7 @@ container-relative (D-086).
 
 - [ ] The scope above is implemented in the listed repositories.
 - [ ] container check passes: `jackin workspace create task-M1-12 --workdir /workspace --mount <ws>:/workspace`
-- [ ] host check passes: `jq -r '.[].label' tasks/M1-13/lanes.json`
+- [ ] host check passes: `python3 tools/verify_issue_mirror.py tasks/M1-12/issues.json`
 - [ ] `verify.container.out` is filed in the task folder.
 - [ ] `issues.json` is filed in the task folder.
 - [ ] Every touched repository is committed and pushed.
@@ -59,11 +59,11 @@ container-relative (D-086).
 
 Container part (run inside the task container):
 
-> container (cwd `/workspace`, from `jackin workspace create task-M1-12 --workdir /workspace --mount <ws>:/workspace`): `/workspace/issues.json`, which the host session files as `tasks/M1-12/issues.json`, has one URL per non-"planned" M2+ row
+> container (cwd `/workspace`, from `jackin workspace create task-M1-12 --workdir /workspace --mount <ws>:/workspace`): the two idempotent reconciliation passes and their GraphQL observations are filed as `/workspace/issues.json`
 
 Host part (run by the host Claude Code session, D-061):
 
-> after the merge, every non-"planned" M2+ row in `tasks/README.md` has a Linear URL, no M1 row has one, no issue carries a delegate, every issue's description starts with its `task_source:` line and carries attachments titled `task.toml` and `verify.sh`, the set of `model:*` label values equals `jq -r '.[].label' tasks/M1-13/lanes.json`, and GraphQL confirms team, project, milestone, labels, states, and `inverseRelations`
+> `python3 tools/verify_issue_mirror.py tasks/M1-12/issues.json` exits 0, proving the exact locked task set, each task bundle's bytes at `plan.commit` against its `run/LOCK.toml` hash, the captured full GraphQL description against the locked `TASK.md`, issue identity, team/project/milestone membership, canonical labels, ordinary workflow-state projection, null delegate, blockers, immutable attachment set, second-pass idempotence, and unchanged early-start attempt counts
 
 When a container part exists the host part first asserts that
 `tasks/M1-12/verify.container.out` ends with `status: DONE`, so a
@@ -76,7 +76,7 @@ passing host part can never mask a failed container part (D-086).
 
 ## Proof (browser/attach)
 
-The M2 issues exist in the `JACKIN` project with correct labels, milestone, and blockers.
+The M2+ issue mirror matches ISSUE-006 and ISSUE-014, including locked-source early-start backfill.
 
 ## Definition of done
 

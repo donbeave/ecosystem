@@ -103,6 +103,11 @@ lock_hash() {
 # ---------------------------------------------------------------------------
 
 static_gate() {
+  # Static Python imports are checks, not build outputs. Keep generated
+  # bytecode out of the proof-plane tree (CTRL-007).
+  PYTHONDONTWRITEBYTECODE=1
+  export PYTHONDONTWRITEBYTECODE
+
   echo "readiness: static gate (D-109)"
   echo
 

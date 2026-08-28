@@ -81,14 +81,29 @@ assert modules[0].lock_hash_of(text) == modules[1].lock_hash_of(text)
 PY
 fail "state and repository lock hashing algorithms differ"
 python3 "$STATE" init --dag "$WORK/dag.json" --run-id lock-epoch-test >/dev/null
-python3 "$STATE" transition DONE "done" --attempt 1 --result complete \
-	--evidence keep-this-evidence >/dev/null
-python3 "$STATE" transition ACTIVE in-progress --attempt 1 >/dev/null
-python3 "$STATE" transition WAIT waiting --attempt 1 --result throttled >/dev/null
-python3 "$STATE" transition RESOURCE resource-waiting --attempt 1 \
-	--result capped >/dev/null
-python3 "$STATE" transition LEASED leased --attempt 1 >/dev/null
-python3 "$STATE" transition BLOCKED blocked --attempt 1 --result operator-input >/dev/null
+# Seed legacy pre-gate events directly: this fixture proves the expand phase
+# preserves historical replay while enforcing only future CLI appends.
+python3 - "$STATE" <<'PY'
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location("state", sys.argv[1])
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+events = module.read_events()
+for task, status, result, evidence in (
+    ("DONE", "done", "complete", "keep-this-evidence"),
+    ("ACTIVE", "in-progress", "", ""),
+    ("WAIT", "waiting", "throttled", ""),
+    ("RESOURCE", "resource-waiting", "capped", ""),
+    ("LEASED", "leased", "", ""),
+    ("BLOCKED", "blocked", "operator-input", ""),
+):
+    module.append(events, {
+        "type": "transition", "task": task, "status": status,
+        "lane": "", "path": "", "result": result, "evidence": evidence,
+        "attempt": 1, "token": None, "idempotency": "legacy-" + task,
+    })
+module.render(module.project(events))
+PY
 lease_json=$(python3 "$STATE" lease ACTIVE --owner fixture-worker --ttl 600)
 token=$(printf '%s\n' "$lease_json" |
 	python3 -c 'import json,sys; print(json.load(sys.stdin)["token"])')
@@ -203,8 +218,13 @@ grep -q '^# Tasks' "$ECOSYSTEM_STORE/tasks-README.md" ||
 	fail "exact retry did not repair projections"
 
 printf '== 7. task default keys include lock and attempt epochs\n'
-python3 "$STATE" transition ACTIVE in-progress --attempt 1 >/dev/null ||
+lease_json=$(python3 "$STATE" lease ACTIVE --owner fixture-worker --ttl 600)
+post_reset_token=$(printf '%s\n' "$lease_json" |
+	python3 -c 'import json,sys; print(json.load(sys.stdin)["token"])')
+python3 "$STATE" transition ACTIVE in-progress --attempt 1 \
+	--token "$post_reset_token" >/dev/null ||
 	fail "post-reset attempt collided with its pre-reset default key"
+python3 "$STATE" release ACTIVE --token "$post_reset_token" >/dev/null
 python3 - "$STATE" <<'PY' || fail "post-reset transition key is not epoch-scoped"
 import importlib.util, sys
 spec = importlib.util.spec_from_file_location("state", sys.argv[1])
