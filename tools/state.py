@@ -50,14 +50,16 @@ if STORE_DIR:
     LOCK_PATH = os.path.join(RUN_DIR, "events.lock")
     README_PATH = os.path.join(RUN_DIR, "tasks-README.md")
     PROGRESS_PATH = os.path.join(RUN_DIR, "PROGRESS.md")
-    AUDIT_PATH = os.path.join(RUN_DIR, "M1-12-audit.md")
+    AUDIT_PATH = os.path.join(RUN_DIR, "M1-12-audit.txt")
+    ISSUE_MIRROR_PATH = os.path.join(RUN_DIR, "M1-12-issues.json")
 else:
     RUN_DIR = os.path.join(REPO, "run")
     LOG_PATH = os.path.join(RUN_DIR, "events.jsonl")
     LOCK_PATH = os.path.join(RUN_DIR, "events.lock")
     README_PATH = os.path.join(REPO, "tasks", "README.md")
     PROGRESS_PATH = os.path.join(REPO, "PROGRESS.md")
-    AUDIT_PATH = os.path.join(REPO, "tasks", "M1-12", "audit.md")
+    AUDIT_PATH = os.path.join(REPO, "tasks", "M1-12", "audit.txt")
+    ISSUE_MIRROR_PATH = os.path.join(REPO, "tasks", "M1-12", "issues.json")
 
 # Tests may pair an isolated event store with an isolated immutable lock. The
 # override is deliberately ignored for the production store: readiness must
@@ -496,7 +498,7 @@ def render(state: dict) -> None:
 def runnable(state: dict) -> list:
     """Runnable: every depends_on row is `done`; the row is not `planned`; for
     M2+ ids other than the four early-start ids, M1-12 is `done` and the M1
-    audit currently passes; and the caps allow it."""
+    audit currently passes, its issue mirror exists; and the caps allow it."""
     tasks = state["tasks"]
     m112_done = tasks.get("M1-12", {}).get("status") == "done"
     audit_ok = m1_audit_passed(state)
@@ -516,7 +518,7 @@ def runnable(state: dict) -> list:
             continue
         milestone = row["milestone"]
         if milestone != "M1" and tid not in EARLY_START and \
-                (not m112_done or not audit_ok):
+                (not m112_done or not audit_ok or not issue_mirror_has_task(tid)):
             continue
         if len(running) >= CAPS["containers"]:
             continue
@@ -555,6 +557,24 @@ def text_artifact_sha256(path: str) -> str | None:
     if not lines or lines[-1] != "status: DONE":
         return None
     return hashlib.sha256(raw).hexdigest()
+
+
+def issue_mirror_has_task(task_id: str) -> bool:
+    """Require the task in both M1-12 reconciliation observations."""
+    try:
+        with open(ISSUE_MIRROR_PATH, "r", encoding="utf-8") as handle:
+            snapshot = json.load(handle)
+        passes = snapshot["passes"]
+        if not isinstance(passes, list) or len(passes) != 2:
+            return False
+        return all(
+            isinstance(item, dict) and
+            sum(issue.get("task_id") == task_id
+                for issue in item.get("issues", []) if isinstance(issue, dict)) == 1
+            for item in passes
+        )
+    except (OSError, KeyError, TypeError, json.JSONDecodeError):
+        return False
 
 
 def m1_audit_passed(state: dict) -> bool:
@@ -624,7 +644,7 @@ def promote(events: list, state: dict, only: str = None) -> list:
 
     The M1 audit gate (CTRL-006) is enforced here, and only here, because
     promotion is the sole way a row leaves `planned`: while
-    `tasks/M1-12/audit.md` is missing or does not end with `audit: PASS`, no
+    `tasks/M1-12/audit.txt` is missing or does not end with `audit: PASS`, no
     non-exempt M2+ id is promoted. EARLY_START ids promote as soon as their
     dependencies are done. That covers `arm` (which promotes M1-01 alone),
     auto-promotion after `transition <id> done`, and explicit post-audit

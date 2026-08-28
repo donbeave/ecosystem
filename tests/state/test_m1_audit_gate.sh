@@ -2,7 +2,7 @@
 # Acceptance test for the M1 exit audit gate (D-123, R3 close-out).
 #
 # "No non-exempt M2+ row is promoted to `ready` until
-# `tasks/M1-12/audit.md` ends with `audit: PASS`" — proven on a temporary
+# `tasks/M1-12/audit.txt` ends with `audit: PASS`" — proven on a temporary
 # store (`ECOSYSTEM_STORE`) so the run of record is never touched. Five
 # properties are checked:
 #
@@ -12,7 +12,8 @@
 #   3. Other M2+ ids stay planned while the audit is missing or failing.
 #   4. Once the file ends with `audit: PASS`, explicit gate reconciliation
 #      promotes the non-exempt row without a duplicate `done` transition.
-#   5. A removed or failing audit immediately makes that ready row non-runnable.
+#   5. A passing audit cannot dispatch a task absent from the issue mirror.
+#   6. A removed or failing audit immediately makes that ready row non-runnable.
 #
 #   sh tests/state/test_m1_audit_gate.sh
 #
@@ -24,7 +25,8 @@ SRC="$(cd "$(dirname "$0")/../.." && pwd)"
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/state-audit-test.XXXXXX")"
 export ECOSYSTEM_STORE="$WORK/store"
 export ECOSYSTEM_RUN_LOCK="$WORK/LOCK.toml"
-AUDIT="$ECOSYSTEM_STORE/M1-12-audit.md"
+AUDIT="$ECOSYSTEM_STORE/M1-12-audit.txt"
+ISSUES="$ECOSYSTEM_STORE/M1-12-issues.json"
 STATE="$SRC/tools/state.py"
 
 cleanup() { rm -rf "$WORK"; }
@@ -126,6 +128,12 @@ write_audit() {
 	} >"$AUDIT"
 }
 
+write_issue_mirror() {
+	cat >"$ISSUES" <<'JSON'
+{"passes":[{"issues":[{"task_id":"M2-01"}]},{"issues":[{"task_id":"M2-01"}]}]}
+JSON
+}
+
 python3 "$STATE" init --dag "$WORK/dag.json" --run-id audit-gate-test >/dev/null
 python3 "$STATE" lock-epoch --epoch 1 --lock-hash "$LOCK_HASH" \
 	--key audit-gate-bootstrap --bootstrap >/dev/null
@@ -182,7 +190,12 @@ python3 "$STATE" promote >/dev/null
 	fail "repeated promotion was not idempotent"
 
 printf '== 6. runnable re-checks the audit after promotion\n'
-python3 "$STATE" runnable | grep -qx M2-01 || fail "M2-01 was not runnable with passing audit"
+if python3 "$STATE" runnable | grep -qx M2-01; then
+	fail "M2-01 was runnable without its issue mirror"
+fi
+write_issue_mirror
+python3 "$STATE" runnable | grep -qx M2-01 ||
+	fail "M2-01 was not runnable with passing audit and mirrored issue"
 printf 'tampered but still well-formed\nstatus: DONE\n' \
 	>"$ECOSYSTEM_STORE/audit-M1-01.out"
 if python3 "$STATE" runnable | grep -qx M2-01; then

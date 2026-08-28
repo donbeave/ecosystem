@@ -279,18 +279,20 @@ code lives in the involved jackin, termrock, and role repositories.
   this mirror.
   Foundation tasks in milestone M1 MUST remain repository-only task bundles and
   MUST NOT have Linear issues. `M3-01`, `M3-03`, `M4-02`, and `M4-03` MAY run
-  from their locked bundles before the issue mirror exists. Every other
-  non-`planned` M2-or-later task bundle MUST
-  have exactly one issue in its matching `M2` through `M12` milestone, titled
+  from their locked bundles before the issue mirror exists and MUST be
+  backfilled by `M1-12`; every other M2-or-later task MUST have its mirror
+  before dispatch. Every M2-or-later task bundle, regardless of its durable
+  status, MUST have exactly one issue in its matching `M2` through `M12` milestone, titled
   `<task-id> <task-title>`. Its description MUST begin
   `task_source: https://github.com/tailrocks/ecosystem/tree/<40-hex-commit>/tasks/<task-id>`
   and then contain the bundle's `TASK.md`; its `blocks` relations MUST equal
   `depends_on` except non-blocking review relationships; its canonical
   role/agent/model/lane/effort/delivery/repository labels MUST equal the bundle;
   and it MUST have the raw attachments required by ISSUE-014. Bundle state MUST
-  project as `ready|blocked` to the ordinary `unstarted` state,
-  `in-progress|waiting` to the ordinary first `started` state, and `done` to the
-  `completed` state. No mirrored issue may pre-set a delegate. A content-addressed
+  project `planned`, `ready`, `resource-waiting`, `blocked`, and `failed-system`
+  to the ordinary `unstarted` state; `leased`, `in-progress`, and `waiting` to
+  the ordinary first `started` state; and `done` to the `completed` state. No
+  mirrored issue may pre-set a delegate. A content-addressed
   issue map MUST bind task id, Linear issue id/identifier/URL, milestone, and
   source commit so reruns update the same issue instead of creating another.
   When the mirror is created, it MUST backfill those four early-start tasks at
@@ -808,12 +810,19 @@ merging = "Merging"
 - **SEC-012** A server daemon service account may read only vault `jackin`.
   Its token is stored outside the vault it unlocks, materialized once into a
   mode-0600 `~/.config/jackin/daemon.env` file, and never passed in argv.
-- **SEC-013** Only the manager daemon may mint and hold a Linear
-  client-credentials token. It MUST mint in memory at startup and when fewer
-  than 48 hours remain, MUST NOT use the refresh-token grant, and MUST NOT write
-  minted tokens back to 1Password. Worker daemons and role containers MUST hold
-  no Linear credential. The one authorization-code exchange stores its refresh
-  token only in the `installation seed` field and no runtime may use that seed.
+- **SEC-013** Only the trusted host coordinator and manager daemon may read or
+  mint a Linear access token, and only for their named control-plane duties.
+  The host coordinator's duties are application authorization and bootstrap,
+  readiness/proof queries, issue-mirror creation, and mirror reconciliation;
+  the manager daemon's duties are polling, acknowledgement, and tracker writes.
+  Outside the canonical 1Password items, a raw token may exist only in the
+  authorized process's memory or stdin; it MUST NOT enter argv, environment,
+  another file, a log, a message, or evidence. The manager MUST mint in memory
+  at startup and when fewer than 48 hours remain, MUST NOT use the refresh-token
+  grant, and MUST NOT write re-minted tokens back to 1Password. Worker daemons,
+  role containers, and task workers MUST never receive a Linear credential.
+  The one authorization-code exchange stores its refresh token only in the
+  `installation seed` field, and no runtime may use that seed.
 - **SEC-014** Rotating a Linear client secret invalidates and re-mints all
   client-credentials tokens. GitHub App keys MUST support add-switch-remove
   rotation. Provider keys SHOULD rotate at least every 90 days.
@@ -1083,11 +1092,14 @@ This section specifies shipped control-plane behavior.
   audit before post-foundation work other than `M3-01`, `M3-03`, `M4-02`, and
   `M4-03` becomes ready. A fresh, context-isolated
   `claude-opus-5` auditor MUST rerun every M1 host verifier, compare the locked
-  creation set and exit gate, and write `tasks/M1-12/audit.md` with last
+  creation set and exit gate, and write `tasks/M1-12/audit.txt` with last
   non-empty line exactly `audit: PASS`. A missing, stale, mismatched, or failing
   artifact MUST keep every non-exempt M2-or-later task unready. The four exempt
   tasks use their locked bundles before M1-12 and MUST be backfilled into the
-  Linear mirror by ISSUE-006.
+  Linear mirror by ISSUE-006. The host MUST append an `event` for task `M1-12`
+  with operation `foundation-audit`, result `PASS`, and evidence
+  `tasks/M1-12/audit.txt`; no synthetic task or projection row may represent
+  this audit.
 - **CTRL-007** Proof-plane machine files MAY exist only in `tools/`, `tests/`,
   `run/`, `findings/`, `.claude/`, the root `verify.sh`, and the declared files
   under `tasks/<id>/`. Tooling and verifiers MUST use POSIX `sh` or Python 3
@@ -1138,9 +1150,14 @@ This section specifies shipped control-plane behavior.
   flock, open with `O_APPEND`, write one complete line, `fsync`, close, and
   release the flock. `prev` MUST equal SHA-256 of the previous complete canonical JSON
   object excluding its newline; the first event uses 64 zeroes.
-- **CTRL-011** The store is append-only. Invalid JSON, sequence gap, broken hash
-  chain, illegal transition, duplicate idempotency key, or stale fencing token
-  is `failed-system`; repair MUST NOT rewrite prior events.
+- **CTRL-011** The store is append-only. An illegal transition, duplicate
+  idempotency key, or missing, stale, mismatched, or future fencing token MUST
+  be refused with a non-zero result and a `rejected` audit event without
+  changing task status; rejection alone MUST NOT create `failed-system`.
+  Append, lock, `fsync`, or other state-store infrastructure failure MAY move
+  the affected task to `failed-system`. Invalid JSON, sequence gap, or broken
+  hash chain makes the root result `FAILED SYSTEM`. Repair MUST NOT rewrite
+  prior events.
 - **CTRL-012** Task status values are exactly `planned`, `ready`, `leased`,
   `in-progress`, `waiting`, `resource-waiting`, `blocked`, `failed-system`, and
   `done`. Lease and resource-wait facts MUST also remain
@@ -1290,9 +1307,17 @@ This section specifies shipped control-plane behavior.
   `bundle_hash`, and every integrated SHA before captured outputs. Its final
   line is authoritative only when `evidence.json` validates.
 - **CTRL-034** A task may become `done` only when verifier output ends
-  `status: DONE`, expected evidence exists, manifest and bundle validate,
-  integrated SHAs are ancestors of current pushed integration heads, every
-  touched repository is clean/pushed, and required commits carry DCO.
+  `status: DONE`; expected evidence exists at only bundle-approved paths and
+  satisfies its declared schema; `evidence.json.task` is the exact task id;
+  its `bundle_hash` equals the current locked hash; `result_class` is `DONE`;
+  every recorded command has `exit_code` 0 and parseable UTC `started` and
+  `finished` timestamps ordered `started <= finished`; and the manifest and
+  bundle otherwise validate. For each touched repository, the recorded
+  integrated SHA MUST be the current tested pushed integration head or its
+  accepted ancestor as the owning verifier specifies; every touched repository
+  MUST be clean and pushed, and required commits MUST carry DCO. The root oracle
+  MUST reject any task-id, hash, SHA, result, exit-code, timestamp, path, schema,
+  ancestry, cleanliness, push, or DCO mismatch.
 
 ### 14.5 Attempt epochs and human blockers
 
@@ -1410,7 +1435,7 @@ This section specifies shipped control-plane behavior.
 
 | ID | Owner repository / component | Roadmap proof producers | Required P / N / F acceptance | Allowed and fresh evidence |
 | --- | --- | --- | --- | --- |
-| **ACC-001** | `jackin-project/jackin` / Linear adapter and ecosystem mirror | M1-07, M1-09 through M1-12, M2-05, M2-07 | P: exact app, callback, token, JACKIN team/project/milestones, issue mirror, required labels, workflow defaults, assignment trigger, and four permitted backfills work. N: absent webhook, invalid or missing labels, M1 issue, and pre-delegation mirror launch nothing. F: rate limit and stale mirror-map replay remain bounded and idempotent. | Owning task verifiers, GraphQL/text snapshots, mirror-map bytes, webhook/token transcripts, and Linear browser references captured in the producing attempt. |
+| **ACC-001** | `tailrocks/ecosystem` / proof-plane state projection and Linear issue mirror | M1-01, M1-07, M1-09 through M1-12, M2-05, M2-07 | P: exact app, callback, token, JACKIN team/project/milestones, every M2+ task mirror regardless of durable status, all nine status projections, required labels, workflow defaults, assignment trigger, and four permitted backfills work. N: M1 issues, duplicate or missing M2+ issues, and dispatch of any non-exempt task before its mirror are rejected; absent webhook and invalid or missing labels launch nothing. F: rate limit and stale mirror-map replay remain bounded and idempotent. | Owning task verifiers, proof-plane projection snapshots, GraphQL/text snapshots, mirror-map bytes, webhook/token transcripts, and Linear browser references captured in the producing attempt. |
 | **ACC-002** | `jackin-project/jackin` / manager Linear poller | M2-02 through M2-04, M2-07 | P: one aliased paginated request per tick, app-user session filtering, ten-second acknowledgement, watermarks, and sole-manager polling work. N: workers and webhooks never decide correctness. F: HTTP-400 `RATELIMITED` pauses until reset and ordered writes resume without consuming an attempt. | Owning task verifiers plus request, fake-clock, watermark, and event transcripts tied to tested adapter SHA and live workspace identity where used. |
 | **ACC-003** | `jackin-project/jackin` / launch, capsule, daemon, and remote APIs | M3-01, M4-01 through M4-05, M10-01, M12-01 | P: interactive CLI compatibility, resolved non-TTY launch, six-runtime attach/prompt/event/exec/blocked behavior, and remote schemas work. N: prompt residue, observer mutation, and remote-to-local fallback are rejected. F: post-ready prompt, timeout, and unreachable peer return explicit outcomes. | Owning task verifiers, binary/version text, runtime labels, protocol transcripts, and live runtime-matrix outputs tied to tested binary and source SHAs. |
 | **ACC-004** | `jackin-project/jackin` / scheduler and manager/worker ledgers | M3-05, M5-01, M6-05, M7-02, M12-02 | P: exact runnable predicate, order, caps, lanes, fallbacks, legal states, distinct monotonic counters, tuple replay, and merge serialization work. N: no unsupported product-global lease, CAS, fence, or second bound tuple exists. F: busy, quota, partition, delayed response, and manager failover wait or fail closed without duplicate effects. | Owning task verifiers plus deterministic fake-clock, provider, backend, ledger, and concurrency traces bound to integrated SHA. |
@@ -1421,9 +1446,9 @@ This section specifies shipped control-plane behavior.
 | **ACC-009** | `jackin-project/jackin` / reconciliation and multi-host placement | M3-07, M12-01 through M12-04 | P: restart adoption by exact tuple, persisted counters/watermarks, least-load and prior-host selection, and saturation wait work. N: mismatched or unlabeled containers are quarantined; ledger state alone never revives work. F: pre-effect loss may re-place, post-effect loss uses a new ordinal, and unknown partition waits without duplication. | Owning task verifiers plus two-host chaos transcripts, ledgers, container inventories, and effect logs tied to host identities and tested daemon SHAs. |
 | **ACC-010** | `tailrocks/termrock` and `jackin-project/jackin` / fleet observability | M5-02 through M5-06, M10-01 through M10-06 | P: complete side-effect-free snapshot/detail/event/evidence, heartbeat timeline, distinct waiting/blocked/stuck, host-loop drain, TerminalPane behavior, fleet rows, and one-action attach work. N: absent console and empty source do not alter execution or redraw. F: control characters, secret canaries, dropped peers, and attachment failures remain redacted and explicit. | Owning task verifiers, forty-minute live timeline, host-blessed golden text, performance output, and attach transcripts tied to source and service identity. |
 | **ACC-011** | `jackin-project/jackin` plus `donbeave/jackin-crew-builder`, `donbeave/jackin-crew-operator`, and `donbeave/jackin-crew-reviewer` / credential and trust boundary | M1-03, M1-05b through M1-05d, M1-06, M1-07, M1-10, M8-01, M11-01, M11-03 | P: exact 1Password items/fields, manager-only Linear mint, allowed secret stores, stdin/binding flow, role/network/mount separation, and immutable supply refs work. N: worker role/reviewer tokens, forbidden files, cross-organization App use, and broader yolo grants are rejected. F: canaries, rotation, malicious input, gitleaks hit, and unsafe browser profile fail safely. | Owning task verifiers, redacted inspections/scans, threat fixtures, rotation results, and live service-account tests; no secret value may appear in proof. |
-| **ACC-012** | `donbeave/jackin-role-template`, `donbeave/jackin-crew-builder`, `donbeave/jackin-crew-operator`, `donbeave/jackin-crew-reviewer`, and `jackin-project/jackin` / roles and deployment | M1-04a, M1-05a through M1-05d, M3-02, M3-02a, M11-01a through M11-03 | P: exact role matrix, tools, hooks, grants, `v1alpha7` defaults, public signed multi-architecture images, local/server/multi-host profiles, and locked tool versions work. N: forbidden tools, credentials, and grants are rejected without mutation. F: restart, remote loss, and unsafe profile handling preserve workspaces and credential boundaries. | Owning task verifiers, manifests, image attestations, CI output, and live smoke records tied to immutable image/source identities. |
+| **ACC-012** | `donbeave/jackin-role-template`, `donbeave/jackin-crew-builder`, `donbeave/jackin-crew-operator`, `donbeave/jackin-crew-reviewer`, and `jackin-project/jackin` / roles and deployment | M1-04a, M1-05a through M1-05d, M3-02, M3-02a, M11-01a through M11-03, M12-01 through M12-03 | P: exact role matrix, tools, hooks, grants, `v1alpha7` defaults, public signed multi-architecture images, local/server/multi-host profiles, and locked tool versions work. N: forbidden tools, credentials, and grants are rejected without mutation. F: restart, remote loss, and unsafe profile handling preserve workspaces and credential boundaries. | Owning task verifiers, manifests, image attestations, CI output, and live smoke records tied to immutable image/source identities. |
 | **ACC-013** | `tailrocks/ecosystem` / locked bundles and Linear issue mirror | M1-01, M1-12 | P: all 81 generated bundles match the graph and lock, and M1-12 creates the exact locked-source issue mirror including four early-task backfills. N: missing or drifted bundles, duplicate issues, wrong source commits, preset delegates, and mismatched labels, states, blockers, or attachments fail verification. F: mirror rerun reconciles existing issues idempotently without creating another issue or rerunning an early task. | M1-01 and M1-12 verifiers, M1-12 issue-map JSON evidence, GraphQL/text snapshots, and permitted task evidence bound to `plan.commit`. |
-| **ACC-014** | `tailrocks/ecosystem` / repository integration and task evidence | Every Roadmap implementation task that touches a repository, plus M1-01 proof-plane conformance | P: per-task worktrees, one integrator lease, integrated-SHA verification, expected-evidence closure, atomic evidence, DCO/pushed ancestry, and durable epochs work. N: worker-tip, stale lease, secret hit, unpushed or dirty tree, and agent-cleared exhaustion cannot pass. F: parallel integration, verifier failure, replacement crash, and stale external proof mutation fail closed or recover. | Each owning task's allowed verifier/evidence files plus repository ancestry, state events, evidence manifests, and text fault logs tied to current bundle and integrated SHA. |
+| **ACC-014** | `tailrocks/ecosystem` / repository integration and task evidence | M1-01, M1-02, M1-04a, M1-05a through M1-05c, M1-08, M1-12, M1-13; M2-01 through M2-08; M3-01, M3-02, M3-02a, M3-03 through M3-08; M4-01 through M4-07; M5-01 through M5-07; M6-01 through M6-05; M7-01 through M7-05; M8-02 through M8-04; M9-01 through M9-03; M10-01 through M10-06; M11-01a, M11-02 through M11-05; M12-01 through M12-04 | P: per-task worktrees, one integrator lease, integrated-SHA verification, expected-evidence closure, atomic evidence, DCO/pushed ancestry, and durable epochs work. N: worker-tip, stale lease, secret hit, unpushed or dirty tree, and agent-cleared exhaustion cannot pass. F: parallel integration, verifier failure, replacement crash, and stale external proof mutation fail closed or recover. | Each owning task's allowed verifier/evidence files plus repository ancestry, state events, evidence manifests, and text fault logs tied to current bundle and integrated SHA. |
 | **ACC-018** | `jackin-project/jackin`, `tailrocks/termrock`, all four `donbeave/jackin-*` role repositories, and `tailrocks/ecosystem` / end-to-end managed execution | M4-06, M5-06, M6-03, M7-04, M8-03, M9-02, M10-05, M11-04, M12-03 | P: one local and one server issue each complete assignment, attachable agent, verified checklist, and linked PR while two hosts run two issues concurrently. N: no observer, webhook, foreground CLI, or human review is required for correctness. F: one-host failure causes no duplicate run/effect and recovery preserves exact state and evidence. | Owning task verifiers plus live issue/session/container/PR/two-host timeline, source identities, and milestone browser references captured by crew-operator. |
 
   The product MUST be accepted only when **ACC-001** through **ACC-014** and

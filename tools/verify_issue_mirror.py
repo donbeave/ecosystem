@@ -19,7 +19,10 @@ EARLY_START = {"M3-01", "M3-03", "M4-02", "M4-03"}
 STATE_TYPE = {
     "planned": "unstarted",
     "ready": "unstarted",
+    "resource-waiting": "unstarted",
     "blocked": "unstarted",
+    "failed-system": "unstarted",
+    "leased": "started",
     "in-progress": "started",
     "waiting": "started",
     "done": "completed",
@@ -56,6 +59,15 @@ def task_statuses(path):
         cells = rc.split_row(line)
         rows[cells[task_i]] = cells[status_i]
     return rows
+
+
+def mirrored_task_ids(statuses):
+    """Every M2+ bundle has one issue; M1 remains repository-only."""
+    unknown = sorted({status for status in statuses.values()
+                      if status not in STATE_TYPE})
+    if unknown:
+        fail(f"task status has no Linear projection: {unknown}")
+    return {task_id for task_id in statuses if not task_id.startswith("M1-")}
 
 
 def git_output(root, args, binary=False):
@@ -229,9 +241,7 @@ def main():
     if not isinstance(source, str) or not SHA40.match(source):
         fail("run/LOCK.toml plan.commit is not 40 lowercase hex")
     statuses = task_statuses(root / "tasks/README.md")
-    mirrored = {task_id for task_id, status in statuses.items()
-                if not task_id.startswith("M1-") and status != "planned"}
-    mirrored |= EARLY_START
+    mirrored = mirrored_task_ids(statuses)
     lanes = load_json(root / "tasks/M1-13/lanes.json")
     lock_bundles = lock.get("bundles") or {}
     expected = {}
