@@ -353,6 +353,14 @@ def project(events: list) -> dict:
                 row["lane"] = event["lane"]
             if event["status"] in ("done", "blocked", "waiting", "resource-waiting",
                                    "failed-system"):
+                # One row per task (PROGRESS.md header, AGENTS.md "Token
+                # economy"): a later blocked/waiting/done transition
+                # supersedes the task's earlier row instead of adding one.
+                # The superseding row moves to the end so the `When (UTC)`
+                # column stays in transition order; ordering stays a pure
+                # function of the log.
+                state["progress"] = [p for p in state["progress"]
+                                     if p["task"] != event["task"]]
                 state["progress"].append({
                     "task": event["task"],
                     "lane": event.get("lane") or row.get("lane") or "—",

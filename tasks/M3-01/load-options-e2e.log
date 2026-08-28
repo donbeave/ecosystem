@@ -1,0 +1,50 @@
+   Compiling jackin-docker v0.6.4 (/Users/donbeave/.jackin/managed/M3-01/jackin/crates/jackin-docker)
+   Compiling jackin-image v0.6.4 (/Users/donbeave/.jackin/managed/M3-01/jackin/crates/jackin-image)
+   Compiling jackin-launch v0.6.4 (/Users/donbeave/.jackin/managed/M3-01/jackin/crates/jackin-launch)
+   Compiling jackin-runtime v0.6.4 (/Users/donbeave/.jackin/managed/M3-01/jackin/crates/jackin-runtime)
+   Compiling jackin v0.6.4 (/Users/donbeave/.jackin/managed/M3-01/jackin/crates/jackin)
+   Compiling jackin-isolation v0.6.4 (/Users/donbeave/.jackin/managed/M3-01/jackin/crates/jackin-isolation)
+   Compiling jackin-host v0.6.4 (/Users/donbeave/.jackin/managed/M3-01/jackin/crates/jackin-host)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 8.49s
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 2`
+────────────
+ Nextest run ID 52635fa6-e88f-46c6-b830-c62c46835ea1 with nextest profile: docker-e2e
+    Starting 1 test across 4 binaries (22 tests and 26 binaries skipped, including 26 binaries via profile.docker-e2e.default-filter)
+       START [         ] (1/1) jackin::load_options_e2e load_options_launch
+
+running 1 test
+]0;jackin❯ · the-architect — Resolving role identity        SLOW [> 60.000s] (───) jackin::load_options_e2e load_options_launch
+test load_options_launch has been running for over 60 seconds
+        SLOW [>120.000s] (───) jackin::load_options_e2e load_options_launch
+        SLOW [>180.000s] (───) jackin::load_options_e2e load_options_launch
+        SLOW [>240.000s] (───) jackin::load_options_e2e load_options_launch
+
+thread 'load_options_launch' (214169050) panicked at crates/jackin/tests/load_options_e2e.rs:112:6:
+programmatic launch of the-architect must succeed without a TTY: operator env resolution failed for 4 var(s):
+  - global [env] env var "CONTEXT7_API_KEY": 1Password reference "Private/Context7/API Keys/Claude" failed: 1Password CLI exited with status 1 resolving "op://xlm7pn5y6d3nfya5xy2os3vtoq/lppg75hokuafpxlzg7dn4suqpm/API Keys/sfzqzmqgkrdjzrouqetgx5enpe": [ERROR] 2026/08/28 16:38:43 could not read secret 'op://xlm7pn5y6d3nfya5xy2os3vtoq/lppg75hokuafpxlzg7dn4suqpm/API Keys/sfzqzmqgkrdjzrouqetgx5enpe': error initializing client: authorization timeout
+  - global [env] env var "KIMI_CODE_API_KEY": 1Password reference "ChainArgos/Kimi/API Keys/Test" failed: 1Password CLI exited with status 1 resolving "op://7sv67vb2ie6oponnetzhbf7yjy/66zuln276igu54u2hi2uqkgjs4/API Keys/sxwk7fctkfmzum5erjk6h2saki": [ERROR] 2026/08/28 16:39:43 could not read secret 'op://7sv67vb2ie6oponnetzhbf7yjy/66zuln276igu54u2hi2uqkgjs4/API Keys/sxwk7fctkfmzum5erjk6h2saki': error initializing client: authorization timeout
+  - global [env] env var "MINIMAX_API_KEY": 1Password reference "ChainArgos/MiniMax/subscription/key" failed: 1Password CLI exited with status 1 resolving "op://7sv67vb2ie6oponnetzhbf7yjy/fxc56zkxamrjoysqq2uepkziie/subscription/wqyy52kmj5c6ohfkvshjylsksu": [ERROR] 2026/08/28 16:40:43 could not read secret 'op://7sv67vb2ie6oponnetzhbf7yjy/fxc56zkxamrjoysqq2uepkziie/subscription/wqyy52kmj5c6ohfkvshjylsksu': error initializing client: authorization timeout
+  - global [env] env var "ZAI_API_KEY": 1Password reference "ChainArgos/Z/API keys/Test" failed: 1Password CLI exited with status 1 resolving "op://7sv67vb2ie6oponnetzhbf7yjy/usdqt4fotde4umcryzrlisaoku/API keys/otz5ln65imhmip4m7jkflkasxm": [ERROR] 2026/08/28 16:41:43 could not read secret 'op://7sv67vb2ie6oponnetzhbf7yjy/usdqt4fotde4umcryzrlisaoku/API keys/otz5ln65imhmip4m7jkflkasxm': error initializing client: authorization timeout
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test load_options_launch ... FAILED
+
+failures:
+
+failures:
+    load_options_launch
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 241.28s
+
+  TRY 1 FAIL [ 241.291s] (───) jackin::load_options_e2e load_options_launch
+   DELAY 2/3 by   1.000s (───) jackin::load_options_e2e load_options_launch
+ TRY 2 START [         ] (───) jackin::load_options_e2e load_options_launch
+
+running 1 test
+]0;jackin❯ · the-architect — Resolving role identity  Cancelling due to signal: 1 test still running
+  TRY 2 TERM [   9.589s] (───) jackin::load_options_e2e load_options_launch
+   DELAY 3/3 by   1.000s (───) jackin::load_options_e2e load_options_launch
+────────────
+     Summary [ 252.886s] 0/1 tests run: 0 passed, 22 skipped
+warning: 1/1 test was not run due to signal
+error: test run failed

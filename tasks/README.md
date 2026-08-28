@@ -65,7 +65,7 @@ these two must stay.
 | M2-06 | M2 | M2-03, M2-05 | planned |
 | M2-07 | M2 | M2-04, M2-06 | planned |
 | M2-08 | M2 | M2-07 | planned |
-| M3-01 | M3 | M1-02 | in-progress |
+| M3-01 | M3 | M1-02 | blocked |
 | M3-02 | M3 | M3-01 | planned |
 | M3-02a | M3 | M3-02 | planned |
 | M3-03 | M3 | M1-02 | blocked |
