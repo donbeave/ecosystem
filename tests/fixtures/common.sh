@@ -73,6 +73,23 @@ write_defects() {
 MD
 }
 
+write_fixture_lock() {
+  root="$1"
+  python3 - "$root/run/LOCK.toml" <<'PY'
+import hashlib
+import pathlib
+import sys
+
+body = "[run]\nepoch = 1\n"
+digest = hashlib.sha256(body.encode("utf-8")).hexdigest()
+pathlib.Path(sys.argv[1]).write_text(
+    body + 'lock_hash = "%s"\n' % digest,
+    encoding="utf-8",
+)
+print(digest)
+PY
+}
+
 # build_base <dir> [status-of-last-task]
 # The third task is left in the given status (default `done`).
 build_base() {
@@ -98,9 +115,14 @@ build_base() {
   git -C "$root" remote add origin "$root.origin.git"
 
   # Seed the state store from the compiled fixture graph, then move every task
-  # to its fixture status. The projections are rewritten by the store itself.
+  # to its fixture status. Bind the store to the fixture's own verified lock,
+  # matching the production invariant rather than bypassing lock validation.
   ( cd "$root" && python3 tools/roadmap_compile.py --json --expect 3 ROADMAP.md >run/dag.json 2>/dev/null )
   ( cd "$root" && python3 tools/state.py init --dag run/dag.json --run-id fixture >/dev/null )
+  fixture_lock_hash="$(write_fixture_lock "$root")"
+  ( cd "$root" && python3 tools/state.py lock-epoch --epoch 1 \
+      --lock-hash "$fixture_lock_hash" --key fixture-lock-epoch-1 \
+      --bootstrap >/dev/null )
   for id in M1-01 M1-02; do
     ( cd "$root" && python3 tools/state.py transition "$id" "done" \
         --lane L1 --path host --result "fixture" \

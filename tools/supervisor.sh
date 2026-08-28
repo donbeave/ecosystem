@@ -44,7 +44,6 @@ SESSION="ecosystem-coordinator"
 COORDINATOR_AGENT="ecosystem-coordinator"
 HERDR_BIN="${HERDR_BIN:-herdr}"
 DOCKER_BIN="${DOCKER_BIN:-docker}"
-PGREP_BIN="${PGREP_BIN:-pgrep}"
 DRY_RUN=0
 COORDINATOR_CMD=""
 REPO=""
@@ -71,7 +70,7 @@ log() {
 	printf '%s\n' "$line"
 }
 
-herdr() {
+herdr_session() {
 	"$HERDR_BIN" --session "$SESSION" "$@"
 }
 
@@ -113,7 +112,7 @@ session_live() {
 }
 
 coordinator_live() {
-	session_live && herdr agent get "$COORDINATOR_AGENT" >/dev/null 2>&1
+	session_live && herdr_session agent get "$COORDINATOR_AGENT" >/dev/null 2>&1
 }
 
 json_path() {
@@ -184,7 +183,7 @@ task_has_herdr_runner() {
 		agent="$(sed -n '1p' "$agent_file")"
 		expected_agent="$(printf '%s' "$task" | tr '[:upper:]' '[:lower:]')"
 		if [ "$agent" = "$expected_agent" ]; then
-			agent_info="$(herdr agent get "$agent" 2>/dev/null || true)"
+			agent_info="$(herdr_session agent get "$agent" 2>/dev/null || true)"
 			actual="$(printf '%s\n' "$agent_info" | json_path result.agent.name 2>/dev/null || true)"
 			[ "$actual" = "$agent" ] && return 0
 		fi
@@ -200,7 +199,7 @@ task_has_herdr_runner() {
 pane_matches_task_runner() {
 	task="$1"
 	pane="$2"
-	info="$(herdr pane process-info --pane "$pane" 2>/dev/null)" || return 1
+	info="$(herdr_session pane process-info --pane "$pane" 2>/dev/null)" || return 1
 	HERDR_PROCESS_INFO="$info" python3 - "$task" "$REPO/tasks/$task/task.toml" <<'PY'
 import json, os, re, sys, tomllib
 
@@ -307,31 +306,58 @@ process_cwd() {
 	fi
 }
 
-supervisor_process_tree_contains() {
-	# $1 PID. Exclude this supervisor and any helper/subshell it created. Do
-	# not exclude ancestors: a Claude process that invoked the proof is active.
-	candidate="$1"
-	current="$candidate"
-	steps=0
-	while [ "$steps" -lt 64 ]; do
-		[ "$current" = "$$" ] && return 0
-		parent="$(ps -o ppid= -p "$current" 2>/dev/null | tr -d '[:space:]')"
-		case "$parent" in
-		'' | *[!0-9]* | 0 | 1) return 1 ;;
-		esac
-		current="$parent"
-		steps=$((steps + 1))
-	done
-	return 1
+process_snapshot_facts() {
+	# One immutable process snapshot. Match the executable name (`comm`) only;
+	# the command column is deliberately never searched for the word `claude`.
+	# Output tab-separated `descendant` and `claude` PID facts.
+	ps -axo pid=,ppid=,comm=,command= 2>/dev/null | python3 -c '
+import os, sys
+
+root = int(sys.argv[1])
+parents = {}
+commands = {}
+for line in sys.stdin:
+    fields = line.strip().split(None, 3)
+    if len(fields) < 3:
+        continue
+    try:
+        pid, parent = int(fields[0]), int(fields[1])
+    except ValueError:
+        continue
+    parents[pid] = parent
+    commands[pid] = fields[2]
+if root not in parents:
+    raise SystemExit(2)
+
+def is_descendant(pid):
+    seen = set()
+    current = pid
+    while current not in seen and current > 1:
+        if current == root:
+            return True
+        seen.add(current)
+        current = parents.get(current, 0)
+    return False
+
+for pid in sorted(parents):
+    descendant = is_descendant(pid)
+    if descendant:
+        print("descendant\t%d" % pid)
+    if not descendant and os.path.basename(commands[pid].rstrip("/")) == "claude":
+        print("claude\t%d" % pid)
+' "$$"
 }
 
 legacy_coordinator_pids() {
+	process_facts="$(process_snapshot_facts)" || return 2
 	if [ -s "$LEGACY_PID_FILE" ]; then
 		pid="$(sed -n '1p' "$LEGACY_PID_FILE")"
 		case "$pid" in
 		'' | *[!0-9]*) : ;;
 		*)
-			if kill -0 "$pid" 2>/dev/null && ! supervisor_process_tree_contains "$pid"; then
+			if kill -0 "$pid" 2>/dev/null &&
+				! printf '%s\n' "$process_facts" | awk -F '\t' -v pid="$pid" \
+					'$1 == "descendant" && $2 == pid { found = 1 } END { exit !found }'; then
 				printf '%s\n' "$pid"
 			fi
 			;;
@@ -342,17 +368,18 @@ legacy_coordinator_pids() {
 	coordinator_known="${1:-unknown}"
 	if [ "$coordinator_known" = "false" ] ||
 		{ [ "$coordinator_known" = "unknown" ] && ! coordinator_live; }; then
-		if command -v "$PGREP_BIN" >/dev/null 2>&1; then
-			for pid in $("$PGREP_BIN" -x claude 2>/dev/null || true); do
-				supervisor_process_tree_contains "$pid" && continue
-				[ "$(process_cwd "$pid")" = "$REPO" ] && printf '%s\n' "$pid"
-			done
-		fi
+		for pid in $(printf '%s\n' "$process_facts" | awk -F '\t' '$1 == "claude" { print $2 }'); do
+			[ "$(process_cwd "$pid")" = "$REPO" ] && printf '%s\n' "$pid"
+		done
 	fi
 }
 
 refuse_legacy_runners() {
-	old_pids="$(legacy_coordinator_pids | sort -u | tr '\n' ',' | sed 's/,$//')"
+	if ! legacy_pids="$(legacy_coordinator_pids)"; then
+		log "failed-system: cannot read the host process snapshot"
+		return 1
+	fi
+	old_pids="$(printf '%s\n' "$legacy_pids" | sort -u | tr '\n' ',' | sed 's/,$//')"
 	if [ -n "$old_pids" ]; then
 		log "failed-system: legacy coordinator process(es) detected: pids=$old_pids; stop them before Herdr kickoff"
 		return 1
@@ -407,12 +434,12 @@ stored_pane() {
 	[ -s "$PANE_FILE" ] || return 1
 	ROOT_PANE="$(sed -n '1p' "$PANE_FILE")"
 	[ -n "$ROOT_PANE" ] || return 1
-	herdr pane get "$ROOT_PANE" >/dev/null 2>&1 || return 1
+	herdr_session pane get "$ROOT_PANE" >/dev/null 2>&1 || return 1
 }
 
 ensure_root_pane() {
 	stored_pane 2>/dev/null && return 0
-	created="$(herdr workspace create --cwd "$REPO" --label "$SESSION" --no-focus)"
+	created="$(herdr_session workspace create --cwd "$REPO" --label "$SESSION" --no-focus)"
 	ROOT_PANE="$(printf '%s\n' "$created" | json_path result.root_pane.pane_id)"
 	WORKSPACE_ID="$(printf '%s\n' "$created" | json_path result.workspace.workspace_id)"
 	case "$ROOT_PANE" in
@@ -431,12 +458,12 @@ start_coordinator() {
 	goal="$2"
 	if [ -n "$COORDINATOR_CMD" ]; then
 		log "launch command: $HERDR_BIN --session $SESSION pane run $pane $COORDINATOR_CMD"
-		herdr pane run "$pane" "$COORDINATOR_CMD" || return 1
+		herdr_session pane run "$pane" "$COORDINATOR_CMD" || return 1
 		COORDINATOR_STARTED=1
 		return 0
 	fi
 	log "launch command: $HERDR_BIN --session $SESSION agent start $COORDINATOR_AGENT --kind claude --pane $pane --timeout 120000 -- --dangerously-skip-permissions --settings '{\"skipDangerousModePermissionPrompt\":true}' --model claude-fable-5"
-	if ! herdr agent start "$COORDINATOR_AGENT" --kind claude --pane "$pane" --timeout 120000 -- \
+	if ! herdr_session agent start "$COORDINATOR_AGENT" --kind claude --pane "$pane" --timeout 120000 -- \
 		--dangerously-skip-permissions \
 		--settings '{"skipDangerousModePermissionPrompt":true}' \
 		--model claude-fable-5; then
@@ -448,7 +475,7 @@ start_coordinator() {
 	fi
 	COORDINATOR_STARTED=1
 	log "prompt command: $HERDR_BIN --session $SESSION agent prompt $COORDINATOR_AGENT <exact README /goal line>"
-	if herdr agent prompt "$COORDINATOR_AGENT" "$goal"; then
+	if herdr_session agent prompt "$COORDINATOR_AGENT" "$goal"; then
 		log "submitted canonical /goal command to interactive Claude"
 	else
 		log "automatic /goal delivery failed; copy/paste the goal command printed above"
@@ -459,12 +486,12 @@ cleanup_partial_start() {
 	reason="$1"
 	log "cleanup: rolling back partial kickoff ($reason)"
 	if [ "$WORKSPACE_CREATED" -eq 1 ] && session_live; then
-		herdr workspace close "$WORKSPACE_ID" >/dev/null 2>&1 ||
+		herdr_session workspace close "$WORKSPACE_ID" >/dev/null 2>&1 ||
 			log "cleanup: could not close partial workspace $WORKSPACE_ID"
 		rm -f "$PANE_FILE" "$WORKSPACE_FILE"
 	fi
 	if [ "$COORDINATOR_STARTED" -eq 1 ] && [ "$SESSION_STARTED" -eq 0 ] && coordinator_live; then
-		herdr agent send-keys "$COORDINATOR_AGENT" ctrl+c >/dev/null 2>&1 ||
+		herdr_session agent send-keys "$COORDINATOR_AGENT" ctrl+c >/dev/null 2>&1 ||
 			log "cleanup: could not interrupt coordinator created in pre-existing session"
 	fi
 	if [ "$SESSION_STARTED" -eq 1 ] && session_live; then
@@ -569,18 +596,18 @@ cmd_resume() {
 
 target_text() {
 	target="$1"
-	if herdr agent get "$target" >/dev/null 2>&1; then
-		herdr agent read "$target" --source recent-unwrapped --lines "$READ_LINES"
+	if herdr_session agent get "$target" >/dev/null 2>&1; then
+		herdr_session agent read "$target" --source recent-unwrapped --lines "$READ_LINES"
 	else
-		herdr pane read "$target" --source recent-unwrapped --lines "$READ_LINES"
+		herdr_session pane read "$target" --source recent-unwrapped --lines "$READ_LINES"
 	fi
 }
 
 target_pane() {
 	target="$1"
-	if agent="$(herdr agent get "$target" 2>/dev/null)"; then
+	if agent="$(herdr_session agent get "$target" 2>/dev/null)"; then
 		printf '%s\n' "$agent" | json_path result.agent.pane_id
-	elif herdr pane get "$target" >/dev/null 2>&1; then
+	elif herdr_session pane get "$target" >/dev/null 2>&1; then
 		printf '%s\n' "$target"
 	else
 		return 1
@@ -595,17 +622,20 @@ done_file_ready() {
 
 wait_once() {
 	deadline=$(($(date +%s) + WAIT_TIMEOUT))
-	while [ "$(date +%s)" -lt "$deadline" ]; do
+	# Probe once before consulting the deadline. A one-second timeout started
+	# just before a wall-clock tick must not become a zero-attempt wait.
+	while :; do
 		done_file_ready && return 0
 		pane="$(target_pane "$TARGET" 2>/dev/null)" || return 4
 		# Herdr owns the wait and observes terminal output without consuming a
 		# model turn. A bounded slice lets a done-file end the wait too.
-		if herdr pane wait-output "$pane" --regex "$WAIT_PATTERN" \
+		if herdr_session pane wait-output "$pane" --regex "$WAIT_PATTERN" \
 			--source recent-unwrapped --lines "$READ_LINES" \
 			--timeout "$((WAIT_INTERVAL * 1000))" >/dev/null 2>&1; then
 			return 0
 		fi
 		target_pane "$TARGET" >/dev/null 2>&1 || return 4
+		[ "$(date +%s)" -lt "$deadline" ] || break
 	done
 	return 3
 }
@@ -655,7 +685,7 @@ cmd_status() {
 		else
 			printf 'coordinator: not running\n'
 		fi
-		herdr status --json server
+		herdr_session status --json server
 	else
 		printf 'herdr: not running\n'
 		printf 'coordinator: not running\n'
@@ -806,7 +836,7 @@ cmd_quiescence_proof() {
 	active_panes=""
 	coordinator_running=false
 	if [ "$current_session_state" = "running" ]; then
-		if ! agents_json="$(herdr agent list 2>/dev/null)" ||
+		if ! agents_json="$(herdr_session agent list 2>/dev/null)" ||
 			! active_agents="$(printf '%s\n' "$agents_json" | agent_identifiers)"; then
 			printf 'quiescence-proof: cannot list Herdr agents; proof not written\n' >&2
 			return 2
@@ -814,13 +844,13 @@ cmd_quiescence_proof() {
 		if printf '%s\n' "$active_agents" | grep -Fxq "$COORDINATOR_AGENT"; then
 			coordinator_running=true
 		fi
-		if ! panes_json="$(herdr pane list 2>/dev/null)" ||
+		if ! panes_json="$(herdr_session pane list 2>/dev/null)" ||
 			! pane_ids="$(printf '%s\n' "$panes_json" | pane_identifiers)"; then
 			printf 'quiescence-proof: cannot list Herdr panes; proof not written\n' >&2
 			return 2
 		fi
 		for pane in $pane_ids; do
-			if ! process_json="$(herdr pane process-info --pane "$pane" 2>/dev/null)" ||
+			if ! process_json="$(herdr_session pane process-info --pane "$pane" 2>/dev/null)" ||
 				! process_state="$(printf '%s\n' "$process_json" | pane_process_state)"; then
 				printf 'quiescence-proof: cannot inspect Herdr pane %s; proof not written\n' "$pane" >&2
 				return 2
@@ -832,7 +862,11 @@ cmd_quiescence_proof() {
 		done
 	fi
 
-	for pid in $(legacy_coordinator_pids "$coordinator_running" | sort -u); do
+	if ! legacy_pids="$(legacy_coordinator_pids "$coordinator_running")"; then
+		printf 'quiescence-proof: cannot read host process state; proof not written\n' >&2
+		return 2
+	fi
+	for pid in $(printf '%s\n' "$legacy_pids" | sort -u); do
 		active_agents="${active_agents}${active_agents:+
 }legacy-pid:$pid"
 	done

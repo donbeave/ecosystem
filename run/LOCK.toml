@@ -4,11 +4,14 @@
 # are forbidden as values, and every commit is a full 40-hex sha.
 
 [plan]
-commit = "130cb4b7e1153af289da9bda1abb5de14fc94c70"
-tag = "plan-review-2026-08-28"
+commit = "6f398136f7347151a7302d6bd59ae9f92f466902"
+tag = ""
+# tag is empty: creating the review tag is a human-only step
+# (readiness plan row 0.2). Fill it in and re-run write.
 
 [external]
 jackin_default = "4d43da44188f9d9a5a5c815549091a659410e614"
+jackin_managed_execution = "f42d7023c82ad385f4182f97257c52a9534a9426"
 jackin_the_architect_default = "fba6e9e902faa955f94d72b8442999092efe18bb"
 termrock_default = "5a56bd778d087d3d90d90f4b8d66cdd5287c9a9a"
 pending = []
@@ -116,7 +119,7 @@ herdr = "herdr 0.8.2"
 gitleaks = "8.30.1"
 shellcheck = "version: 0.11.0"
 op = "2.39.0"
-jackin = "jackin 0.6.4-preview.1100+6b0dfe1"
+jackin = "jackin 0.6.4+f42d702"
 
 [images]
 # The roadmap names no ghcr.io image; nothing to pin.
@@ -125,5 +128,5 @@ jackin = "jackin 0.6.4-preview.1100+6b0dfe1"
 profile_sha256 = "3c49e3d43bb16afe2f2b2a3c2481c9260c2938dc1064b5fc30d72cb4d7daf1d1"
 
 [run]
-epoch = 1
-lock_hash = "26146be3b3db057f60c192ff294be0ab22ea5d39c0ae99b7057f6e7de94015c2"
+epoch = 2
+lock_hash = "1ad9e3e9a1637c69ce19cc5f831b18022524e2af0bf7d0b6d08bef2658e2f58e"

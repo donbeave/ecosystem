@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Atomic append-only run-state store for the /goal run (D-098, D-100).
+"""Atomic append-only run-state store for the /goal run (D-111, D-113).
 
 The authoritative state of the run is the event log `run/events.jsonl`: one
 JSON object per line, appended with O_APPEND and fsync under a flock on
@@ -374,12 +374,12 @@ README_HEADER = """# Tasks
 Index of every task with its status (D-038). This file is a generated
 projection of the run-state store `run/events.jsonl` and is never
 hand-edited: `python3 tools/state.py render` rewrites it from the log, so a
-hand edit is silently discarded at the next render (D-098). An agent
+hand edit is silently discarded at the next render (D-111). An agent
 starting a task reads this file, then its task folder, and works only on
 that task; the host session, the only writer of this repository, records the
 status change as an event and re-renders (`goal/EXECUTION.md` §5, D-086).
 
-Statuses: `planned`, `ready`, `leased` (a fencing token is held, D-100),
+Statuses: `planned`, `ready`, `leased` (a fencing token is held, D-113),
 `in-progress`, `waiting` (every lane of the chain throttled, D-071),
 `resource-waiting` (a cap, not a lane, is the constraint), `blocked`
 (missing operator input or exhausted, D-070; only a row with its own open
@@ -402,7 +402,7 @@ PROGRESS_HEADER = """# Progress
 Ledger of the `/goal` run (`GOAL.md`). One row per finished, blocked, or
 waiting task. This file is a generated projection of the run-state store
 `run/events.jsonl` and is never hand-edited: `python3 tools/state.py render`
-rewrites it from the log (D-098). There is no authoring run to record: all
+rewrites it from the log (D-111). There is no authoring run to record: all
 81 bundles are materialised before the run starts (D-114).
 Attempts (`n/limit`, the exhaustion counter of D-070, never reset within an
 epoch: a resume after a crash keeps the count, and only the closing of an
@@ -644,7 +644,7 @@ def cmd_release(args) -> None:
 
 def cmd_event(args) -> None:
     """Record one external mutation. Rejected on a duplicate key or a
-    superseded fencing token (D-100)."""
+    superseded fencing token (D-113)."""
     with Lock():
         events = read_events()
         state = project(events)

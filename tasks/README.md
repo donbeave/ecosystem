@@ -3,12 +3,12 @@
 Index of every task with its status (D-038). This file is a generated
 projection of the run-state store `run/events.jsonl` and is never
 hand-edited: `python3 tools/state.py render` rewrites it from the log, so a
-hand edit is silently discarded at the next render (D-098). An agent
+hand edit is silently discarded at the next render (D-111). An agent
 starting a task reads this file, then its task folder, and works only on
 that task; the host session, the only writer of this repository, records the
 status change as an event and re-renders (`goal/EXECUTION.md` §5, D-086).
 
-Statuses: `planned`, `ready`, `leased` (a fencing token is held, D-100),
+Statuses: `planned`, `ready`, `leased` (a fencing token is held, D-113),
 `in-progress`, `waiting` (every lane of the chain throttled, D-071),
 `resource-waiting` (a cap, not a lane, is the constraint), `blocked`
 (missing operator input or exhausted, D-070; only a row with its own open
@@ -26,9 +26,9 @@ these two must stay.
 | --- | --- | --- | --- |
 | M1-01 | M1 | — | done |
 | M1-02 | M1 | — | done |
-| M1-02a | M1 | M1-02 | in-progress |
+| M1-02a | M1 | M1-02 | ready |
 | M1-03 | M1 | M1-05d | planned |
-| M1-04a | M1 | M1-02 | in-progress |
+| M1-04a | M1 | M1-02 | ready |
 | M1-05a | M1 | M1-04a | planned |
 | M1-05b | M1 | M1-04a | planned |
 | M1-05c | M1 | M1-04a | planned |

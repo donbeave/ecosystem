@@ -11,8 +11,14 @@ export FAKE_HERDR_DIR="$WORK/herdr"
 export HERDR_BIN="$SRC/tests/supervisor/fake_herdr.sh"
 export DOCKER_BIN="$SRC/tests/supervisor/fake_docker.sh"
 export FAKE_DOCKER_NAMES=""
+ARG_ONLY_PID=""
+ARG_ONLY_REAPED_PID=""
 
 cleanup() {
+	if [ -n "$ARG_ONLY_PID" ]; then
+		kill "$ARG_ONLY_PID" 2>/dev/null || true
+		wait "$ARG_ONLY_PID" 2>/dev/null || true
+	fi
 	sh "$WORK/tools/supervisor.sh" stop --repo "$WORK" --session "$SESSION" >/dev/null 2>&1 || true
 	if [ -f "$FAKE_HERDR_DIR/$SESSION/server.pid" ]; then
 		kill "$(sed -n '1p' "$FAKE_HERDR_DIR/$SESSION/server.pid")" 2>/dev/null || true
@@ -314,18 +320,27 @@ assert data["active_panes"] == []
 assert re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", data["checked_at"])
 PY
 
-export PGREP_BIN="$SRC/tests/supervisor/fake_pgrep.sh"
-(cd "$WORK" && sh tools/supervisor.sh quiescence-proof "$WORK/self-proof.json" \
-	--repo "$WORK" --session "$SESSION") ||
-	fail 'proof treated its own supervisor subprocess as legacy Claude'
-unset PGREP_BIN
-python3 - "$WORK/self-proof.json" <<'PY' || fail 'self-filtered proof is not quiescent'
+# A process whose arguments contain both `pgrep` and `claude` is not Claude.
+# `exec` makes the recorded PID the only process; teardown can reap it exactly.
+(cd "$WORK" && exec python3 -c 'import time; time.sleep(30)' 'pgrep -ifl claude') &
+ARG_ONLY_PID=$!
+sh "$WORK/tools/supervisor.sh" quiescence-proof "$WORK/argument-proof.json" \
+	--repo "$WORK" --session "$SESSION" ||
+	fail 'proof matched a command argument instead of executable basename'
+python3 - "$WORK/argument-proof.json" <<'PY' || fail 'argument-only proof is not quiescent'
 import json, sys
 data = json.load(open(sys.argv[1], encoding="utf-8"))
 assert data["coordinator_running"] is False
 assert data["active_agents"] == []
 assert data["active_panes"] == []
 PY
+kill "$ARG_ONLY_PID" 2>/dev/null || true
+wait "$ARG_ONLY_PID" 2>/dev/null || true
+ARG_ONLY_REAPED_PID="$ARG_ONLY_PID"
+if kill -0 "$ARG_ONLY_REAPED_PID" 2>/dev/null; then
+	fail 'argument-only regression process survived explicit teardown'
+fi
+ARG_ONLY_PID=""
 
 # Create only fake backend records; no server or child process is launched.
 mkdir -p "$FAKE_HERDR_DIR/$SESSION"
@@ -396,5 +411,59 @@ MUTATIONS_AFTER="$(grep -Ec '^session=[^ ]+ <server>$|<workspace> <create>|<agen
 unset FAKE_HERDR_AUTOSTART_ON_STATUS
 [ -z "$(find "$WORK" -name '.quiescence-*.json' -print -quit)" ] ||
 	fail 'quiescence proof left an atomic-write temporary file'
+
+printf '== 13. real Herdr/macOS proof cannot recurse or create an absent session\n'
+REAL_SESSION="supervisor-real-proof-$$"
+REAL_PROOF="$WORK/real-quiescence.json"
+if ! python3 - "$SRC" "$WORK" "$REAL_SESSION" "$REAL_PROOF" <<'PY'
+import json, os, subprocess, sys, time
+
+source, work, session, proof = sys.argv[1:]
+environment = os.environ.copy()
+for key in (
+    "HERDR_BIN", "FAKE_HERDR_DIR", "FAKE_HERDR_FAIL",
+    "FAKE_HERDR_AUTOSTART_ON_STATUS", "FAKE_HERDR_PANE_IDLE",
+):
+    environment.pop(key, None)
+
+before = subprocess.run(
+    ["herdr", "session", "list", "--json"], check=True, capture_output=True,
+    text=True, timeout=2, env=environment,
+).stdout
+started = time.monotonic()
+result = subprocess.run(
+    ["sh", os.path.join(source, "tools", "supervisor.sh"),
+     "quiescence-proof", proof, "--repo", work, "--session", session],
+    cwd=work, capture_output=True, text=True, timeout=5, env=environment,
+)
+elapsed = time.monotonic() - started
+if result.returncode != 0:
+    raise AssertionError(result.stdout + result.stderr)
+if elapsed >= 5:
+    raise AssertionError("proof exceeded five seconds")
+after = subprocess.run(
+    ["herdr", "session", "list", "--json"], check=True, capture_output=True,
+    text=True, timeout=2, env=environment,
+).stdout
+before_sessions = json.loads(before)["sessions"]
+after_sessions = json.loads(after)["sessions"]
+if before_sessions != after_sessions:
+    raise AssertionError("session inventory changed")
+if any(row.get("name") == session for row in after_sessions):
+    raise AssertionError("absent named session was created")
+data = json.load(open(proof, encoding="utf-8"))
+assert data["repository"] == os.path.realpath(work)
+assert data["session"] == session
+assert data["coordinator_running"] is False
+assert data["active_agents"] == []
+assert data["active_panes"] == []
+PY
+then
+	fail 'real absent-session proof recursed, timed out, or mutated Herdr'
+fi
+
+if [ -n "$ARG_ONLY_REAPED_PID" ] && kill -0 "$ARG_ONLY_REAPED_PID" 2>/dev/null; then
+	fail 'argument-only regression process was live at final teardown assertion'
+fi
 
 printf 'status: DONE\n'
