@@ -1,0 +1,6 @@
+jackin gap (owner M3-01, found 2026-08-28 during the M1-04a relaunch): crates/jackin-runtime/src/exec_host.rs:382
+resolves every op:// [env] reference concurrently (try_join_all) and each `op read` (exec_host.rs:433) enqueues its
+own 1Password desktop authorization prompt; the app serializes prompts and each one self-cancels after 60 s
+("AppCancel invoked by a timed-out prompt due to serialized queue delay"), so four references starve each other
+whenever the app needs a human touch. Fix on feat/managed-execution: resolve op:// references sequentially (or share
+one authorization) and honour OP_SERVICE_ACCOUNT_TOKEN when present.

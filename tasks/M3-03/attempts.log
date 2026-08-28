@@ -1,1 +1,2 @@
 epoch 1 attempt 0/3 lane L4 path container 2026-08-28T04:13:32Z blocked before dispatch: 1Password authorization timeout (defect 9)
+epoch 1 attempt 0/3 lane L4 path container 2026-08-28T09:38:20Z blocked before dispatch: 1Password app relocked (defect 15)

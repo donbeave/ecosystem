@@ -68,7 +68,7 @@ these two must stay.
 | M3-01 | M3 | M1-02 | in-progress |
 | M3-02 | M3 | M3-01 | planned |
 | M3-02a | M3 | M3-02 | planned |
-| M3-03 | M3 | M1-02 | ready |
+| M3-03 | M3 | M1-02 | blocked |
 | M3-04 | M3 | M3-01 | planned |
 | M3-05 | M3 | M1-13, M2-04, M3-02, M3-03, M3-04 | planned |
 | M3-06 | M3 | M3-05 | planned |
@@ -76,7 +76,7 @@ these two must stay.
 | M3-08 | M3 | M3-07 | planned |
 | M4-01 | M4 | M3-01 | planned |
 | M4-02 | M4 | M1-02 | done |
-| M4-03 | M4 | M1-02 | ready |
+| M4-03 | M4 | M1-02 | blocked |
 | M4-04 | M4 | M1-13, M2-04, M4-01, M4-02 | planned |
 | M4-05 | M4 | M4-01, M4-02 | planned |
 | M4-06 | M4 | M1-13, M4-04, M4-05 | planned |
