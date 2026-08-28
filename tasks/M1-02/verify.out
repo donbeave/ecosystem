@@ -1,7 +1,7 @@
 M1-02 subagents path, run goal-run-1
 jackin 0.6.4+f42d702
 integrated_sha: f42d7023c82ad385f4182f97257c52a9534a9426
-commit: f42d7023c82ad385f4182f97257c52a9534a9426
+commit: 49283c8cb019f3cf4a63125f6d8155b1659d9325
 bundle_hash: ef33fcfbfc5786ffdfe699dbf8404e5375d391f5fb99013fd790af5d2f04ecf3
 run: jackin --version
 jackin 0.6.4+f42d702

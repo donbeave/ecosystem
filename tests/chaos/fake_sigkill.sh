@@ -1,7 +1,8 @@
 #!/bin/sh
 # Coordinator variant that is killed outright, standing in for a session whose
 # process disappears without any message at all (readiness plan 3.3). The
-# supervisor must observe the exit code and resume from durable state.
+# recovery rehearsal must observe the exit code and explicitly resume from
+# durable state.
 
 set -eu
 

@@ -60,10 +60,8 @@ case "$part" in
   host)
     run_cmd '! brew list --formula | grep -qx jackin-preview'
     run_cmd 'grep -q '\''dco = true'\'' "${JACKIN_CONFIG_DIR:-$HOME/.config/jackin}/config.toml"'
-    run_cmd 'jackin workspace create task-probe --workdir ~/.jackin/managed/probe --mount ~/.jackin/managed/probe'
-    run_cmd 'jackin load the-architect task-probe --agent codex --dry-run --format json'
-    run_cmd 'tmux'
-    run_cmd 'script'
+    run_cmd 'jackin workspace remove task-probe >/dev/null 2>&1; jackin workspace create task-probe --workdir ~/.jackin/managed/probe --mount ~/.jackin/managed/probe'
+    run_cmd 'script -q /dev/null jackin load the-architect task-probe --agent codex --dry-run --format json </dev/null | grep -q '\''"workspace": *"task-probe"'\'''
     run_cmd 'jackin workspace remove task-probe'
     finish
     ;;

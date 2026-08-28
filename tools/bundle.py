@@ -38,10 +38,10 @@ CONTAINER_MARK = re.compile(r"container:")
 # The first word of a backticked span makes it a command rather than a literal.
 COMMANDS = {
     "!", "agent-browser", "brew", "cargo", "cat", "command", "comm", "curl",
-    "dash", "docker", "gh", "git", "gitleaks", "grep", "head", "jackin",
+    "dash", "docker", "gh", "git", "gitleaks", "grep", "head", "herdr", "jackin",
     "jackin-exec", "jackin-role", "jq", "mise", "npm", "op", "openssl",
     "printf", "python3", "script", "sed", "sh", "shellcheck", "sort", "ssh",
-    "tail", "test", "tmux", "wc",
+    "tail", "test", "wc",
 }
 
 ROLE_SELECTOR = {

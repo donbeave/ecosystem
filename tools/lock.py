@@ -61,7 +61,7 @@ CLI_TOOLS = [
     ("codex", ["codex", "--version"]),
     ("gh", ["gh", "--version"]),
     ("docker", ["docker", "--version"]),
-    ("tmux", ["tmux", "-V"]),
+    ("herdr", ["herdr", "--version"]),
     ("gitleaks", ["gitleaks", "version"]),
     ("shellcheck", ["shellcheck", "--version"]),
     ("op", ["op", "--version"]),
@@ -386,7 +386,19 @@ def cmd_check(args) -> int:
         if models.get(key) != value:
             problems.append(f"models.{key} is {models.get(key)!r}, expected {value!r}")
 
-    # 5. permission profile digest matches the file on disk
+    # 5. Herdr is the host process/session owner. The lock must pin the exact
+    # binary that will keep the interactive coordinator alive; accepting an
+    # absent or stale entry would make restart behavior depend on host drift.
+    herdr = run(["herdr", "--version"]) if shutil.which("herdr") else None
+    recorded_herdr = (data.get("cli") or {}).get("herdr")
+    if not herdr:
+        problems.append("required CLI herdr is not installed")
+    elif recorded_herdr != herdr.splitlines()[0].strip():
+        problems.append(
+            f"cli.herdr is {recorded_herdr!r}, expected {herdr.splitlines()[0].strip()!r}"
+        )
+
+    # 6. permission profile digest matches the file on disk
     try:
         expected = permission_profile_sha()
     except SystemExit as exc:
@@ -396,14 +408,14 @@ def cmd_check(args) -> int:
     if expected and recorded != expected:
         problems.append("permissions.profile_sha256 drifted from .claude/settings.json")
 
-    # 6. plan commit still resolves to the same object
+    # 7. plan commit still resolves to the same object
     try:
         if (data.get("plan") or {}).get("commit") != plan_commit():
             problems.append("plan.commit drifted from the reviewed snapshot")
     except SystemExit as exc:
         problems.append(str(exc))
 
-    # 7. run epoch and the self hash
+    # 8. run epoch and the self hash
     epoch = (data.get("run") or {}).get("epoch")
     if not isinstance(epoch, int) or epoch < 1:
         problems.append(f"run.epoch is not a positive integer: {epoch!r}")

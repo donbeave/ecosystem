@@ -36,9 +36,7 @@ container = []
 host = [
   "! brew list --formula | grep -qx jackin-preview",
   "grep -q 'dco = true' \"${JACKIN_CONFIG_DIR:-$HOME/.config/jackin}/config.toml\"",
-  "jackin workspace create task-probe --workdir ~/.jackin/managed/probe --mount ~/.jackin/managed/probe",
-  "jackin load the-architect task-probe --agent codex --dry-run --format json",
-  "tmux",
-  "script",
+  "jackin workspace remove task-probe >/dev/null 2>&1; jackin workspace create task-probe --workdir ~/.jackin/managed/probe --mount ~/.jackin/managed/probe",
+  "script -q /dev/null jackin load the-architect task-probe --agent codex --dry-run --format json </dev/null | grep -q '\"workspace\": *\"task-probe\"'",
   "jackin workspace remove task-probe",
 ]

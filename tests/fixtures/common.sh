@@ -157,3 +157,188 @@ write_manifest_fallback() {
 }
 EOF
 }
+
+# prepare_involved_repo <root>
+# Creates the fixture's involved repository with the same integration target
+# used by jackin and termrock during the run.
+prepare_involved_repo() {
+  root="$1"
+  side="$root.involved"
+  if [ ! -d "$side" ]; then
+    origin="$root.involved.origins/jackin-project/jackin.git"
+    mkdir -p "$(dirname "$origin")"
+    git init -q --bare "$origin"
+    mkdir -p "$side"
+    git init -q "$side"
+    git -C "$side" symbolic-ref HEAD refs/heads/feat/managed-execution
+    git -C "$side" config user.email fixture@example.invalid
+    git -C "$side" config user.name Fixture
+    printf 'involved repository\n' >"$side/README.md"
+    git -C "$side" add -A
+    git -C "$side" commit -q -m "involved: integration target"
+    git -C "$side" remote add origin "$origin"
+    git -C "$side" push -q -u origin feat/managed-execution
+    git -C "$side" fetch -q origin
+  fi
+}
+
+# make_involved <root> <id> [evidence-sha] [claimed-sha]
+# Turns a done fixture task into one that touches an involved repository
+# (D-112): its `repos` name another repository, a side clone holds the
+# integrated commit, `verify.out` carries the ecosystem `commit:` line and a
+# separate `integrated_sha:` line, and `evidence.json` records <evidence-sha>.
+# Both SHAs default to the exact integration-target head.
+make_involved() {
+  root="$1"; id="$2"
+
+  prepare_involved_repo "$root"
+  side="$root.involved"
+  isha="$(git -C "$side" rev-parse refs/remotes/origin/feat/managed-execution)"
+  esha="${3:-$isha}"
+  csha="${4:-$isha}"
+
+  printf 'id = "%s"\nlane = "L1"\npath = "container"\nrepos = ["jackin", "host"]\n' \
+      "$id" >"$root/tasks/$id/task.toml"
+  printf '%s\n' "$side" >"$root/tasks/$id/checkout.txt"
+  git -C "$root" add -A
+  git -C "$root" commit -q -m "fixture: $id touches an involved repository"
+  sha="$(git -C "$root" rev-parse HEAD)"
+  hash="$( cd "$root" && python3 tools/bundle.py hash "$id" | awk '{print $NF}' )"
+
+  cat >"$root/tasks/$id/verify.out" <<EOF2
+task: $id
+side: host
+commit: $sha
+integrated_sha: $csha
+bundle_hash: $hash
+status: DONE
+EOF2
+  ( cd "$root" && python3 tools/evidence_manifest.py run --task "$id" \
+      --dir "tasks/$id" --bundle-hash "$hash" --integrated-sha "$esha" \
+      --repository jackin-project/jackin feat/managed-execution "$esha" "$side" \
+      --result-class DONE -- sh -c 'echo fixture' >/dev/null 2>&1 ) || \
+  write_manifest_fallback "$root" "$id" "$esha" "$hash"
+
+  git -C "$root" add -A
+  git -C "$root" commit -q -m "fixture: $id involved evidence"
+  git -C "$root" push -q origin main
+  git -C "$root" fetch -q origin
+}
+
+# make_historical_involved <root> <id>
+# Records the exact integration head at task transition time, then advances
+# that target. Final verification must retain the historical evidence because
+# its SHA is still an ancestor of the later pushed head.
+make_historical_involved() {
+  root="$1"; id="$2"
+  make_involved "$root" "$id"
+  side="$root.involved"
+  git -C "$side" checkout -q feat/managed-execution
+  printf 'later integrated task\n' >"$side/later.txt"
+  git -C "$side" add later.txt
+  git -C "$side" commit -q -m "involved: later integration"
+  git -C "$side" push -q origin feat/managed-execution
+  git -C "$side" fetch -q origin
+}
+
+# make_divergent_involved <root> <id>
+# Claims a commit that exists in the involved repository but is not the head
+# of its integration target. An object-existence-only oracle accepts it.
+make_divergent_involved() {
+  root="$1"; id="$2"
+  prepare_involved_repo "$root"
+  side="$root.involved"
+  target="$(git -C "$side" rev-parse refs/remotes/origin/feat/managed-execution)"
+  git -C "$side" checkout -q --detach "$target"
+  printf 'divergent commit\n' >"$side/divergent.txt"
+  git -C "$side" add divergent.txt
+  git -C "$side" commit -q -m "involved: divergent existing commit"
+  divergent="$(git -C "$side" rev-parse HEAD)"
+  git -C "$side" checkout -q feat/managed-execution
+  make_involved "$root" "$id" "$divergent" "$divergent"
+}
+
+# make_service_labels <root> <id>
+# Service labels are external systems, not involved Git repositories. Their
+# evidence remains bound to the ecosystem commit and needs no integrated line.
+make_service_labels() {
+  root="$1"; id="$2"
+  printf 'id = "%s"\nlane = "L1"\npath = "host"\nrepos = ["host", "Linear", "GitHub", "1Password"]\n' \
+      "$id" >"$root/tasks/$id/task.toml"
+  git -C "$root" add -A
+  git -C "$root" commit -q -m "fixture: $id uses external services"
+  sha="$(git -C "$root" rev-parse HEAD)"
+  write_evidence "$root" "$id" "$sha"
+  git -C "$root" add -A
+  git -C "$root" commit -q -m "fixture: $id service evidence"
+  git -C "$root" push -q origin main
+  git -C "$root" fetch -q origin
+}
+
+# make_multi_involved <root> <id> [diverge-second]
+# M10-06-shaped proof: two independently integrated repositories. With the
+# optional flag, the second record names an existing divergent commit.
+make_multi_involved() {
+  root="$1"; id="$2"; diverge_second="${3:-0}"
+
+  jackin_side="$root.involved.jackin"
+  termrock_side="$root.involved.termrock"
+  for identity in \
+      "$jackin_side:jackin-project/jackin" \
+      "$termrock_side:tailrocks/termrock"; do
+    side=${identity%%:*}
+    repo=${identity#*:}
+    origin="$root.involved.origins/$repo.git"
+    mkdir -p "$(dirname "$origin")"
+    git init -q --bare "$origin"
+    mkdir -p "$side"
+    git init -q "$side"
+    git -C "$side" symbolic-ref HEAD refs/heads/feat/managed-execution
+    git -C "$side" config user.email fixture@example.invalid
+    git -C "$side" config user.name Fixture
+    printf 'integration target\n' >"$side/README.md"
+    git -C "$side" add -A
+    git -C "$side" commit -q -m "involved: integration target"
+    git -C "$side" remote add origin "$origin"
+    git -C "$side" push -q -u origin feat/managed-execution
+    git -C "$side" fetch -q origin
+  done
+  jackin_sha="$(git -C "$jackin_side" rev-parse refs/remotes/origin/feat/managed-execution)"
+  termrock_sha="$(git -C "$termrock_side" rev-parse refs/remotes/origin/feat/managed-execution)"
+  termrock_claim="$termrock_sha"
+  if [ "$diverge_second" -eq 1 ]; then
+    git -C "$termrock_side" checkout -q --detach "$termrock_sha"
+    printf 'divergent commit\n' >"$termrock_side/divergent.txt"
+    git -C "$termrock_side" add divergent.txt
+    git -C "$termrock_side" commit -q -m "involved: divergent existing commit"
+    termrock_claim="$(git -C "$termrock_side" rev-parse HEAD)"
+    git -C "$termrock_side" checkout -q feat/managed-execution
+  fi
+
+  printf 'id = "%s"\nlane = "L1"\npath = "container"\nrepos = ["jackin", "termrock"]\n' \
+      "$id" >"$root/tasks/$id/task.toml"
+  printf '%s\n' "$jackin_side" >"$root/tasks/$id/checkout.txt"
+  git -C "$root" add -A
+  git -C "$root" commit -q -m "fixture: $id touches two involved repositories"
+  sha="$(git -C "$root" rev-parse HEAD)"
+  hash="$( cd "$root" && python3 tools/bundle.py hash "$id" | awk '{print $NF}' )"
+
+  cat >"$root/tasks/$id/verify.out" <<EOF2
+task: $id
+side: host
+commit: $sha
+integrated_sha: $jackin_sha
+bundle_hash: $hash
+status: DONE
+EOF2
+  ( cd "$root" && python3 tools/evidence_manifest.py run --task "$id" \
+      --dir "tasks/$id" --bundle-hash "$hash" --integrated-sha "$jackin_sha" \
+      --repository jackin-project/jackin feat/managed-execution "$jackin_sha" "$jackin_side" \
+      --repository tailrocks/termrock feat/managed-execution "$termrock_claim" "$termrock_side" \
+      --result-class DONE -- sh -c 'echo fixture' >/dev/null 2>&1 )
+
+  git -C "$root" add -A
+  git -C "$root" commit -q -m "fixture: $id multi-repository evidence"
+  git -C "$root" push -q origin main
+  git -C "$root" fetch -q origin
+}

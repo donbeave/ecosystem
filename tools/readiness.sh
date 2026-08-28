@@ -122,7 +122,7 @@ static_gate() {
   oksh   "shellcheck"         "shellcheck -s sh verify.sh tools/*.sh tasks/*/verify.sh"
   # Row 4.5: no task verifier is interactive, mutating or transient.
   oksh   "verifiers durable" \
-    "test -z \"\$(grep -lE 'hardline|tmux attach|--latest|newest' tasks/*/verify.sh)\""
+    "test -z \"\$(grep -lE 'hardline|herdr session attach|--latest|newest' tasks/*/verify.sh)\""
   ok     "invariant lint"     python3 tools/invariant_lint.py
   ok     "run store verify"   python3 tools/state.py verify
 }
@@ -136,7 +136,7 @@ live_gate() {
   echo
 
   ok   "docker"          docker info
-  ok   "tmux"            tmux -V
+  expect "herdr"          "herdr 0.8.2" herdr --version
   ok   "dash"            dash -c 'echo ok'
   ok   "shellcheck"      shellcheck --version
   ok   "gitleaks"        gitleaks version
@@ -165,9 +165,11 @@ live_gate() {
      test -z \"\$v\" || test \"\$v\" = 0"
   # Claude Code must resume by itself when the usage limit resets.
   oksh "auto-continue"   "test \"\$(jq -r .autoContinueAtUsageLimit ~/.claude/settings.json)\" = true"
-  # Launches one real `claude -p`; proves the pinned permission mode never
-  # prompts (row 4.10, D-120). Its own timeout is 120s.
-  ok   "permission probe" sh tools/probe_permissions.sh
+  # Readiness never launches an agent. The operator starts the interactive
+  # coordinator only after this gate reports READY.
+  oksh "coordinator yolo flags" \
+    "grep -q -- '--dangerously-skip-permissions' tools/supervisor.sh && \
+     grep -q -- 'skipDangerousModePermissionPrompt' tools/supervisor.sh"
 
   # Human-only inputs. Each one is a browser login, an OTP, a consent screen,
   # a UI-created credential or a repository setting only the owner can flip.
@@ -210,6 +212,7 @@ if [ "$blocked" -gt 0 ]; then
 fi
 
 if [ "$failures" -eq 0 ] && [ "$blocked" -eq 0 ]; then
+  echo "next command (run manually): sh tools/supervisor.sh start"
   echo "status: READY"
   exit 0
 fi

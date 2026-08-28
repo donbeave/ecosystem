@@ -17,8 +17,8 @@ agreement on a point updates the relevant file.
 
 Prerequisites: complete `goal/PREFLIGHT.md` §1–§5. An undone §3–§5 item is not a guaranteed
 stop: it becomes a `PREFLIGHT-DEFECTS.md` row that blocks only the tasks needing it, and ends
-the run as BLOCKED only when nothing else is runnable (D-050, D-070). Open Claude Code in this
-repository.
+the run as BLOCKED only when nothing else is runnable (D-050, D-070). Run the commands below from
+this repository; do not start Claude separately.
 
 ```text
 /goal Follow GOAL.md. Goal reached only when the current turn ends with a message whose first line is exactly `GOAL COMPLETE` or `GOAL BLOCKED` and whose last lines are the literal output of `sh verify.sh` from that turn: last line `status: DONE` for COMPLETE, or `status: BLOCKED HUMAN` preceded by the open PREFLIGHT-DEFECTS.md rows for BLOCKED. Any other turn end is not the goal.
@@ -29,10 +29,101 @@ This one line is the only invocation; every document that says "the invocation l
 argument carries the two terminal facts the runner's judge checks (D-083). `GOAL.md` itself is
 the prompt the runner executes and holds nothing else.
 
-A run is started and restarted by `tools/supervisor.sh start` (`resume` after any crash),
-which reconciles leases and live containers, launches the coordinator in the tmux session
-`ecosystem-coordinator`, and re-invokes it from durable state on any exit that is not
-`GOAL COMPLETE`/`GOAL BLOCKED` — see `goal/EXECUTION.md` §1 "Supervisor".
+### Operator kickoff
+
+Run both readiness gates against the same `run/LOCK.toml` hash:
+
+```sh
+sh tools/readiness.sh static
+sh tools/readiness.sh live
+```
+
+Neither gate launches an AI agent or makes an AI-provider request. The live gate checks command
+versions, host/service state, `autoContinueAtUsageLimit`, presence of `claude-yolo`, and the
+literal yolo flag/config setting in `tools/supervisor.sh`; it never starts Herdr, Claude, or a
+roadmap task. Provider-login calls listed in `goal/PREFLIGHT.md` §1 are separate standing checks.
+Fix every reported failure. Continue only when both gates end with:
+
+```text
+status: READY
+```
+
+The successful gate prints the next command, but does not run it. The operator starts the run
+manually:
+
+```sh
+sh tools/supervisor.sh start
+```
+
+`start` is the only ignition point. Readiness never calls it. Before launching anything, it prints
+the exact Herdr server/workspace commands, interactive Claude launch, canonical `/goal` line, and
+attach command. It then creates the isolated Herdr 0.8.2 session `ecosystem-coordinator`, starts
+Claude as the named Herdr agent `ecosystem-coordinator` without `-p`, waits for its input prompt,
+submits the canonical `/goal` line, and attaches the terminal to the Herdr UI. If automatic
+submission does not land, copy the printed `/goal` line and paste it into Claude.
+Before launch, `start`/`resume` refuse a live legacy coordinator pid recorded
+in `run/logs/coordinator.pid`. When the named Herdr coordinator is absent,
+they also refuse any Claude pid whose cwd resolves exactly to this repository.
+The detector is read-only and names every process to stop.
+
+From another terminal, attach to the running Claude UI:
+
+```sh
+herdr session attach ecosystem-coordinator
+```
+
+Detach without stopping any pane by pressing `Ctrl-b`, releasing it, then pressing `q`. Closing
+the terminal window also detaches. Reattach with the same command. Do not start a second
+coordinator while this named session exists. Type the printed `/goal` line only when automatic
+delivery failed.
+
+Inspect durable run state without attaching:
+
+```sh
+sh tools/supervisor.sh status
+```
+
+Read recent coordinator output without attaching:
+
+```sh
+sh tools/supervisor.sh read
+```
+
+To stop intentionally, stop the named Herdr session and confirm the result:
+
+```sh
+sh tools/supervisor.sh stop
+sh tools/supervisor.sh status
+```
+
+`stop` runs `herdr session stop ecosystem-coordinator --json`; Herdr terminates every pane process in
+that isolated session, including Claude and task/probe panes. Status must report
+`coordinator: not running` before another kickoff.
+
+After a crash or intentional stop, first run the live readiness gate again. When it reports
+`status: READY`, resume durable state interactively:
+
+```sh
+sh tools/supervisor.sh resume
+```
+
+`resume` attaches to a live coordinator; if none survives, it reconciles durable state, prints
+every command again, relaunches the named Claude agent, submits the same `/goal`, and attaches.
+If interactive attach fails, the command exits 4 but preserves the live coordinator and session;
+retry `herdr session attach ecosystem-coordinator`.
+Completed tasks are not repeated. Never run `start` or `resume` merely to inspect status. See
+`goal/EXECUTION.md` §1 "Supervisor".
+
+Herdr is a pinned host dependency for this run. Install it only when absent, then verify the
+version before readiness:
+
+```sh
+brew install herdr
+herdr --version
+```
+
+The required output is `herdr 0.8.2`. Herdr's official direct installer is
+`curl -fsSL https://herdr.dev/install.sh | sh`; use one install method, not both.
 
 Wave 0 is armed once, by `python3 tools/state.py arm`: it moves every dependency-free task
 — M1-01, which verifies the pre-materialised task bundles (D-072, D-114) — from
@@ -41,20 +132,15 @@ idempotent. Every later `done` transition promotes each `planned` task whose dep
 are all `done` to `ready`, so a row is `ready` before it is ever dispatched and no task
 runs from a bare row.
 
-Start the session with the model and permission mode the run is pinned to (D-095, D-120):
-
-```text
-claude-yolo --model claude-fable-5
-```
-
-`claude-yolo` is a zsh function in the operator's `~/.zshrc`; it expands to
+The supervisor passes the model and permission mode pinned by D-095/D-120 through Herdr's
+`agent start` command:
 
 ```text
 claude --settings '{"skipDangerousModePermissionPrompt":true}' \
        --dangerously-skip-permissions --model claude-fable-5
 ```
 
-so any host can reproduce the launch without that file. Every agent runtime runs in its yolo mode
+Every agent runtime runs in its yolo mode
 — Claude Code with `--dangerously-skip-permissions`, Codex CLI with
 `--dangerously-bypass-approvals-and-sandbox` — on the host and in every container; isolation
 comes from the container, not from approvals, and no permission allowlist exists anywhere

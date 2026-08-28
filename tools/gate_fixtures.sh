@@ -3,10 +3,10 @@
 #
 # Builds each fixture under tests/fixtures/ into a throwaway repository, runs
 # the oracle against it, and compares the last line to the class that fixture
-# is built to produce. Exits 0 only when the good fixture yields
-# `status: DONE` and every known-bad fixture yields its expected non-DONE
-# class, which is what makes a passing run evidence that the gate cannot be
-# satisfied by claims alone.
+# is built to produce. Exits 0 only when every fixture built to pass
+# yields `status: DONE` and every known-bad fixture yields its expected
+# non-DONE class, which is what makes a passing run evidence that the
+# gate cannot be satisfied by claims alone.
 #
 # Usage: sh tools/gate_fixtures.sh [--keep] [fixture ...]
 set -u
@@ -28,6 +28,13 @@ forged:FAILED SYSTEM
 stale:FAILED SYSTEM
 dirty:FAILED SYSTEM
 unpushed:FAILED SYSTEM
+involved:DONE
+involved-ancestor:DONE
+involved-forged:FAILED SYSTEM
+involved-divergent:FAILED SYSTEM
+services:DONE
+multi-involved:DONE
+multi-involved-divergent:FAILED SYSTEM
 runnable:PENDING
 active:PENDING
 blocked-human:BLOCKED HUMAN"
@@ -64,7 +71,7 @@ printf '%s\n' "$CASES" | while IFS=: read -r name want; do
     echo "$name: FAIL — expected \`status: $want\`, got \`$got\`"
     echo x >>"$WORK/.failed"
   fi
-  if [ "$name" != "good" ] && [ "$got" = "status: DONE" ]; then
+  if [ "$want" != "DONE" ] && [ "$got" = "status: DONE" ]; then
     echo "$name: FAIL — a known-bad fixture was accepted as DONE"
     echo x >>"$WORK/.failed"
   fi

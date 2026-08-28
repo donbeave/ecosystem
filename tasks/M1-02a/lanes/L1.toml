@@ -1,0 +1,14 @@
+# Lane L1 template (D-085). Merged by the host session into
+# ~/.config/jackin/workspaces/task-<id>.toml until M1-13 replaces it.
+# The cargo registry is not per lane: jackin refuses a workspace mount at
+# /home/agent/.cargo/registry because the host config already carries the
+# global mount `cargo-registry` there; only the target dir is per lane.
+[claude]
+sync_source_dir = "/Users/donbeave/.claude"
+
+[env]
+CARGO_TARGET_DIR = "/workspace/target"
+
+[[mounts]]
+src = "/Users/donbeave/.jackin/cargo/L1/target"
+dst = "/workspace/target"

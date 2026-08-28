@@ -42,6 +42,7 @@ D-005, D-010..D-014, D-043, D-049)
 | --- | --- | --- |
 | Linear | Source of truth for issues, their fields, status, comments, and agent sessions. | exists |
 | GitHub | Hosts repositories and pull requests. | exists |
+| Herdr 0.8.2 | Sole host terminal multiplexer for the interactive coordinator, pre-daemon task panes, probes, and interim Codex processes. Named sessions persist across client detach; agent state and pane ids drive resume. (D-124) | exists |
 | jackin CLI | Interactive sessions; unchanged. | exists |
 | Host (prototype) | The developer's Mac running OrbStack 2.2.3 (`docker context orbstack`; 18 CPU, about 122 GiB available to Docker, 1.6 TiB free; no Docker Desktop). jackin treats it as a plain Docker daemon (`crates/jackin/src/preflight.rs:217`). Host-only steps and host-only `verify.sh` are run by the host Claude Code session that drives the roadmap (D-056, D-061). | exists |
 | jackin daemon | Long-running per host. Monitors every agent container on the host (CLI- or daemon-started); polls Linear for issues assigned to jackin; prepares workspaces; spawns roles through the same container mechanism as the CLI; pushes progress and status; runs verification; manages pull requests. The manager logic (scheduler, retry policy, escalation, state snapshot) is compiled into the daemon binary for the prototype; whether it splits out is revisited at M12 (Q-001 adopted (a), D-053; D-026). | to build (D-008, D-009) |
@@ -362,14 +363,16 @@ Codex lanes; manifests carry no `[claude].model`. (D-039, D-043, D-078)
 The host session itself runs `claude-fable-5` at effort high; every
 subagent it launches runs `claude-opus-5`. Both are exact model ids, not
 family aliases. The session's permission mode is `bypassPermissions`,
-entered with `--dangerously-skip-permissions`; on the operator's host that
-flag is carried by the `claude-yolo` zsh function, so the run starts as
-`claude-yolo --model claude-fable-5`. `.claude/settings.json` is committed
+entered with `--dangerously-skip-permissions`. The operator starts only
+`sh tools/supervisor.sh start`; the launcher passes the expanded Claude
+flags and model through Herdr 0.8.2 `agent start`, then submits the canonical
+README `/goal` with `agent prompt`. The `claude-yolo` function remains an
+equivalent probe, not the run entry point. `.claude/settings.json` is committed
 in this repository and pins the host model, sets
 `skipDangerousModePermissionPrompt`, and denies `git push --force` and
 `git push -f`; it carries no tool allowlist, because that mode needs none.
-`README.md` "Start the run" names the launcher line and what the function
-expands to. (D-095, D-120)
+`README.md` "Start the run" names the manual launcher, attach, detach,
+status, read, stop, and resume commands. (D-095, D-120, D-124)
 
 Every agent runtime runs in its yolo mode — Claude Code with
 `--dangerously-skip-permissions`, Codex CLI with
@@ -454,9 +457,21 @@ implementation `/goal` is armed only after a static readiness gate (the
 committed plan, the compiled graph, the task bundle hashes) and a live
 host readiness gate (tools, credentials, accounts, permission profile)
 both print `status: READY` for the same lock hash, recorded in
-`run/LOCK.toml` (D-109). The permission profile that gate checks is
-`bypassPermissions`: the session is launched with
-`--dangerously-skip-permissions` (the `claude-yolo` function), so no tool
+`run/LOCK.toml` (D-109). Readiness prints the next command but never starts
+Herdr, Claude, `/goal`, or a roadmap task; only the operator invokes
+`tools/supervisor.sh start` or `resume`. The isolated named Herdr session
+`ecosystem-coordinator` owns the coordinator and every pre-daemon task or
+probe pane. Detaching its client preserves all pane processes; status/read
+are non-mutating, and stop terminates that session's exact process set
+(D-124). Task agent aliases equal lowercase task ids exactly; pane-only
+resume evidence requires a foreground process containing boundary-delimited
+`task-<id>` and its declared runtime. Attach failure preserves the live
+coordinator/session, and failure rollback never stops a pre-existing session
+or unrelated panes. No readiness, preflight, or standing-check path starts Claude
+outside Herdr; `CLAUDE_CONFIG_DIR=~/.claude claude auth status` is the
+non-agent authentication proof. The permission profile that gate checks is
+`bypassPermissions`: Herdr launches Claude with
+`--dangerously-skip-permissions`, so no tool
 call can stop the run on a prompt, and only `git push --force` and `git
 push -f` stay denied (D-120). The same gate checks the Codex runtime:
 `codex --version` succeeds and every Codex launch carries
@@ -536,7 +551,10 @@ Ordered proofs (D-037, extended by D-049 and D-053; details and tasks in
 bundles are content-addressed and materialised in full before any product
 task runs, and their hashes are recorded in `run/LOCK.toml`; there is no
 runtime task-authoring phase (D-114, amending D-038, D-062, D-072,
-D-088). `tasks/README.md` is the generated record (D-111). Milestones may
+D-088). A `ROADMAP.md` verify cell names a command only inside the exact
+check to run: every backticked span whose first word is a command becomes
+a check of the generated `verify.sh`, so a command named in prose would
+run as a check of its own (D-114, note of 2026-08-28). `tasks/README.md` is the generated record (D-111). Milestones may
 overlap in execution; review tasks never gate the next milestone (D-055).
 
 1. **M1 Linear setup verified** — agent app, credentials in 1Password,

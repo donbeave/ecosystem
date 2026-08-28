@@ -1918,7 +1918,8 @@ concatenation can never mask a failure; the in-container part runs
 through `docker exec`, never typed into the TUI), D-087 (item (3): a
 fourth log tag `pre-read`, one `write` line per logical write with a
 `kind`), and D-091 (item (1): a launch of or attach to a jackin instance
-is always a host part).
+is always a host part). *D-124 supersedes the pre-M4 tmux transport in
+item (1); verification still runs through `docker exec`.*
 
 **Decision.** (1) D-061 extends from `host` rows to host-side checks: any
 verify part that needs the Linear token, `op`, the host daemon socket, or
@@ -1968,7 +1969,10 @@ remain only for the `codex exec` interim and the host probes of item
 (4)) and D-086 (item (2): one-line prompt pointing at the staged
 `.jackin/task/TASK.md`, eject by container name recorded in
 `tasks/<id>/container.txt`, teardown before any re-launch; item (3): an
-idle surviving tmux session is a finished attempt).
+idle surviving tmux session is a finished attempt). *D-124 supersedes
+items (2)–(3)'s host process transport and resume mechanism with Herdr
+0.8.2 and replaces item (4)'s Claude host-side probe with non-agent
+`claude auth status`; lane/runtime policy remains unchanged.*
 
 **Decision.** (1) In-session subagents are always Claude on this session's
 `~/.claude`; the `subagents` path therefore serves Claude lanes only
@@ -2003,8 +2007,9 @@ the session runs each open `PREFLIGHT-DEFECTS.md` proof command itself and
 fills `Resolved` when it passes; after any context compaction the session
 repeats §1 steps 2–3 before dispatching. (4) Forwarded logins: an
 in-container login failure is a preflight defect only when the host-side
-probe (`claude -p ok` under `CLAUDE_CONFIG_DIR`, `codex exec 'print ok'`
-under `CODEX_HOME`) also fails; otherwise the attempt is re-launched with
+check (`claude auth status` under `CLAUDE_CONFIG_DIR`, which launches no
+agent, or `codex exec 'print ok'` under `CODEX_HOME`) also fails; otherwise
+the attempt is re-launched with
 re-synced state and `re-sync` noted in the result cell. M1-13 evaluates
 jackin's OAuth-token mode (`claude setup-token`, `jackin workspace
 claude-token setup`) for L1..L3 and copies a rotated Codex `auth.json` back
@@ -2132,7 +2137,10 @@ every container-path task.
 ## D-086 — 2026-08-27 — Container-path mechanics: staged task folder, two-part `verify.sh`, one-line prompt, eject by name, host build refresh, single writer
 
 *Amended by D-111: the single-writer rule applies to the state store; the
-Markdown ledgers are generated projections.*
+Markdown ledgers are generated projections. D-124 supersedes tmux pane,
+prompt, progress, teardown, and resume mechanics in items (2)–(4); staged
+input, two-part verification, container naming, and single-writer rules
+remain.*
 
 Amends D-074 (push protocol for this repository), D-081 (1), D-082
 (2)–(3).
@@ -2737,6 +2745,17 @@ no longer an authoring task, and no `<milestone>-00 authoring` task
 remains in the graph. A bundle whose hash does not match `run/LOCK.toml`
 fails the static readiness gate of D-109.
 
+*Note 2026-08-28 (graph amendment): because the bundle is derived from the
+`ROADMAP.md` row and from nothing else, every backticked span in a verify
+cell whose first word is a command is emitted as a standalone check. A
+verify cell therefore names a command only inside the exact check to run,
+never as prose: M1-02a's "(under `tmux` or `script`)" produced the bare
+checks `tmux` and `script`, which cannot pass on a host with no tty and
+leave a file behind, so the cell now folds the wrapper into one check,
+`script -q /dev/null jackin load ... </dev/null | grep -q ...`, and its
+workspace-create check removes a stale `task-probe` first. Reciprocal note
+in `SPEC.md` §10b, which states the same rule for verify cells.*
+
 ## D-115 — 2026-08-28 — Every `analysis/` findings archive needs a disposition file (plan proposal D-102)
 
 **Decision.** Every findings archive under `analysis/` must have a
@@ -2856,7 +2875,9 @@ unchanged.
 
 Amends D-095. *Amended by D-121: the same yolo posture is extended to
 every agent runtime — host subagents, containers, and Codex CLI with
-`--dangerously-bypass-approvals-and-sandbox`.*
+`--dangerously-bypass-approvals-and-sandbox`. Amended by D-124: the
+supervisor passes the same expanded Claude flags through Herdr; the shell
+function is no longer the run entry point.*
 
 **Decision.** The host session runs in permission mode
 `bypassPermissions`, entered with `--dangerously-skip-permissions`. On the
@@ -2979,3 +3000,94 @@ failing `tasks/M1-12/audit.md` as the reason a row stays `planned`. A
 `audit: FAIL` verdict is not a preflight defect: the audit names the M1 rows
 to re-run, those rows go back to `ready`, and the audit is repeated after
 they are `done` again.
+
+## D-124 — 2026-08-28 — Herdr 0.8.2 owns every host coordinator, task, and probe process
+
+Supersedes the tmux transport in D-081 (1), D-082 (2)–(3), and D-086
+(2)–(4), replaces the Claude host-side probe in D-082 (4), and amends
+D-120's launch mechanism. It does not change their verification, lane,
+runtime, permission, or container-isolation policy.
+
+**Decision.** Herdr 0.8.2 is the sole host terminal multiplexer for this
+run. tmux is neither required nor invoked. The coordinator lives in the
+isolated named session `ecosystem-coordinator` and has the same Herdr agent
+name. Only the operator's explicit `sh tools/supervisor.sh start` or
+`resume` may launch it; readiness prints that next command and never calls
+it. Before any process starts, the launcher prints its exact Herdr server,
+workspace, Claude, `/goal`, and attach commands. It starts the named
+headless server with `herdr --session ecosystem-coordinator server`,
+creates a workspace with `herdr --session ecosystem-coordinator workspace
+create --cwd <repo> --label ecosystem-coordinator --no-focus`, records its
+root pane outside git, and starts Claude with `herdr --session
+ecosystem-coordinator agent start ecosystem-coordinator --kind claude
+--pane <pane-id> --timeout 120000 -- --dangerously-skip-permissions --settings
+'{"skipDangerousModePermissionPrompt":true}' --model claude-fable-5`, waits
+for `idle`, sends the canonical README line with `herdr --session
+ecosystem-coordinator agent prompt`, and
+attaches with `herdr session attach ecosystem-coordinator`. If prompt
+delivery fails, the already printed line is the manual copy/paste fallback;
+no headless `claude -p` coordinator is permitted. No readiness, preflight,
+or standing-check path starts Claude outside Herdr: Claude authentication is
+proved without an agent by `CLAUDE_CONFIG_DIR=~/.claude claude auth status`.
+
+Each pre-daemon task, probe, and interim Codex process gets a labelled
+Herdr tab in the coordinator workspace. The host records the opaque tab
+and pane ids, starts the process with `herdr pane run`, waits with `herdr
+pane wait-output` or `herdr agent wait`, submits agent work with `herdr
+agent prompt`, inspects it with `herdr agent read`, sends any validated TUI
+key with `herdr pane send-keys`, and closes only that tab with `herdr tab
+close` after eject. Every task agent alias equals its lowercase task id
+exactly (`M2-01` → `m2-01`), with no prefix or alternate alias. A pane-only
+survivor is live only when `pane process-info` reports a foreground command
+containing boundary-delimited `task-<id>` and the runtime from that task's
+`task.toml`; pane existence alone is not runner evidence. A surviving `working` agent resumes;
+`idle` or `done` after prompt delivery goes to verify; `blocked` is read
+and handled under the existing dialog rule. No second pane starts for a
+live task id.
+
+Detach is `Ctrl-b`, release, then `q`; closing the client window also
+detaches without killing panes. Attach is `herdr session attach
+ecosystem-coordinator`. Status and reads are non-mutating. Intentional stop
+is `herdr session stop ecosystem-coordinator --json`, which terminates every pane
+process in that isolated session. `resume` attaches to a surviving
+coordinator or, when none survives, reconciles durable state and relaunches
+only after the operator invokes it. There is no autonomous restart loop.
+An interactive attach failure returns 4, preserves the live coordinator and
+session, and prints `herdr session attach ecosystem-coordinator` for retry.
+Failure rollback closes only the workspace created by that invocation and
+stops the session only when that invocation started its server. With a
+pre-existing live session it interrupts only a coordinator it created, never
+the session or unrelated task/probe panes.
+
+**Rationale.** Herdr preserves real PTYs while exposing agent lifecycle,
+opaque pane ids, atomic prompt delivery, blocking waits, and readable
+terminal history. One host transport removes duplicate tmux names, blind
+keystroke delivery, and a second process inventory from crash recovery.
+
+**Consequences.** `README.md`, `ROADMAP.md`, `SPEC.md`,
+`goal/EXECUTION.md`, and `goal/PREFLIGHT.md` use the Herdr 0.8.2 command
+surface. Readiness requires that exact version. Herdr tab, pane, and agent
+ids are text evidence under the current task folder; coordinator/server
+ids and logs remain ignored session-keyed host artifacts under `run/logs/`:
+`coordinator-<session-key>.pane`, `coordinator-<session-key>.workspace`, and
+`herdr-server-<session-key>.pid`, plus
+`supervisor-<session-key>.log` and `herdr-<session-key>.log` (default key
+`ecosystem-coordinator`). The unkeyed `coordinator.pid` is legacy read-only
+evidence and never a current output.
+
+**Migration and rollback.** Forward migration preserves the append-only
+state store and task evidence, then admits Herdr only after static/live
+readiness pass. Before every `start` or `resume`, including `--dry-run`, the
+launcher refuses a live numeric pid named by legacy
+`run/logs/coordinator.pid`. Only when the named Herdr coordinator is absent,
+it also refuses any `claude` pid whose cwd resolves exactly to this repository
+through `/proc/<pid>/cwd` or `lsof`. Detection is read-only; no tmux command or
+environment variable participates, and after refusal no launch or
+reconciliation mutation occurs. It prints
+`failed-system: legacy coordinator process(es) detected: pids=<comma-list>; stop them before Herdr kickoff`.
+`--dry-run` otherwise previews reconciliation, writes no event, and launches
+nothing. Operational rollback is `herdr
+session stop ecosystem-coordinator --json`, leaving durable state and
+evidence untouched; it never reactivates tmux. After new work begins, a
+different host transport requires a new decision because recorded Herdr
+pane ownership is part of resume evidence.

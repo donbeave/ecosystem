@@ -46,7 +46,5 @@ host = [
   "grep -E 'OP_SERVICE_ACCOUNT_TOKEN *= *{.*on_demand *= *true' \"${JACKIN_CONFIG_DIR:-$HOME/.config/jackin}/config.toml\"",
   "test ! -e ~/.jackin/config.toml",
   "jackin load donbeave/crew-<p> --dry-run --format json | jq -r .data.role",
-  "tmux",
-  "script",
   "! grep -qE '^[env.OP_SERVICE_ACCOUNT_TOKEN]' ~/.jackin/roles/donbeave/crew-operator/default/jackin.role.toml",
 ]

@@ -67,8 +67,6 @@ case "$part" in
     run_cmd 'grep -E '\''OP_SERVICE_ACCOUNT_TOKEN *= *{.*on_demand *= *true'\'' "${JACKIN_CONFIG_DIR:-$HOME/.config/jackin}/config.toml"'
     run_cmd 'test ! -e ~/.jackin/config.toml'
     run_cmd 'jackin load donbeave/crew-<p> --dry-run --format json | jq -r .data.role'
-    run_cmd 'tmux'
-    run_cmd 'script'
     run_cmd '! grep -qE '\''^[env.OP_SERVICE_ACCOUNT_TOKEN]'\'' ~/.jackin/roles/donbeave/crew-operator/default/jackin.role.toml'
     finish
     ;;

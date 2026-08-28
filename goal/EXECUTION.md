@@ -8,14 +8,18 @@ the decision wins and this file is corrected in the same commit.
 
 ## 1. Session start (every run, including a resume or a re-prompt)
 
-The run is started by the one invocation line printed in `README.md` "Start
-the run", copied verbatim, in a Claude Code session opened in this
-repository after the human has completed `goal/PREFLIGHT.md` §1..§5. It is
-never shortened to `/goal Follow GOAL.md`: the argument carries the two
+After the human completes `goal/PREFLIGHT.md` §1..§5 and both readiness
+gates report READY, the run is started only by the operator running `sh
+tools/supervisor.sh start` from this repository. The launcher creates the
+Herdr session, starts interactive Claude, and submits the one invocation
+line printed in `README.md` "Start the run", copied verbatim. It is never
+shortened to `/goal Follow GOAL.md`: the argument carries the two
 terminal facts the runner's judge checks (D-083). `GOAL.md` holds the
 prompt the runner executes and nothing else; every document that says "the
-invocation line of `GOAL.md`" means that line in `README.md`. Re-running it
-after a BLOCKED end, a crash, or a context compaction resumes the run:
+invocation line of `GOAL.md`" means that line in `README.md`. After a
+BLOCKED end or crash, the operator runs `tools/supervisor.sh resume`, which
+submits that line when relaunch is needed; after a context compaction the
+live coordinator re-runs it. In every case,
 steps 1–4 below re-derive the whole state and nothing finished is redone.
 The terminal classes are §7.
 
@@ -25,13 +29,19 @@ The terminal classes are §7.
    from a crashed run first, then record what happened in `PROGRESS.md`.
 2. Read `tasks/README.md`, `PROGRESS.md`, `PREFLIGHT-DEFECTS.md`. A row
    `in-progress` with no `PROGRESS.md` row is an interrupted task. First
-   check for a surviving run: `tmux has-session -t <id>`, `docker ps
+   check for a surviving run: `herdr agent get "$(cat
+   tasks/<id>/herdr-agent.txt)"` (or `herdr pane get "$(cat
+   tasks/<id>/herdr-pane.txt)"` before agent detection), `docker ps
    --filter label=<issue label>` (M3-04 labels; before M3, `docker ps
    --filter label=jackin.managed=true --filter label=jackin.kind=role
    --format '{{.Names}}'` for the name in `tasks/<id>/container.txt`), and
    on the daemon path `jackin daemon status --format json`. A surviving
-   tmux session whose capture shows the runtime idle at its prompt with the
-   task prompt already answered is a finished attempt, not a running one:
+   Herdr agent counts only when its name equals the lowercase task id exactly
+   (`M2-01` → `m2-01`). A pane-only survivor counts only when `herdr pane
+   process-info` reports a foreground command containing boundary-delimited
+   `task-<id>` and the runtime from `tasks/<id>/task.toml`; pane existence
+   alone is never liveness. A surviving Herdr agent whose state is `idle` or `done` with the task prompt already
+   answered is a finished attempt, not a running one:
    go to §5 step 5 at once. One whose pane is still working is resumed (§5
    step 4). One whose pane is dead, or whose agent exited, is torn down (§4
    container row) and the task restarts as a new attempt. Never dispatch a
@@ -58,8 +68,8 @@ The terminal classes are §7.
    no `in-progress` or `blocked` row's issue carries the delegate).
 3. Run `sh verify.sh`; its last line is the current distance to done.
 4. Run the standing checks of `goal/PREFLIGHT.md` §1 (Docker, `gh`,
-   provider logins with a real call, `op` with stdin closed, the 1Password
-   auto-lock setting, `tmux`, `dash`, `shellcheck`, awake host, the
+   provider authentication, `op` with stdin closed, the 1Password
+   auto-lock setting, Herdr 0.8.2, `dash`, `shellcheck`, awake host, the
    usage-limit auto-continue setting). Two more standing checks: the
    installed `jackin --version` embeds the sha of
    `origin/feat/managed-execution` in the jackin checkout of
@@ -100,34 +110,56 @@ permission allowlist exists anywhere (D-121).
 ### Supervisor (K-29)
 
 Re-reading state survives a compaction but not the death of the process
-that holds it: a `StopFailure`, a stop hook, a non-zero exit, a killed
-tmux session, or a host restart ends the session and with it the run.
-`tools/supervisor.sh` is the process outside the session that outlives
-all of those. `tools/supervisor.sh start` (or `resume`, which is the same
-thing when nothing is live) reconciles the durable state store before it
-launches anything — an expired lease is released with an audit event, and
-a leased task whose container (`docker ps`) and tmux session are both
-gone loses its lease too — then starts the coordinator inside the tmux
-session `ecosystem-coordinator` as `claude
+that holds it. Herdr 0.8.2 owns every host terminal process so an attached
+client may detach or close without ending the coordinator, a task, or a
+probe (D-124). No readiness command starts it. Only the operator's explicit
+`sh tools/supervisor.sh start` or `resume` may launch anything.
+
+`start` first reconciles the durable state store: an expired lease is
+released with an audit event, and a leased task whose container (`docker
+ps`) and recorded Herdr agent/pane are both gone loses its lease too. It
+prints the exact Herdr server, workspace, Claude, `/goal`, and attach
+commands before the first launch. It starts the isolated named session
+with `herdr --session ecosystem-coordinator server`, creates the repository
+workspace with `herdr --session ecosystem-coordinator workspace create
+--cwd <repo> --label ecosystem-coordinator --no-focus` (recording its root
+pane in ignored `run/logs/coordinator-<session-key>.pane`, workspace id in
+`run/logs/coordinator-<session-key>.workspace`, and server pid in
+`run/logs/herdr-server-<session-key>.pid`; the default key is
+`ecosystem-coordinator`), and starts the coordinator
+alias with `herdr --session ecosystem-coordinator agent start
+ecosystem-coordinator --kind claude --pane <pane-id> --timeout 120000 --
 --dangerously-skip-permissions --settings
-'{"skipDangerousModePermissionPrompt":true}' --model claude-fable-5 -p
-"$(cat GOAL.md)"` (D-095 amended by D-120: the flags are spelled out so
-the script does not depend on the operator's `claude-yolo` shell
-function). It then watches that process. On any exit whose log carries
-neither `GOAL COMPLETE` nor `GOAL BLOCKED` — a `StopFailure` line
-included — it reconciles again and re-invokes the coordinator with
-exponential backoff; the coordinator re-derives the run from the state
-store, so nothing `done` is ever re-run. Two invariants are asserted
-across every restart: the number of `done` tasks never decreases, and no
-`done` task takes a new lease. A violation is refused and logged
-`failed-system` instead of restarting. `--dry-run` performs the whole
-reconciliation and prints the exact launch command without starting a
-session; `--coordinator-cmd` replaces the coordinator for tests
-(`sh tests/supervisor/test_resume.sh` kills a simulated coordinator and
-proves the resume). `tools/supervisor.sh status` prints the session and
-the run state, `stop` ends the session. Logs are host artifacts, not
-repository content: they are written to `run/logs/`, which `.gitignore`
-ignores (D-059).
+'{"skipDangerousModePermissionPrompt":true}' --model claude-fable-5`, waits
+for `idle`, submits the canonical line with `herdr --session
+ecosystem-coordinator agent prompt ecosystem-coordinator '<README /goal
+line>'`, then attaches with `herdr session attach ecosystem-coordinator`.
+The launch flags are explicit; the
+script does not depend on `claude-yolo`. `-p`/`--print` is forbidden.
+
+Herdr persists panes after `Ctrl-b`, then `q`, or after the client window
+closes. `tools/supervisor.sh resume` attaches when the named agent survives;
+otherwise it reconciles and relaunches it from durable state before
+attaching. It never relaunches in the background without that operator
+command. If attach fails, it returns 4, leaves the coordinator/session live,
+logs `interactive attach failed; coordinator preserved; retry command: herdr
+session attach ecosystem-coordinator`, and makes no destructive rollback.
+On another launch failure, rollback closes only the workspace this invocation
+created and stops the session only when it started that server. In a
+pre-existing session it interrupts only a coordinator it created, never the
+session or unrelated task/probe panes.
+`status` reports named-session, coordinator-agent, and run state;
+`read` uses `herdr --session ecosystem-coordinator agent read
+ecosystem-coordinator --source recent-unwrapped`; `stop` uses `herdr
+session stop ecosystem-coordinator --json` and therefore terminates every pane process in that
+session. `--dry-run` previews reconciliation, writes no event, and launches
+nothing; `--coordinator-cmd` replaces Claude for tests
+(`sh tests/supervisor/test_resume.sh`). Logs are host artifacts in
+ignored `run/logs/herdr-<session-key>.log` and
+`run/logs/supervisor-<session-key>.log` (default key
+`ecosystem-coordinator`, D-059). On every resume, assert that `done` never
+decreases and no `done` task takes a new lease; refusal is
+`failed-system`.
 
 ## 2. What "one task" means
 
@@ -149,8 +181,13 @@ ignores (D-059).
 - Output: the task's changes committed and pushed on the task branch in
   every touched repository, then merged into that repository's integration
   target (`feat/managed-execution`, or `main` in role repositories) by the
-  holder of its integrator lease, with the resulting integrated SHA in
-  `tasks/<id>/evidence.json` as `integrated_sha` (D-112, D-074); text
+  holder of its integrator lease. `tasks/<id>/evidence.json` carries one
+  `repositories[]` object per involved repository — `repo`, `branch`, the
+  exact integration head at this task's transition as `integrated_sha`, and
+  `checkout`; the scalar `integrated_sha` equals `repositories[0].integrated_sha`
+  for compatibility (D-112, D-074). Repeated `--repository <repo> <branch>
+  <sha> <checkout>` arguments to `tools/evidence_manifest.py run` produce
+  that array; never collapse multiple repositories into one record. Text
   evidence in `tasks/<id>/` (D-059); the composite
   `tasks/<id>/verify.out` (container part, then host part) with
   `status: DONE` as its last line; the `tasks/README.md` row set to `done`;
@@ -175,7 +212,7 @@ ignores (D-059).
   minutes, or whose verify has failed three times in a row, gets an
   analysis pass by fresh subagents (assumption, missing input, failing
   check, environment) and the proposed fix is applied. New lines in a
-  container's tmux pane, including docker build or pull output during a
+  container's Herdr pane, including docker build or pull output during a
   role's first load, count as evidence; an active `cargo` or `rustc`
   process in `docker top` of the task's container counts as evidence too;
   time this session spends limited (§4) does not count against any task's
@@ -184,7 +221,8 @@ ignores (D-059).
   that wait is recorded as `waiting on <lane>` in the result cell and
   stops its clock.
   Never poll a container pane in a model loop: waiting is done by
-  `sh tools/supervisor.sh watch` (§4), whose sleeps cost no model turn. Only a genuine operator
+  `herdr pane wait-output` or `herdr agent wait` (§4), whose blocking wait
+  costs no model turn. Only a genuine operator
   input becomes a preflight defect; a verify that still fails after
   `limits.attempts` attempts in the current epoch is exhaustion (D-070,
   D-084, §6).
@@ -302,7 +340,7 @@ Exactly one path per task, chosen by this table. Record the path in the
 | --- | --- | --- |
 | `host` | `role` is `host`, or the task only changes this repository | This session runs the commands (delegating research and verification to subagents). Host-only `verify.sh` runs here and its output is filed (D-061). A host command that creates a named resource runs the corresponding `get` first and skips when present. Only this session commits to this repository (D-086). |
 | `subagents` | Claude lanes (L1..L3) only: the task changes an involved repository and needs no role-only tool (`agent-browser`, `op` inside a container, DinD) and the daemon cannot dispatch it yet (before M3-05 is merged) | In-session subagents with the lane's model, working in that task's own git worktree at `~/.jackin/managed/<id>/<repo>` (clone or fetch, then `git worktree add` on branch `managed/<run-id>/<id>` created from the base SHA locked in `run/LOCK.toml`; never a checkout of `feat/managed-execution`, D-112). They all share this session's `~/.claude`, so each such task counts against the `~/.claude` cap and an L1→L2→L3 fallback is a model change only. Codex lanes never use this path (D-082). A task whose verify launches or attaches to a jackin instance takes this path (host Docker) before M3-05, never `container` (D-091). |
-| `container` | The task's scope or verify names a role container, `agent-browser`, `jackin-exec`, or the profile mount (every `crew-operator` task; role smoke tests), or the task's lane is a Codex lane (L4..L6), and the daemon cannot dispatch it yet | **Workspace (D-085).** `jackin workspace show task-<id>` or, when absent, `jackin workspace create task-<id> --workdir /workspace --mount <ws>:/workspace`. `<ws>` is the mount source of `/workspace`: the task's worktree `~/.jackin/managed/<id>/<repo>` for a task that changes a repository, the evidence directory `~/.jackin/managed/<id>` for an operator or evidence task; a review adds `:ro` (`<ws>:/workspace:ro`). The `:/workspace` half is never omitted: a bare `--mount <path>` mounts the directory at its own host path (a mount spec without `:dst` uses `dst = src`) and leaves `/workspace` empty, which breaks every `-w /workspace` exec, the container-relative `.jackin/task/...` prompt line, and the-architect's `MISE_TRUSTED_CONFIG_PATHS=/workspace` (an untrusted `mise.toml` means no Rust toolchain). Then merge the lane template into `~/.config/jackin/workspaces/task-<id>.toml`: `tasks/M1-13/lanes/L<n>.toml` once M1-13 is done, before that `tasks/M1-02a/lanes/L<n>.toml` (`[codex] sync_source_dir` or `[claude] sync_source_dir` — that is the sole account selector before M1-13, and host `CODEX_HOME`/`CLAUDE_CONFIG_DIR` select nothing in `jackin load` — plus the template's `[[mounts]]` lines, applied one by one with `jackin workspace edit task-<id> --mount <src>:<dst>`, which is how the per-lane cargo caches reach the container). Then merge the task's **role grant** file `tasks/M1-13/grants/<role>.toml` into the same workspace: a lane template carries `sync_source_dir` and `[env]` only, because every lane serves builder, operator, and reviewer tasks, so Docker grants are per role, not per lane (`the-architect` and `donbeave/crew-builder` get `[docker.grants] dind = "privileged"`, `donbeave/crew-operator` the network allowlist grant, `donbeave/crew-reviewer` neither). Before M1-13 is done no grant file exists and no task on this path needs one. `jackin load <role> task-<id> --agent <runtime> --dry-run --format json` must report `.data.workspace == "task-<id>"` and `jq -e '.data.mounts[]|select(.dst=="/workspace")'` must succeed; an ad-hoc load (no workspace name) is a plan defect, never retried. **Staging.** Into the same `<ws>`, so the folder appears in the container as `/workspace/.jackin/task/`: `mkdir -p <ws>/.jackin/task && cp tasks/<id>/TASK.md tasks/<id>/task.toml tasks/<id>/verify.sh <ws>/.jackin/task/`, the `## References` files into `<ws>/.jackin/task/refs/`, `tasks/<id>/pr.txt` for reviews, and — only when `<ws>` is a git worktree — `echo .jackin/ >> <ws>/.git/info/exclude` (for the read-only reviewer mount the copy is still host-side). The container part of a `verify.sh` reads nothing outside `/workspace`: repository files as `./…`, any evidence file the host produced as `.jackin/task/refs/<name>`, staged here. **Teardown before any launch of the same id** (retry, fallback, re-sync, resume): `tmux kill-session -t <id>` if `has-session` succeeds, then, for a `crew-operator` container, `docker exec -u agent "$(cat tasks/<id>/container.txt)" agent-browser close --all` so Chromium releases the shared profile, then `jackin eject "$(cat tasks/<id>/container.txt)"` if that file names a live container; never start a second load for the same id while one is loaded. Before every `crew-operator` launch, once `docker ps --filter label=jackin.role=donbeave/crew-operator` prints nothing, `rm -f ~/.jackin/agent-browser-profile/Singleton{Lock,Socket,Cookie}`: Chromium writes those as `<hostname>-<pid>`, the hostname is the container id, and a stale one makes the next container refuse to start with "profile in use on another computer". The cap of one `crew-operator` guarantees no live holder, so the removal is unconditional; a PID check is meaningless across PID namespaces. **Launch.** `tmux new-session -d -s <id> -x 200 -y 50 "env -u CI TERM=xterm-256color JACKIN_NO_MOTION=1 jackin load <role> task-<id> --agent <runtime>"` from `$HOME` (never from a directory containing an entry named `task-<id>`). `<role>` is the task's role, or `the-architect` for the bootstrap tasks M1-04a and M1-05a..c (`ROADMAP.md` §4). Preconditions so no dialog appears: trust granted (M1-05d), every manifest `[env]` var satisfied, no mount source under jackin's sensitive list. Wait for the capsule tab strip and the runtime's input prompt without spending a model turn per poll: `sh tools/supervisor.sh watch --pane <id> --pattern '<runtime prompt regex>' --timeout 900` (a cold build's budget). The script sleeps in one shell process and returns only on a match, on expiry, or when the pane dies; on expiry it extends itself once by the same budget if the pane's last lines are still changing (a `docker build`/`pull` in progress), and otherwise exits non-zero, which is the stuck rule (§2). Never write a five-second poll as a loop of model turns: that alone is the largest `~/.claude` sink of the run. Then record the container. The workspace component of a jackin container name is lowercased and stripped of every non-alphanumeric character, so `task-M2-01` appears as `taskm201` and a hyphenated pattern matches nothing: `slug=$(printf %s "task-<id>" \| tr -cd '[:alnum:]' \| tr '[:upper:]' '[:lower:]'); docker ps --filter label=jackin.managed=true --filter label=jackin.kind=role --format '{{.Names}}' \| grep -- "-${slug}-" \| head -1 > tasks/<id>/container.txt`. When two names match, `jackin status --format json` filtered by workspace `task-<id>` is authoritative and decides which one is written. **Prompt.** One line only, never the multi-line `TASK.md` as keystrokes: `goal` delivery → `tmux send-keys -t <id> -l '/goal Read this file: .jackin/task/TASK.md — implement it fully until sh .jackin/task/verify.sh container prints status: DONE'`; `prompt` delivery → `tmux send-keys -t <id> -l 'Read .jackin/task/TASK.md and follow it as your task prompt; the container check is sh .jackin/task/verify.sh container'`; confirm with `capture-pane` that the line sits in the input box, then `tmux send-keys -t <id> Enter`; note `prompt landed: file` in the result cell. Progress is read at most once per five minutes per task, and only when a `watch` invocation has returned: `tmux capture-pane -p -S -200 -t <id>`. **Container verify** is never typed into the TUI: `docker exec -u agent -w /workspace "$(cat tasks/<id>/container.txt)" sh .jackin/task/verify.sh container > tasks/<id>/verify.container.out 2>&1` (from M4-03: `jackin daemon exec <instance> -- sh .jackin/task/verify.sh container`). **End.** When `verify.out` is `DONE` run `jackin eject "$(cat tasks/<id>/container.txt)"` — always by container name, never by role class, never `--all` (two `the-architect` instances run concurrently in most M3/M4 waves; an eject error is filed as a jackin gap and the run continues) — then `tmux kill-session -t <id>`; `jackin workspace remove task-<id>` after the `PROGRESS.md` row. Interim when no loadable role exists (M1-04a before `the-architect` supports the task, or a D-046 gap): a detached `tmux` session running `CODEX_HOME=<home> codex exec --dangerously-bypass-approvals-and-sandbox -C ~/.jackin/managed/<id>/<repo> -c model_reasoning_effort=medium "$(cat tasks/<id>/TASK.md)" 2>&1 \| tee tasks/<id>/codex.log` (argv, not keystrokes; the only place the host `CODEX_HOME` selects the account); the session reads the log and runs `verify.sh` here. One process per Codex home at a time. |
+| `container` | The task's scope or verify names a role container, `agent-browser`, `jackin-exec`, or the profile mount (every `crew-operator` task; role smoke tests), or the task's lane is a Codex lane (L4..L6), and the daemon cannot dispatch it yet | **Workspace (D-085).** `jackin workspace show task-<id>` or, when absent, `jackin workspace create task-<id> --workdir /workspace --mount <ws>:/workspace`. `<ws>` is the mount source of `/workspace`: the task's worktree `~/.jackin/managed/<id>/<repo>` for a task that changes a repository, the evidence directory `~/.jackin/managed/<id>` for an operator or evidence task; a review adds `:ro` (`<ws>:/workspace:ro`). The `:/workspace` half is never omitted: a bare `--mount <path>` mounts the directory at its own host path (a mount spec without `:dst` uses `dst = src`) and leaves `/workspace` empty, which breaks every `-w /workspace` exec, the container-relative `.jackin/task/...` prompt line, and the-architect's `MISE_TRUSTED_CONFIG_PATHS=/workspace` (an untrusted `mise.toml` means no Rust toolchain). Then merge the lane template into `~/.config/jackin/workspaces/task-<id>.toml`: `tasks/M1-13/lanes/L<n>.toml` once M1-13 is done, before that `tasks/M1-02a/lanes/L<n>.toml` (`[codex] sync_source_dir` or `[claude] sync_source_dir` — that is the sole account selector before M1-13, and host `CODEX_HOME`/`CLAUDE_CONFIG_DIR` select nothing in `jackin load` — plus the template's `[[mounts]]` lines, applied one by one with `jackin workspace edit task-<id> --mount <src>:<dst>`, which is how the per-lane cargo caches reach the container). Then merge the task's **role grant** file `tasks/M1-13/grants/<role>.toml` into the same workspace: a lane template carries `sync_source_dir` and `[env]` only, because every lane serves builder, operator, and reviewer tasks, so Docker grants are per role, not per lane (`the-architect` and `donbeave/crew-builder` get `[docker.grants] dind = "privileged"`, `donbeave/crew-operator` the network allowlist grant, `donbeave/crew-reviewer` neither). Before M1-13 is done no grant file exists and no task on this path needs one. `jackin load <role> task-<id> --agent <runtime> --dry-run --format json` must report `.data.workspace == "task-<id>"` and `jq -e '.data.mounts[]|select(.dst=="/workspace")'` must succeed; an ad-hoc load (no workspace name) is a plan defect, never retried. **Staging.** Into the same `<ws>`, so the folder appears in the container as `/workspace/.jackin/task/`: `mkdir -p <ws>/.jackin/task && cp tasks/<id>/TASK.md tasks/<id>/task.toml tasks/<id>/verify.sh <ws>/.jackin/task/`, the `## References` files into `<ws>/.jackin/task/refs/`, `tasks/<id>/pr.txt` for reviews, and — only when `<ws>` is a git worktree — `echo .jackin/ >> <ws>/.git/info/exclude` (for the read-only reviewer mount the copy is still host-side). The container part of a `verify.sh` reads nothing outside `/workspace`: repository files as `./…`, any evidence file the host produced as `.jackin/task/refs/<name>`, staged here. **Teardown before any launch of the same id** (retry, fallback, re-sync, resume): when `tasks/<id>/herdr-tab.txt` names a live tab, `herdr tab close "$(cat tasks/<id>/herdr-tab.txt)"`; then, for a `crew-operator` container, `docker exec -u agent "$(cat tasks/<id>/container.txt)" agent-browser close --all` so Chromium releases the shared profile; then `jackin eject "$(cat tasks/<id>/container.txt)"` if that file names a live container. Never start a second load for the same id while one is loaded. Before every `crew-operator` launch, once `docker ps --filter label=jackin.role=donbeave/crew-operator` prints nothing, `rm -f ~/.jackin/agent-browser-profile/Singleton{Lock,Socket,Cookie}`: Chromium writes those as `<hostname>-<pid>`, the hostname is the container id, and a stale one makes the next container refuse to start with "profile in use on another computer". The cap of one `crew-operator` guarantees no live holder, so the removal is unconditional; a PID check is meaningless across PID namespaces. **Launch (Herdr 0.8.2, D-124).** Create a background tab in the coordinator workspace with `herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd "$HOME" --label '<id>' --no-focus`; record `.result.tab.tab_id` in `tasks/<id>/herdr-tab.txt` and `.result.root_pane.pane_id` in `tasks/<id>/herdr-pane.txt`. Start the TUI with `herdr pane run "$(cat tasks/<id>/herdr-pane.txt)" "env -u CI TERM=xterm-256color JACKIN_NO_MOTION=1 jackin load <role> task-<id> --agent <runtime>"`. `<role>` is the task's role, or `the-architect` for bootstrap tasks M1-04a and M1-05a..c (`ROADMAP.md` §4). Preconditions so no dialog appears: trust granted (M1-05d), every manifest `[env]` var satisfied, no mount source under jackin's sensitive list. Wait without model polling: `herdr pane wait-output "$(cat tasks/<id>/herdr-pane.txt)" --regex '<runtime prompt regex>' --source recent-unwrapped --lines 200 --timeout 900000`. On timeout, read once with `herdr pane read ... --source recent-unwrapped --lines 200`; repeat one 900000 ms wait only when build/pull lines changed, otherwise apply the stuck rule. Once detected, rename the agent to exactly the lowercase task id (`M2-01` → `m2-01`) with `herdr agent rename "$(cat tasks/<id>/herdr-pane.txt)" '<id-lowercase>'` and write that exact alias to `tasks/<id>/herdr-agent.txt`. On resume, a pane without that agent is live only when `herdr pane process-info` shows a foreground command containing boundary-delimited `task-<id>` plus the task runtime; a recorded pane id alone proves nothing. Then record the container. The workspace component of a jackin container name is lowercased and stripped of every non-alphanumeric character, so `task-M2-01` appears as `taskm201` and a hyphenated pattern matches nothing: `slug=$(printf %s "task-<id>" \| tr -cd '[:alnum:]' \| tr '[:upper:]' '[:lower:]'); docker ps --filter label=jackin.managed=true --filter label=jackin.kind=role --format '{{.Names}}' \| grep -- "-${slug}-" \| head -1 > tasks/<id>/container.txt`. When two names match, `jackin status --format json` filtered by workspace `task-<id>` is authoritative and decides which one is written. **Prompt.** One line only, never multi-line `TASK.md`: `goal` delivery uses `herdr agent prompt "$(cat tasks/<id>/herdr-agent.txt)" '/goal Read this file: .jackin/task/TASK.md — implement it fully until sh .jackin/task/verify.sh container prints status: DONE'`; `prompt` delivery uses the same command with `Read .jackin/task/TASK.md and follow it as your task prompt; the container check is sh .jackin/task/verify.sh container`. `agent prompt` handles paste mode and Enter atomically; note `prompt landed: file` only after it reports success. Wait with `herdr agent wait "$(cat tasks/<id>/herdr-agent.txt)" --timeout 1800000`; inspect `blocked` with `herdr agent read ... --source recent-unwrapped --lines 200`; progress reads happen only after a wait returns. **Container verify** is never typed into the TUI: `docker exec -u agent -w /workspace "$(cat tasks/<id>/container.txt)" sh .jackin/task/verify.sh container > tasks/<id>/verify.container.out 2>&1` (from M4-03: `jackin daemon exec <instance> -- sh .jackin/task/verify.sh container`). **End.** When `verify.out` is `DONE`, run `jackin eject "$(cat tasks/<id>/container.txt)"` — always by container name, never by role class or `--all` — then `herdr tab close "$(cat tasks/<id>/herdr-tab.txt)"`; remove `task-<id>` after the `PROGRESS.md` row. Interim when no loadable role exists: create and record a Herdr tab/pane the same way, then `herdr pane run <pane-id> 'CODEX_HOME=<home> codex exec --dangerously-bypass-approvals-and-sandbox -C ~/.jackin/managed/<id>/<repo> -c model_reasoning_effort=medium "Task marker: task-<id>. $(cat tasks/<id>/TASK.md)" 2>&1 \| tee tasks/<id>/codex.log'`; inspect with `herdr pane process-info` and `herdr pane read`. One process per Codex home. |
 | `daemon` | From the moment M3-05 and M3-06 are merged on `feat/managed-execution`, the branch build is installed (§5 step 4a), and `jackin daemon status` answers on this host, for every M2+ task whose row carries a Linear URL and whose delivery the daemon supports at that time (M4-01 for prompt delivery, M7-01 for verify, M8-02 for PRs, D-073) | This session delegates the issue to jackin (`issueUpdate(id, input:{delegateId})` with the workspace token obtained per the Linear-token rule below, D-023 holds) when the task becomes runnable; the daemon itself creates the agent session for a delegated issue that has none (`agentSessionCreateOnIssue`, M2-02, D-087), so the host step is the one mutation. It watches `jackin daemon status --format json` and Linear, answers elicitations by PTY injection through `jackin hardline <instance>` or `jackin daemon exec` (never as a Linear `prompt`, which only a human actor can post; Linear-UI replies are made by the proof task's own `crew-operator`), applies the stuck rule, and files evidence when the run reaches `done`. Nothing is started by hand that the daemon can dispatch; a task the daemon cannot serve takes the `subagents` or `container` path with no delegate set. Before the first daemon start against the real workspace, at every daemon restart, and at every session start, reconcile per D-073. |
 
 Throwaway load (role smoke test: M1-05a, M1-05b, M1-05c, M1-06, M1-13,
@@ -314,11 +352,14 @@ workspace create probe-<id> --workdir /workspace --mount <checkout>:/workspace`
 — M1-05a a termrock clone at `~/.jackin/managed/M1-05a/termrock`; M1-05b
 `~/.jackin/managed/M1-05b` plus `--mount
 ~/.jackin/agent-browser-profile:/home/agent/.agent-browser-profile`; M1-05c
-any checkout with `:ro` — merge the lane template as above, then `tmux
-new-session -d -s <id>-probe "env -u CI TERM=xterm-256color
+any checkout with `:ro` — merge the lane template as above, then create a
+background Herdr tab labelled `<id>-probe`, record its tab and root pane as
+`tasks/<id>/herdr-probe-tab.txt` and `herdr-probe-pane.txt`, and run
+`herdr pane run <probe-pane-id> "env -u CI TERM=xterm-256color
 JACKIN_NO_MOTION=1 jackin load donbeave/crew-<p> probe-<id> --agent
-<runtime>"`, wait with `sh tools/supervisor.sh watch --pane <id>-probe`,
-and record the name the same way as above into
+<runtime>"`. Wait with `herdr pane wait-output <probe-pane-id> --regex
+'<runtime prompt regex>' --source recent-unwrapped --lines 200 --timeout
+900000`, and record the container name the same way as above into
 `tasks/<id>/throwaway.txt`. Every "inside: …" check of such a task's
 verify column is a **host** part (D-061, D-091) that runs `docker exec -u
 agent "$(cat tasks/<id>/throwaway.txt)" sh -c '<check>'`, and `jackin role
@@ -326,8 +367,9 @@ validate ~/.jackin/roles/donbeave/crew-<p>/default` runs on the host too,
 never inside a container. The container part of these tasks is only what
 holds in the task's own container: the sign-off check `git -C /workspace
 log -1` and the presence of the role's files. End with `jackin eject
-"$(cat tasks/<id>/throwaway.txt)"`, `tmux kill-session -t <id>-probe`,
-`jackin workspace remove probe-<id>` (and, for a `crew-operator` probe,
+"$(cat tasks/<id>/throwaway.txt)"`, `herdr tab close "$(cat
+tasks/<id>/herdr-probe-tab.txt)"`, `jackin workspace remove probe-<id>`
+(and, for a `crew-operator` probe,
 the `agent-browser close --all` and `Singleton*` removal of the Teardown
 step). A throwaway load holds a container slot and its lane's account home
 for its whole duration (§3).
@@ -338,10 +380,10 @@ records every unexpected one in the task folder as a jackin gap owned by
 M3-01: role or branch trust → confirm (should not appear after M1-05d);
 jackin-exec credential picker → verify the displayed command is the task's
 expected `jackin-exec op …` invocation and the binding is
-`OP_SERVICE_ACCOUNT_TOKEN`, then `tmux send-keys -t <id> Space` followed
-by `tmux send-keys -t <id> Enter` (Space first: rows start unselected);
-any other command → `Escape` and the stuck rule; skippable env prompt →
-`Enter` on empty; restore picker → should not appear (the previous
+`OP_SERVICE_ACCOUNT_TOKEN`, then `herdr pane send-keys <pane-id> space
+enter` (Space first: rows start unselected); any other command → `herdr
+pane send-keys <pane-id> esc` and the stuck rule; skippable env prompt →
+`herdr pane send-keys <pane-id> enter` on empty; restore picker → should not appear (the previous
 instance was ejected by container name); if it does, new instance and a
 gap note; exit or restore dialog on agent exit → confirm exit. The picker
 works on OrbStack (the `SO_PEERCRED` check is Linux-only inside the
@@ -393,11 +435,11 @@ Rules that hold on every path:
   prompt>' | tee tasks/<id>/analysis.log`; a `weekly` bucket below 15
   behaves like "below 20" until its reset; the snapshot's `resets_at` goes
   into `PROGRESS.md`. If the limit is reached anyway, this session cannot
-  act until the reset: dispatched tmux containers keep running (their idle
+  act until the reset: dispatched Herdr task panes keep running (their idle
   time does not count as stuck), Claude Code continues the turn itself when
   the auto-continue setting of `goal/PREFLIGHT.md` §1 is on, and the first
-  thing after the reset is §1 steps 2–3 (re-attach to surviving tmux
-  sessions, re-run verify). A limit message inside a Claude container's
+  thing after the reset is §1 steps 2–3 (inspect surviving Herdr agents,
+  re-run verify). A limit message inside a Claude container's
   pane is a quota hop, not stuck. Only a weekly-cap message with a reset
   more than 24 hours away is a preflight defect (billing action).
 - Linear token (D-087): every host-side GraphQL call reads `op://jackin/
@@ -413,8 +455,8 @@ Rules that hold on every path:
   capability needed by a path (for example non-interactive prompt
   delivery, the `--on-demand` env flag, pre-approved on-demand bindings)
   is built in jackin on `feat/managed-execution` as part of the roadmap
-  task that owns it (M3-01, M4-01, M4-03), and `tmux` is the interim path,
-  not a permanent one (D-046).
+  task that owns it (M3-01, M4-01, M4-03); Herdr panes are the interim
+  host transport, not a product capability (D-046, D-124).
 - Every container path reuses the host's forwarded `gh` login and never
   sees the Linear token or a 1Password secret value (D-023, D-035). Early-
   started tasks never modify `~/.config/jackin/config.toml` or any lane
@@ -434,10 +476,14 @@ Rules that hold on every path:
   integrator:<repo>` and released after the push. The integrator
   fast-forwards where it can (`git merge --ff-only`), otherwise `git fetch
   origin && git merge` and push (up to five retries), never `--force`.
-  Verification then runs against the integrated SHA — `git rev-parse HEAD`
-  on the integration target after that merge — never against a worker
-  branch tip, and that SHA is written to `tasks/<id>/evidence.json` as
-  `integrated_sha`. Every role change ends with `jackin load <role>
+  Verification then runs against each exact integrated SHA — `git rev-parse
+  HEAD` on each integration target immediately after that merge — never
+  against a worker branch tip. Pass every repository as a repeated
+  `--repository` argument to the evidence-manifest command; the task
+  transition result records the same `<repo>=<exact-sha>` pairs. The final
+  root gate accepts that historical SHA only while it remains an ancestor of
+  the repository's later integration head; divergent history fails. Every
+  role change ends with `jackin load <role>
   --rebuild`.
 - jackin `main` is protected by ruleset 14746904, read 2026-08-28 with `gh
   api repos/jackin-project/jackin/rulesets/14746904`: `--jq
@@ -496,8 +542,9 @@ Rules that hold on every path:
   and `git push --force-with-lease`, recorded in the `PROGRESS.md` result
   cell.
 - Forwarded logins (D-082): a login failure inside a container is a
-  preflight defect only when the host-side probe also fails (`claude -p
-  ok` under the lane's `CLAUDE_CONFIG_DIR`; `codex exec 'print ok'` under
+  preflight defect only when the host-side check also fails (`claude auth
+  status` under the lane's `CLAUDE_CONFIG_DIR`, which starts no agent;
+  `codex exec 'print ok'` under
   the lane's `CODEX_HOME`); otherwise re-launch the attempt (teardown
   first) so the fresh host state is re-synced and note `re-sync` in the
   result cell.
@@ -589,8 +636,17 @@ section follows it verbatim.
    tasks/<id>/verify.sh host > tasks/<id>/verify.host.out 2>&1`; when a
    container part exists the host part first asserts that
    `verify.container.out` ends with `status: DONE`, else prints `status:
-   FAILED`. `verify.out` is `cat verify.container.out verify.host.out`; the
-   task is verified only when its last line is `status: DONE`. Otherwise
+   FAILED`. `verify.out` is `cat verify.container.out
+   verify.host.out`, preceded by the header lines the root oracle reads: `commit: <40hex>`, the commit of
+   this repository the evidence was recorded against, `bundle_hash: <hex>`,
+   and — for a task whose `repos` name an involved repository — an
+   `integrated_sha: <40hex>` line carrying the first repository's exact
+   integration head at transition. It equals the manifest scalar and
+   `repositories[0].integrated_sha`; every further repository is represented
+   by another `repositories[]` object produced with a repeated `--repository`
+   argument (D-112). A task confined
+   to this repository records the same SHA in both places and needs no
+   `integrated_sha:` line. The task is verified only when its last line is `status: DONE`. Otherwise
    fix and repeat: after the D-063 analysis, the next attempt runs on the
    next lane of the D-057 chain; after `limits.attempts` attempts (default
    3, `task.toml`; `SPEC.md` §6 step 8) counted in
@@ -764,14 +820,14 @@ What this session may do itself, and nothing more:
 - Read: `GOAL.md`, `AGENTS.md`, this file, `goal/PREFLIGHT.md`,
   `tasks/README.md`, `PROGRESS.md`, `PREFLIGHT-DEFECTS.md`, and the
   current `tasks/<id>/` folder (its `TASK.md`, `task.toml`, `verify.*.out`,
-  `attempts.log`, `container.txt`, `pr*.txt`).
+  `attempts.log`, `container.txt`, `herdr-*.txt`, `pr*.txt`).
 - Never read in this session: `ROADMAP.md`, `SPEC.md`, `DECISIONS.md`,
   `concept/*`, `analysis/*`, or any file in an involved repository. A
   single literal may be `grep`ed out of them (`grep -n '^| M3-05 ' ROADMAP.md`);
   anything larger is a subagent's job, and the subagent returns at most 15
   lines.
 - Run: git on this repository, `sh verify.sh`, `sh tasks/<id>/verify.sh
-  host`, `docker`/`tmux`/`jackin`/`gh`/`op` host commands of §4, the
+  host`, `docker`/`herdr`/`jackin`/`gh`/`op` host commands of §4, the
   standing checks of §1 step 4, and `caffeinate`.
 - Write: `tasks/README.md`, `PROGRESS.md`, `PREFLIGHT-DEFECTS.md`, and
   `tasks/<id>/` files — in this repository only, then commit and push at

@@ -29,20 +29,22 @@ pass and a live pass can be shown to belong to the same plan.
   verify --all`, `tools/lock.py check`, `tools/check_disposition.py`,
   `tools/gate_fixtures.sh`, `shellcheck -s sh` over `verify.sh`,
   `tools/*.sh` and every `tasks/<id>/verify.sh`, no task verifier
-  containing `hardline`, `tmux attach`, `--latest` or `newest` (durable
+  containing `hardline`, `herdr session attach`, `--latest` or `newest` (durable
   evidence only), `tools/invariant_lint.py`, and `tools/state.py verify`.
 - `sh tools/readiness.sh live` — this host, one line per check, in this
-  order: `docker` (`docker info`), `tmux`, `dash`, `shellcheck`,
+  order: `docker` (`docker info`), Herdr 0.8.2, `dash`, `shellcheck`,
   `gitleaks`, `claude`, `codex`, `mise`, `jackin dco` (`dco = true` in
   `${JACKIN_CONFIG_DIR:-$HOME/.config/jackin}/config.toml`, R3-75 — while
   `jackin` is absent the line reads `pending: M1-02` and does not fail,
   since M1-02 builds it), `op configured` (`op account list`),
   `claude-yolo` (the launcher shell function, in an interactive zsh),
   `caffeinate` running, `screensaver off`, `auto-continue`
-  (`autoContinueAtUsageLimit`), and `permission probe`
-  (`sh tools/probe_permissions.sh`, which launches one real `claude -p` to
-  prove the pinned permission mode never prompts; D-120, its own
-  120-second timeout). Then the human-only rows: `1Password signed in`,
+  (`autoContinueAtUsageLimit`), and `coordinator yolo flags` (a static
+  inspection that `tools/supervisor.sh` contains both
+  `--dangerously-skip-permissions` and
+  `skipDangerousModePermissionPrompt`). It runs `claude --version` but
+  never `claude -p`, never launches an AI agent, and makes no AI-provider
+  request. Then the human-only rows: `1Password signed in`,
   `gh auth`, `operator browser profile`, `GitHub App jackin-daemon`,
   `delete_branch_on_merge off`, `the-architect ruleset`, and
   `pinned role refs`.
@@ -112,9 +114,11 @@ never lowers the bar. Clear those items in §1..§5 below and re-run it.
 - [ ] The launcher function exists in this shell. Proof: `type
       claude-yolo` succeeds and shows it expanding to `claude --settings
       '{"skipDangerousModePermissionPrompt":true}'
-      --dangerously-skip-permissions`; the run is started as `claude-yolo
-      --model claude-fable-5` (D-120). If the function is missing, paste
-      the expansion from `README.md` "Start the run" instead.
+      --dangerously-skip-permissions`. The Herdr launcher does not depend on
+      the shell function: it passes that expansion and
+      `--model claude-fable-5` after `herdr agent start ... --` (D-124).
+      If the function is missing, this parity check may use the expansion
+      from `README.md` "Start the run" instead.
 - [ ] The Codex runtime is present and runs in its yolo mode. Proof:
       `codex --version` succeeds, and every Codex launch line carries
       `--dangerously-bypass-approvals-and-sandbox` — inside jackin role
@@ -135,16 +139,22 @@ never lowers the bar. Clear those items in §1..§5 below and re-run it.
       --jq .total_count` both succeed.
 - [ ] Provider logins current in all four account homes: `~/.claude`,
       `~/.codex`, `~/.codex-chainargos`, `~/.codex-chainargos2`. Proof:
-      `claude --version` and `claude -p 'ok'` under
-      `CLAUDE_CONFIG_DIR=~/.claude`; under each `CODEX_HOME`: `codex login
+      `claude --version` and `claude auth status` under
+      `CLAUDE_CONFIG_DIR=~/.claude` (authentication metadata only; it
+      launches no Claude agent); under each `CODEX_HOME`: `codex login
       status` and a real non-interactive call `codex exec -C /tmp 'print
       ok'` (login status alone does not prove `exec` works), and `codex
       exec --help` accepts `-c model_reasoning_effort=medium`. A login
       that expires mid-run is a preflight defect only when this host-side
-      probe fails (D-082).
-- [ ] `tmux` installed (container path of `goal/EXECUTION.md` §4).
-      Installed by the session, never a defect (the session runs
-      `brew install tmux` itself). Proof: `tmux -V`.
+      check fails (D-082). These are separate standing checks run by the
+      host session; `tools/readiness.sh live` does not execute them, and
+      no preflight path starts Claude outside Herdr.
+- [ ] Herdr 0.8.2 installed (coordinator, container, probe, and interim
+      Codex panes of `goal/EXECUTION.md` §1 and §4). Install once with
+      `brew install herdr` when absent; this is a brew-installable tool,
+      never a human-only defect. Proof: `herdr --version` prints exactly
+      `herdr 0.8.2`, and `herdr session list --json` succeeds without
+      starting a session.
 - [ ] `dash` and `shellcheck` installed (`brew install dash shellcheck`):
       every `tasks/<id>/verify.sh` is POSIX `sh` checked with `dash -n`
       and `shellcheck -s sh` because the container `sh` is dash (D-086).
@@ -174,13 +184,17 @@ never lowers the bar. Clear those items in §1..§5 below and re-run it.
       shows the `session` bucket with `remaining_percent` above 40;
       below that the session applies the reserve rule of
       `goal/EXECUTION.md` §4 before dispatching anything on `~/.claude`.
-- [ ] The run is started in the interactive Claude Code TUI, in this
-      repository, or by `sh tools/supervisor.sh start`, which launches that
-      session itself. Never `claude -p`, `claude --print`, or a wrapper that
+- [ ] The run is started only by the operator running `sh
+      tools/supervisor.sh start` after both readiness gates report READY.
+      The launcher creates the isolated Herdr session
+      `ecosystem-coordinator`, starts the named interactive Claude agent in
+      this repository, submits the printed canonical `/goal`, then attaches
+      the Herdr UI. Never `claude -p`, `claude --print`, or a wrapper that
       makes the session non-interactive: the `/goal` Stop-hook evaluator
       that loops the run is armed only for an interactive session, so a
       headless start runs one turn and stops. Proof: the `/goal` line prints
-      `Goal set: …`.
+      `Goal set: …`, and `sh tools/supervisor.sh status` reports the named
+      Herdr agent.
 - [ ] No Bash-rewriting `PreToolUse` hook is active for the run. This
       repository's `.claude/settings.json` carries none, but hooks merge
       across scopes and the user-level `~/.claude/settings.json` on this
@@ -416,8 +430,10 @@ answer GitHub sudo-mode or capsule dialogs, bless anything (golden frames
 are blessed by the session under D-075), or re-run anything. If the
 session ends BLOCKED, `PREFLIGHT-DEFECTS.md` lists exactly what is needed
 (a missing input or an `exhausted: <id>` row, D-070); clear it, then run
-the `/goal` invocation line of `README.md` "Start the run" again. The two
-kinds are cleared differently (D-084, D-093):
+`sh tools/readiness.sh live`; after READY, invoke `sh
+tools/supervisor.sh resume`. The launcher attaches a survivor or relaunches
+Claude and submits the canonical `/goal` line of `README.md` "Start the
+run". The two kinds are cleared differently (D-084, D-093, D-124):
 
 - A **missing-input** row carries a proof command. Provide the input and
   leave the `Resolved` cell empty: the session re-runs that proof command

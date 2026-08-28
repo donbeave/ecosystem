@@ -1,7 +1,8 @@
 #!/bin/sh
 # Coordinator variant that dies the way a rejected stop hook makes a Claude
 # Code session die: it writes a StopFailure line and exits non-zero
-# (readiness plan 3.3). The supervisor must observe both facts and resume.
+# (readiness plan 3.3). The recovery rehearsal must observe both facts before
+# asking the Herdr launcher to resume from durable state.
 
 set -eu
 

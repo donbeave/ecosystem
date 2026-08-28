@@ -14,6 +14,13 @@ already in the log is rejected. Every runnable task holds a lease with an
 owner, a TTL, an epoch and a fencing token that increases monotonically per
 task; an event submitted with a superseded token is rejected.
 
+`lock-epoch` parses and self-verifies `run/LOCK.toml`, then atomically binds
+the state store to that exact identity. Epoch 1 can bootstrap a pre-feature
+store without changing tasks. Later epochs refuse leases and require a fresh
+supervisor quiescence proof before resetting interrupted work. One event holds
+the prior lock, proof digest, fencing changes, and every task reset, providing
+the complete forward and rollback audit without rewriting history.
+
 Python 3 standard library only.
 """
 
@@ -26,6 +33,7 @@ import json
 import os
 import sys
 import time
+import tomllib
 from datetime import datetime, timezone
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -50,6 +58,14 @@ else:
     README_PATH = os.path.join(REPO, "tasks", "README.md")
     PROGRESS_PATH = os.path.join(REPO, "PROGRESS.md")
     AUDIT_PATH = os.path.join(REPO, "tasks", "M1-12", "audit.md")
+
+# Tests may pair an isolated event store with an isolated immutable lock. The
+# override is deliberately ignored for the production store: readiness must
+# always compare against this repository's real run/LOCK.toml.
+RUN_LOCK_OVERRIDE = os.environ.get("ECOSYSTEM_RUN_LOCK", "").strip()
+RUN_LOCK_PATH = os.path.abspath(
+    RUN_LOCK_OVERRIDE if STORE_DIR and RUN_LOCK_OVERRIDE
+    else os.path.join(REPO, "run", "LOCK.toml"))
 
 GENESIS = "0" * 64
 
@@ -78,6 +94,11 @@ EARLY_START = ("M3-01", "M3-03", "M4-02", "M4-03")
 CAPS = {"containers": 6, "claude_containers": 2, "crew_operator": 1, "per_codex_lane": 1}
 CODEX_LANES = ("L4", "L5", "L6")
 
+# These statuses describe work that may have been interrupted when the run's
+# immutable lock changes. They return to `ready` in the new lock epoch. A
+# terminal, blocked, or not-yet-promoted task is preserved exactly.
+INTERRUPTED_STATUSES = ("leased", "in-progress", "waiting", "resource-waiting")
+
 
 # --------------------------------------------------------------------------
 # log primitives
@@ -94,6 +115,100 @@ def line_hash(line: str) -> str:
 def idempotency_key(run_id: str, task: str, attempt: int, operation: str) -> str:
     payload = "\x1f".join([str(run_id), str(task), str(attempt), str(operation)])
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def task_idempotency_key(state: dict, task: str, attempt: int, operation: str) -> str:
+    """Default task-operation key, scoped to both restartable epochs."""
+    row = state["tasks"].get(task, {})
+    payload = "\x1f".join([
+        str(state["run_id"]),
+        str(state["lock_epoch"]),
+        str(task),
+        str(row.get("attempt_epoch", 1)),
+        str(attempt),
+        str(operation),
+    ])
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def is_sha256(value: str) -> bool:
+    return len(value) == 64 and all(char in "0123456789abcdefABCDEF" for char in value)
+
+
+def lock_hash_of(text: str) -> str:
+    """Match tools/lock.py: hash the lock text without its self-hash line."""
+    payload = "\n".join(
+        line for line in text.splitlines()
+        if not line.lstrip().startswith("lock_hash")
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def read_run_lock() -> tuple[int, str]:
+    try:
+        with open(RUN_LOCK_PATH, "r", encoding="utf-8") as handle:
+            text = handle.read()
+        data = tomllib.loads(text)
+        run = data["run"]
+        epoch = run["epoch"]
+        recorded_hash = run["lock_hash"]
+    except (OSError, KeyError, TypeError, tomllib.TOMLDecodeError) as exc:
+        raise ValueError("cannot read [run].epoch and lock_hash: %s" % exc) from exc
+    if not isinstance(epoch, int) or isinstance(epoch, bool) or epoch < 1:
+        raise ValueError("[run].epoch is not a positive integer")
+    if not isinstance(recorded_hash, str) or not is_sha256(recorded_hash):
+        raise ValueError("[run].lock_hash is not 64 hexadecimal characters")
+    recorded_hash = recorded_hash.lower()
+    if lock_hash_of(text) != recorded_hash:
+        raise ValueError("[run].lock_hash does not match file content")
+    return epoch, recorded_hash
+
+
+def read_quiescence_proof(path: str) -> dict:
+    """Validate a fresh supervisor-produced proof and return its audit summary."""
+    try:
+        with open(path, "rb") as handle:
+            raw = handle.read()
+        proof = json.loads(raw.decode("utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError("cannot read quiescence proof: %s" % exc) from exc
+    if not isinstance(proof, dict):
+        raise ValueError("quiescence proof is not a JSON object")
+    expected_repo = os.path.realpath(REPO)
+    current_repo = os.path.realpath(os.getcwd())
+    if current_repo != expected_repo:
+        raise ValueError("lock epoch command cwd is not this repository")
+    if os.path.realpath(str(proof.get("repository", ""))) != current_repo:
+        raise ValueError("quiescence proof repository does not match this repository")
+    if proof.get("session") != "ecosystem-coordinator":
+        raise ValueError("quiescence proof session is not ecosystem-coordinator")
+    if proof.get("coordinator_running") is not False:
+        raise ValueError("quiescence proof reports a running coordinator")
+    if proof.get("active_agents") != []:
+        raise ValueError("quiescence proof reports active agents")
+    if proof.get("active_panes") != []:
+        raise ValueError("quiescence proof reports active panes")
+    checked_at = proof.get("checked_at")
+    if not isinstance(checked_at, str):
+        raise ValueError("quiescence proof has no checked_at timestamp")
+    try:
+        checked = datetime.fromisoformat(checked_at.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValueError("quiescence proof checked_at is invalid") from exc
+    if checked.tzinfo is None:
+        raise ValueError("quiescence proof checked_at has no timezone")
+    age = (datetime.now(timezone.utc) - checked.astimezone(timezone.utc)).total_seconds()
+    if age < -30 or age > 300:
+        raise ValueError("quiescence proof is not fresh (maximum age 300 seconds)")
+    return {
+        "proof_sha256": hashlib.sha256(raw).hexdigest(),
+        "repository": expected_repo,
+        "session": "ecosystem-coordinator",
+        "coordinator_running": False,
+        "active_agents": 0,
+        "active_panes": 0,
+        "checked_at": checked.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
 
 
 def now_iso() -> str:
@@ -168,6 +283,8 @@ def project(events: list) -> dict:
     """Replay the log into the current run state."""
     state = {
         "run_id": None,
+        "lock_epoch": 0,
+        "lock_hash": None,
         "tasks": {},        # id -> {milestone, depends_on, status, lane, ...}
         "order": [],
         "leases": {},       # id -> {owner, token, epoch, expires_at}
@@ -191,6 +308,7 @@ def project(events: list) -> dict:
                     "status": task.get("status", "planned"),
                     "lane": "",
                     "attempt": 0,
+                    "attempt_epoch": 1,
                 }
         elif kind == "transition":
             row = state["tasks"].get(event["task"])
@@ -219,6 +337,17 @@ def project(events: list) -> dict:
             }
         elif kind == "release":
             state["leases"].pop(event["task"], None)
+        elif kind == "lock_epoch":
+            state["lock_epoch"] = event["epoch"]
+            state["lock_hash"] = event["lock_hash"]
+            for fence in event.get("fences", []):
+                state["tokens"][fence["task"]] = fence["to_token"]
+            for reset in event.get("resets", []):
+                row = state["tasks"].get(reset["task"])
+                if row is None:
+                    continue
+                row["status"] = reset["to_status"]
+                row["attempt_epoch"] = reset["to_attempt_epoch"]
         if event.get("idempotency"):
             state["keys"].add(event["idempotency"])
     return state
@@ -411,7 +540,7 @@ def promote(events: list, state: dict, only: str = None) -> list:
             continue
         if any(tasks.get(d, {}).get("status") != "done" for d in row["depends_on"]):
             continue
-        key = idempotency_key(state["run_id"], tid, 0, "promote")
+        key = task_idempotency_key(state, tid, 0, "promote")
         if key in state["keys"]:
             continue
         append(events, {"type": "transition", "task": tid, "status": "ready",
@@ -469,8 +598,8 @@ def cmd_transition(args) -> None:
             sys.stderr.write("unknown task: %s\n" % args.task)
             sys.exit(2)
         require_fresh_token(state, events, args.task, args.token)
-        key = args.key or idempotency_key(state["run_id"], args.task, args.attempt,
-                                          "transition:" + args.status)
+        key = args.key or task_idempotency_key(
+            state, args.task, args.attempt, "transition:" + args.status)
         if key in state["keys"]:
             reject(events, "duplicate idempotency key",
                    {"task": args.task, "operation": "transition", "idempotency": key})
@@ -518,8 +647,8 @@ def cmd_event(args) -> None:
         events = read_events()
         state = project(events)
         require_fresh_token(state, events, args.task, args.token)
-        key = args.key or idempotency_key(state["run_id"], args.task, args.attempt,
-                                          args.operation)
+        key = args.key or task_idempotency_key(
+            state, args.task, args.attempt, args.operation)
         if key in state["keys"]:
             reject(events, "duplicate idempotency key",
                    {"task": args.task, "operation": args.operation, "idempotency": key})
@@ -528,6 +657,182 @@ def cmd_event(args) -> None:
                         "token": args.token, "result": args.result or "",
                         "evidence": args.evidence or "", "idempotency": key})
     print("recorded %s/%s key=%s" % (args.task, args.operation, key[:12]))
+
+
+def cmd_lock_epoch(args) -> None:
+    """Bind the store to the next immutable run lock in one append.
+
+    Retrying the same key with the same caller payload is a successful no-op.
+    A reused key with different payload is an audited refusal. Epoch 1 can
+    bootstrap a pre-feature store without changing task state. Every later
+    reset requires a fresh machine-readable proof that the supervisor and all
+    of its panes are stopped.
+    """
+    requested_hash = args.lock_hash.lower()
+    with Lock():
+        events = read_events()
+        state = project(events)
+
+        if not args.key.strip():
+            reject(events, "lock epoch idempotency key is empty", {
+                "operation": "lock-epoch",
+                "requested_epoch": args.epoch,
+                "requested_lock_hash": args.lock_hash,
+            })
+
+        if not is_sha256(args.lock_hash):
+            reject(events, "lock hash is not 64 hexadecimal characters", {
+                "operation": "lock-epoch",
+                "requested_idempotency": args.key,
+                "requested_epoch": args.epoch,
+                "requested_lock_hash": args.lock_hash,
+            })
+        try:
+            actual_epoch, actual_hash = read_run_lock()
+        except ValueError as exc:
+            reject(events, "run lock is invalid", {
+                "operation": "lock-epoch",
+                "requested_idempotency": args.key,
+                "error": str(exc),
+            })
+        if args.epoch != actual_epoch or requested_hash != actual_hash:
+            reject(events, "requested lock does not match run/LOCK.toml", {
+                "operation": "lock-epoch",
+                "requested_idempotency": args.key,
+                "requested_epoch": args.epoch,
+                "requested_lock_hash": requested_hash,
+                "actual_epoch": actual_epoch,
+                "actual_lock_hash": actual_hash,
+            })
+
+        prior = next((event for event in events
+                      if event.get("idempotency") == args.key and
+                      event.get("type") != "rejected"), None)
+        if prior is not None:
+            if (prior.get("type") == "lock_epoch" and
+                    prior.get("epoch") == args.epoch and
+                    prior.get("lock_hash") == requested_hash and
+                    bool(prior.get("bootstrap")) == bool(args.bootstrap)):
+                # The event may have reached durable storage just before a
+                # crash in rendering. Repair either projection on retry.
+                render(state)
+                print(json.dumps({
+                    "bootstrap": bool(prior.get("bootstrap")),
+                    "epoch": prior["epoch"],
+                    "lock_hash": prior["lock_hash"],
+                    "reset_tasks": [item["task"] for item in prior.get("resets", [])],
+                    "replayed": True,
+                }, sort_keys=True))
+                return
+            reject(events, "conflicting duplicate idempotency key", {
+                "operation": "lock-epoch",
+                "requested_idempotency": args.key,
+                "requested_bootstrap": bool(args.bootstrap),
+                "requested_epoch": args.epoch,
+                "requested_lock_hash": requested_hash,
+                "existing_type": prior.get("type"),
+                "existing_bootstrap": bool(prior.get("bootstrap")),
+                "existing_epoch": prior.get("epoch"),
+                "existing_lock_hash": prior.get("lock_hash"),
+            })
+
+        expected_epoch = int(state["lock_epoch"]) + 1
+        if args.epoch != expected_epoch:
+            reject(events, "lock epoch is not sequential", {
+                "operation": "lock-epoch",
+                "requested_idempotency": args.key,
+                "requested_epoch": args.epoch,
+                "current_epoch": state["lock_epoch"],
+                "expected_epoch": expected_epoch,
+            })
+        if args.bootstrap and (state["lock_epoch"] != 0 or state["lock_hash"] is not None):
+            reject(events, "bootstrap requires an unbound epoch-0 store", {
+                "operation": "lock-epoch",
+                "requested_idempotency": args.key,
+                "current_epoch": state["lock_epoch"],
+                "current_lock_hash": state["lock_hash"],
+            })
+        if not args.bootstrap and state["lock_epoch"] == 0:
+            reject(events, "epoch-0 store requires --bootstrap", {
+                "operation": "lock-epoch",
+                "requested_idempotency": args.key,
+                "requested_epoch": args.epoch,
+            })
+        if not args.bootstrap and state["leases"]:
+            reject(events, "active leases prevent lock epoch change", {
+                "operation": "lock-epoch",
+                "requested_idempotency": args.key,
+                "requested_epoch": args.epoch,
+                "active_leases": sorted(state["leases"]),
+            })
+
+        active_tasks = [] if args.bootstrap else [
+            task for task in state["order"]
+            if state["tasks"][task]["status"] in INTERRUPTED_STATUSES
+        ]
+        quiescence = None
+        if active_tasks:
+            if not args.quiescent or not args.quiescence_proof:
+                reject(events, "active tasks require quiescence proof", {
+                    "operation": "lock-epoch",
+                    "requested_idempotency": args.key,
+                    "requested_epoch": args.epoch,
+                    "active_tasks": active_tasks,
+                    "quiescent_flag": bool(args.quiescent),
+                    "proof_supplied": bool(args.quiescence_proof),
+                })
+            try:
+                quiescence = read_quiescence_proof(args.quiescence_proof)
+            except ValueError as exc:
+                reject(events, "quiescence proof is invalid", {
+                    "operation": "lock-epoch",
+                    "requested_idempotency": args.key,
+                    "requested_epoch": args.epoch,
+                    "active_tasks": active_tasks,
+                    "error": str(exc),
+                })
+
+        resets = []
+        for task in active_tasks:
+            row = state["tasks"][task]
+            resets.append({
+                "task": task,
+                "from_status": row["status"],
+                "to_status": "ready",
+                "from_attempt_epoch": row.get("attempt_epoch", 1),
+                "to_attempt_epoch": row.get("attempt_epoch", 1) + 1,
+            })
+
+        # Advance every task's fencing floor. This invalidates even a token
+        # whose lease was released before the lock change; otherwise its old
+        # holder could still mutate state until a replacement lease happened
+        # to issue the next token.
+        fences = [] if args.bootstrap else [{
+            "task": task,
+            "from_token": int(state["tokens"].get(task, 0)),
+            "to_token": int(state["tokens"].get(task, 0)) + 1,
+        } for task in state["order"]]
+
+        event = append(events, {
+            "type": "lock_epoch",
+            "epoch": args.epoch,
+            "lock_hash": requested_hash,
+            "previous_epoch": state["lock_epoch"],
+            "previous_lock_hash": state["lock_hash"],
+            "bootstrap": bool(args.bootstrap),
+            "fences": fences,
+            "quiescence": quiescence,
+            "resets": resets,
+            "idempotency": args.key,
+        })
+        render(project(events))
+    print(json.dumps({
+        "bootstrap": bool(event.get("bootstrap")),
+        "epoch": event["epoch"],
+        "lock_hash": event["lock_hash"],
+        "reset_tasks": [item["task"] for item in resets],
+        "replayed": False,
+    }, sort_keys=True))
 
 
 def cmd_render(args) -> None:
@@ -543,6 +848,8 @@ def cmd_status(args) -> None:
         counts[row["status"]] = counts.get(row["status"], 0) + 1
     print(json.dumps({
         "run_id": state["run_id"],
+        "lock_epoch": state["lock_epoch"],
+        "lock_hash": state["lock_hash"],
         "tasks": len(state["tasks"]),
         "counts": counts,
         "leases": state["leases"],
@@ -557,7 +864,8 @@ def cmd_runnable(args) -> None:
 
 def cmd_verify(args) -> None:
     """Walk the hash chain; every event's `prev` must equal the hash of the
-    line before it, and `seq` must be dense and ascending."""
+    line before it, `seq` must be dense, and the projected lock identity must
+    equal the immutable lock that readiness verifies."""
     events = read_events()
     expected = GENESIS
     for index, event in enumerate(events):
@@ -569,6 +877,22 @@ def cmd_verify(args) -> None:
             sys.exit(1)
         expected = line_hash(canonical(event))
     print("events: %d, chain intact" % len(events))
+    # Legacy isolated fixtures did not carry a lock. New lock-aware fixtures
+    # opt in with ECOSYSTEM_RUN_LOCK; the production store is always strict.
+    if not STORE_DIR or os.environ.get("ECOSYSTEM_RUN_LOCK"):
+        try:
+            actual_epoch, actual_hash = read_run_lock()
+        except ValueError as exc:
+            print("status: FAIL run lock invalid: %s" % exc)
+            sys.exit(1)
+        state = project(events)
+        if (state["lock_epoch"], state["lock_hash"]) != (actual_epoch, actual_hash):
+            print("status: FAIL state lock epoch/hash does not match run/LOCK.toml")
+            print("state lock: epoch %s hash %s" %
+                  (state["lock_epoch"], state["lock_hash"]))
+            print("run lock: epoch %s hash %s" % (actual_epoch, actual_hash))
+            sys.exit(1)
+        print("lock: epoch %s hash %s" % (actual_epoch, actual_hash))
     print("status: DONE")
 
 
@@ -613,6 +937,18 @@ def main() -> None:
     p.add_argument("--evidence", default="")
     p.add_argument("--key")
     p.set_defaults(func=cmd_event)
+
+    p = sub.add_parser("lock-epoch", help="atomically bind the next run lock epoch")
+    p.add_argument("--epoch", type=int, required=True)
+    p.add_argument("--lock-hash", required=True)
+    p.add_argument("--key", required=True, help="idempotency key for this lock change")
+    p.add_argument("--bootstrap", action="store_true",
+                   help="bind an epoch-0 store without resetting or fencing tasks")
+    p.add_argument("--quiescent", action="store_true",
+                   help="assert that the supervisor produced the supplied stop proof")
+    p.add_argument("--quiescence-proof",
+                   help="fresh JSON from `sh tools/supervisor.sh quiescence-proof FILE`")
+    p.set_defaults(func=cmd_lock_epoch)
 
     sub.add_parser("arm", help="promote every dependency-free task to ready") \
         .set_defaults(func=cmd_arm)

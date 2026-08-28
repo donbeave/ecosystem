@@ -50,10 +50,8 @@ container-relative (D-086).
 - [ ] The scope above is implemented in the listed repositories.
 - [ ] host check passes: `! brew list --formula | grep -qx jackin-preview`
 - [ ] host check passes: `grep -q 'dco = true' "${JACKIN_CONFIG_DIR:-$HOME/.config/jackin}/config.toml"`
-- [ ] host check passes: `jackin workspace create task-probe --workdir ~/.jackin/managed/probe --mount ~/.jackin/managed/probe`
-- [ ] host check passes: `jackin load the-architect task-probe --agent codex --dry-run --format json`
-- [ ] host check passes: `tmux`
-- [ ] host check passes: `script`
+- [ ] host check passes: `jackin workspace remove task-probe >/dev/null 2>&1; jackin workspace create task-probe --workdir ~/.jackin/managed/probe --mount ~/.jackin/managed/probe`
+- [ ] host check passes: `script -q /dev/null jackin load the-architect task-probe --agent codex --dry-run --format json </dev/null | grep -q '"workspace": *"task-probe"'`
 - [ ] host check passes: `jackin workspace remove task-probe`
 - [ ] Every touched repository is committed and pushed.
 - [ ] `sh verify.sh` prints `status: DONE` for each part.
@@ -66,7 +64,7 @@ Container part (run inside the task container):
 
 Host part (run by the host Claude Code session, D-061):
 
-> the same sha check as M1-02; `! brew list --formula | grep -qx jackin-preview`; `grep -q 'dco = true' "${JACKIN_CONFIG_DIR:-$HOME/.config/jackin}/config.toml"`; six template files exist; a throwaway workspace "task-probe" created from the L5 template (`jackin workspace create task-probe --workdir ~/.jackin/managed/probe --mount ~/.jackin/managed/probe`, template merged) makes `jackin load the-architect task-probe --agent codex --dry-run --format json` (under `tmux` or `script`) print `.data.workspace` = "task-probe"; the workspace is removed afterwards with `jackin workspace remove task-probe`
+> the same sha check as M1-02; `! brew list --formula | grep -qx jackin-preview`; `grep -q 'dco = true' "${JACKIN_CONFIG_DIR:-$HOME/.config/jackin}/config.toml"`; six template files exist; a throwaway workspace "task-probe" created from the L5 template (`jackin workspace remove task-probe >/dev/null 2>&1; jackin workspace create task-probe --workdir ~/.jackin/managed/probe --mount ~/.jackin/managed/probe`, template merged, the leading remove keeps a stale probe from pre-existing) makes the dry-run load, folded into one check that runs under a pty and leaves no stray typescript file in the tree (`script -q /dev/null jackin load the-architect task-probe --agent codex --dry-run --format json </dev/null | grep -q '"workspace": *"task-probe"'`), print `.data.workspace` = "task-probe"; the workspace is removed afterwards with `jackin workspace remove task-probe`
 
 ## Evidence expected (D-118)
 

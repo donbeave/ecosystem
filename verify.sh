@@ -15,6 +15,17 @@
 #
 # Every failed check prints one diagnostic line before the verdict.
 #
+# Evidence of a done task names two commits (D-112): the `commit:` line of
+# `tasks/<id>/verify.out` is the commit of this repository the evidence was
+# recorded against and must be an ancestor of the pushed `origin/main`, and
+# `integrated_sha` is the commit the verification ran against. At final-gate
+# time it may be behind a later integration head, but must remain its ancestor.
+# They are the
+# same commit for a task whose `repos` names no involved Git repository
+# (host and service labels are not repositories); a task that touches one
+# carries its integration target in an `integrated_sha: <40hex>` line,
+# which is what its `evidence.json` must match.
+#
 # Usage: sh verify.sh [--root <dir>] [--expect <n>]
 #   --root    repository to judge (default: the directory of this script)
 #   --expect  the number of task ids the compiler must yield
@@ -152,6 +163,83 @@ else
   fi
 fi
 
+# The repository names of a task, one per line, read from `repos` in its
+# `task.toml` (inline or multi-line array). An absent key prints nothing.
+task_repos() {
+  [ -f "$1" ] || return 0
+  awk '
+    /^[ \t]*repos[ \t]*=/ { collect = 1 }
+    collect { buf = buf $0; if (index($0, "]")) { collect = 0 } }
+    END {
+      n = split(buf, part, "\"")
+      for (i = 2; i <= n; i += 2) if (part[i] != "") print part[i]
+    }' "$1"
+}
+
+# Every involved Git repository named by a task, as
+# `<owner/name><TAB><integration-branch>`. Product/service labels are
+# intentionally absent: Linear, GitHub and 1Password are external systems,
+# not repositories whose Git head can bind `integrated_sha`.
+task_involved_repositories() {
+  task_repos "$1" | while IFS= read -r label; do
+    case "$label" in
+      jackin)
+        printf 'jackin-project/jackin\tfeat/managed-execution\n' ;;
+      termrock)
+        printf 'tailrocks/termrock\tfeat/managed-execution\n' ;;
+      jackin-the-architect)
+        printf 'jackin-project/jackin-the-architect\tfeat/managed-execution\n' ;;
+      jackin-role-template|jackin-role-template\ \(new\))
+        printf 'donbeave/jackin-role-template\tmain\n' ;;
+      jackin-crew-builder|jackin-crew-builder\ \(new\))
+        printf 'donbeave/jackin-crew-builder\tmain\n' ;;
+      jackin-crew-operator|jackin-crew-operator\ \(new\))
+        printf 'donbeave/jackin-crew-operator\tmain\n' ;;
+      jackin-crew-reviewer|jackin-crew-reviewer\ \(new\))
+        printf 'donbeave/jackin-crew-reviewer\tmain\n' ;;
+      "role repositories")
+        printf 'donbeave/jackin-crew-builder\tmain\n'
+        printf 'donbeave/jackin-crew-operator\tmain\n'
+        printf 'donbeave/jackin-crew-reviewer\tmain\n' ;;
+    esac
+  done | awk -F'\t' '!seen[$1]++'
+}
+
+# Per-repository records from evidence.json, one tab-separated row each:
+# repository, branch, integrated SHA, checkout. Manifest validation rejects
+# tabs/newlines in these fields before this representation is consumed.
+manifest_repositories() {
+  python3 -c 'import json,sys
+for row in json.load(open(sys.argv[1])).get("repositories", []):
+    print("\t".join(row[key] for key in ("repo", "branch", "integrated_sha", "checkout")))' "$1"
+}
+
+verify_repository_head() {
+  # $1 task id, $2 repo, $3 branch, $4 SHA, $5 checkout.
+  if [ -z "$5" ]; then
+    sysfail "$1: $2 evidence has no checkout for ancestry verification"
+  elif ! git -C "$5" rev-parse --git-dir >/dev/null 2>&1; then
+    sysfail "$1: checkout $5 is not a Git repository"
+  else
+    origin_url=$(git -C "$5" remote get-url origin 2>/dev/null || true)
+    case "$origin_url" in
+      */"$2"|*/"$2".git|*:"$2"|*:"$2".git) ;;
+      *)
+        sysfail "$1: checkout $5 origin is not $2"
+        return
+        ;;
+    esac
+    current_head=$(git -C "$5" rev-parse --verify "refs/remotes/origin/$3^{commit}" 2>/dev/null || true)
+    if [ -z "$current_head" ]; then
+      sysfail "$1: $5 has no pushed origin/$3 integration target for $2"
+    elif ! git -C "$5" rev-parse --verify "$4^{commit}" >/dev/null 2>&1; then
+      sysfail "$1: integrated_sha $4 does not exist in $2 checkout $5"
+    elif ! git -C "$5" merge-base --is-ancestor "$4" "$current_head" 2>/dev/null; then
+      sysfail "$1: integrated_sha $4 is not an ancestor of $2 $3 head $current_head"
+    fi
+  fi
+}
+
 # Hash of a task bundle: `tools/bundle.py hash <id>` when that tool exists,
 # otherwise the SHA-256 of the three bundle files in a fixed order.
 bundle_hash() {
@@ -202,6 +290,20 @@ for id in $IDS; do
     sysfail "$id: commit $sha is not an ancestor of the pushed origin/main"
   fi
 
+  # A task with only ecosystem/host/service labels is local to this repository
+  # and binds to its ecosystem commit. Repository tasks retain the legacy
+  # scalar as the first repository's SHA; the manifest below carries one
+  # independently checked record per involved repository.
+  involved=$(task_involved_repositories "$dir/task.toml")
+  if [ -z "$involved" ]; then
+    want_integrated="$sha"
+  else
+    want_integrated=$(awk '/^integrated_sha: [0-9a-f]{40}$/ {print $2}' "$out" | tail -n 1)
+    if [ -z "$want_integrated" ]; then
+      sysfail "$id: touches an involved repository but $out names no \`integrated_sha: <40hex>\` line"
+    fi
+  fi
+
   recorded=$(awk '/^bundle_hash: / {print $2}' "$out" | tail -n 1)
   current=$(bundle_hash "$id")
   if [ -z "$recorded" ]; then
@@ -220,8 +322,58 @@ for id in $IDS; do
   else
     integrated=$(python3 -c 'import json,sys
 print(json.load(open(sys.argv[1])).get("integrated_sha", ""))' "$man" 2>/dev/null)
-    if [ -n "$sha" ] && [ "$integrated" != "$sha" ]; then
-      sysfail "$id: evidence integrated_sha $integrated does not match commit $sha"
+    if [ -n "$want_integrated" ] && [ "$integrated" != "$want_integrated" ]; then
+      sysfail "$id: evidence integrated_sha $integrated does not match $want_integrated"
+    fi
+
+    expected_repos="$TMP/$id.repos.expected"
+    actual_repos="$TMP/$id.repos.actual"
+    printf '%s\n' "$involved" | sed '/^$/d' >"$expected_repos"
+    if ! manifest_repositories "$man" >"$actual_repos" 2>"$TMP/repos.err"; then
+      sysfail "$id: cannot read repository evidence: $(tail -n 1 "$TMP/repos.err")"
+      : >"$actual_repos"
+    fi
+    expected_count=$(awk 'END {print NR+0}' "$expected_repos")
+    actual_count=$(awk 'END {print NR+0}' "$actual_repos")
+
+    # Old single-repository evidence used checkout.txt plus scalar
+    # integrated_sha. Keep accepting that shape; multiple repositories must
+    # carry the explicit per-repository array so no repository can hide behind
+    # another repository's valid commit.
+    if [ "$expected_count" -eq 0 ]; then
+      [ "$actual_count" -eq 0 ] || \
+        sysfail "$id: manifest names repositories but task.toml names none involved"
+    elif [ "$actual_count" -eq 0 ] && [ "$expected_count" -eq 1 ]; then
+      IFS="$(printf '\t')" read -r expected_repo expected_branch <"$expected_repos"
+      checkout=""
+      [ ! -f "$dir/checkout.txt" ] || checkout=$(tail -n 1 "$dir/checkout.txt")
+      verify_repository_head "$id" "$expected_repo" "$expected_branch" \
+        "$want_integrated" "$checkout"
+    elif [ "$actual_count" -ne "$expected_count" ]; then
+      sysfail "$id: manifest has $actual_count repository record(s), task requires $expected_count"
+    else
+      first_expected=$(awk -F'\t' 'NR == 1 {print $1}' "$expected_repos")
+      first_actual=$(awk -F'\t' 'NR == 1 {print $1}' "$actual_repos")
+      if [ "$first_actual" != "$first_expected" ]; then
+        sysfail "$id: first repository record $first_actual must be $first_expected"
+      fi
+      while IFS="$(printf '\t')" read -r expected_repo expected_branch; do
+        matches=$(awk -F'\t' -v repo="$expected_repo" '$1 == repo {n++} END {print n+0}' "$actual_repos")
+        if [ "$matches" -ne 1 ]; then
+          sysfail "$id: manifest must name $expected_repo exactly once"
+          continue
+        fi
+        actual_record=$(awk -F'\t' -v repo="$expected_repo" '$1 == repo {print; exit}' "$actual_repos")
+        IFS="$(printf '\t')" read -r actual_repo actual_branch actual_sha actual_checkout <<EOF_REPO
+$actual_record
+EOF_REPO
+        if [ "$actual_branch" != "$expected_branch" ]; then
+          sysfail "$id: $actual_repo branch $actual_branch must be $expected_branch"
+          continue
+        fi
+        verify_repository_head "$id" "$actual_repo" "$actual_branch" \
+          "$actual_sha" "$actual_checkout"
+      done <"$expected_repos"
     fi
   fi
 

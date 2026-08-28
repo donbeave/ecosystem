@@ -57,8 +57,6 @@ container-relative (D-086).
 - [ ] host check passes: `grep -E 'OP_SERVICE_ACCOUNT_TOKEN *= *{.*on_demand *= *true' "${JACKIN_CONFIG_DIR:-$HOME/.config/jackin}/config.toml"`
 - [ ] host check passes: `test ! -e ~/.jackin/config.toml`
 - [ ] host check passes: `jackin load donbeave/crew-<p> --dry-run --format json | jq -r .data.role`
-- [ ] host check passes: `tmux`
-- [ ] host check passes: `script`
 - [ ] host check passes: `! grep -qE '^[env.OP_SERVICE_ACCOUNT_TOKEN]' ~/.jackin/roles/donbeave/crew-operator/default/jackin.role.toml`
 - [ ] Every touched repository is committed and pushed.
 - [ ] `sh verify.sh` prints `status: DONE` for each part.
@@ -71,7 +69,7 @@ Container part (run inside the task container):
 
 Host part (run by the host Claude Code session, D-061):
 
-> `jackin config trust list` lists the three selectors and, for each, `grep -A2 '^[roles."donbeave/crew-<p>"]' "${JACKIN_CONFIG_DIR:-$HOME/.config/jackin}/config.toml" | grep -q 'trusted = true'` matches (bare `jackin config` is subcommand-only and prints usage); `op vault list --format json | jq '[.[]|select(.name=="jackin")]|length'` prints 1; `op read op://tailrocks/op-service-account-jackin-operator/credential | wc -c` non-zero; primary: `jackin config env list --role donbeave/crew-operator --format json` lists `OP_SERVICE_ACCOUNT_TOKEN` with its on-demand marker (proves the file jackin reads is the one edited and still parses); secondary: `grep -E 'OP_SERVICE_ACCOUNT_TOKEN *= *{.*on_demand *= *true' "${JACKIN_CONFIG_DIR:-$HOME/.config/jackin}/config.toml"` matches under the crew-operator role table and `test ! -e ~/.jackin/config.toml`; the mount exists; for each of the three roles `jackin load donbeave/crew-<p> --dry-run --format json | jq -r .data.role` prints the selector (run under `tmux` or `script`, the command needs a rich terminal); `! grep -qE '^[env.OP_SERVICE_ACCOUNT_TOKEN]' ~/.jackin/roles/donbeave/crew-operator/default/jackin.role.toml` (the dry-run JSON has no env field)
+> `jackin config trust list` lists the three selectors and, for each, `grep -A2 '^[roles."donbeave/crew-<p>"]' "${JACKIN_CONFIG_DIR:-$HOME/.config/jackin}/config.toml" | grep -q 'trusted = true'` matches (bare `jackin config` is subcommand-only and prints usage); `op vault list --format json | jq '[.[]|select(.name=="jackin")]|length'` prints 1; `op read op://tailrocks/op-service-account-jackin-operator/credential | wc -c` non-zero; primary: `jackin config env list --role donbeave/crew-operator --format json` lists `OP_SERVICE_ACCOUNT_TOKEN` with its on-demand marker (proves the file jackin reads is the one edited and still parses); secondary: `grep -E 'OP_SERVICE_ACCOUNT_TOKEN *= *{.*on_demand *= *true' "${JACKIN_CONFIG_DIR:-$HOME/.config/jackin}/config.toml"` matches under the crew-operator role table and `test ! -e ~/.jackin/config.toml`; the mount exists; for each of the three roles `jackin load donbeave/crew-<p> --dry-run --format json | jq -r .data.role` prints the selector (run through the M1-02a rich-terminal wrapper); `! grep -qE '^[env.OP_SERVICE_ACCOUNT_TOKEN]' ~/.jackin/roles/donbeave/crew-operator/default/jackin.role.toml` (the dry-run JSON has no env field)
 
 ## Evidence expected (D-118)
 

@@ -6,12 +6,12 @@
 # in-progress, and applies five failures in order:
 #
 #   (a) forced compaction  -- the coordinator is re-prompted: killed once and
-#                             restarted by the supervisor
-#   (b) coordinator killed -- tmux kill-session
+#                             restarted by an explicit durable-state resume
+#   (b) coordinator killed -- stop its named Herdr session
 #   (c) worker killed      -- docker kill chaos-CANARY-01
 #   (d) lease expired      -- a lease with a 1s TTL, then a reconcile
-#   (e) host restarted     -- tmux kill-server, the supervisor itself killed,
-#                             its pid file removed, then supervisor.sh resume
+#   (e) host restarted     -- Herdr session stopped, host-local handle removed,
+#                             then supervisor.sh resume
 #
 # After the final resume the coordinator closes the canary from the evidence
 # of the clean run, and a further resume must observe a `done` task and
@@ -32,24 +32,20 @@ TASK="CANARY-01"
 SEED="$REPO/tasks/CANARY-01/store-events.log"
 
 CHAOS_TMP="${CHAOS_TMPDIR:-$(mktemp -d "${TMPDIR:-/tmp}/chaos-canary.XXXXXX")}"
+HERDR_BIN="${HERDR_BIN:-$REPO/tests/chaos/fake_herdr.sh}"
+FAKE_HERDR_DIR="${FAKE_HERDR_DIR:-$CHAOS_TMP/herdr}"
+export HERDR_BIN FAKE_HERDR_DIR
 ECOSYSTEM_STORE="$CHAOS_TMP/store"
 ECOSYSTEM_RUN_DIR="$CHAOS_TMP/logs"
 export ECOSYSTEM_STORE ECOSYSTEM_RUN_DIR
 mkdir -p "$ECOSYSTEM_STORE" "$ECOSYSTEM_RUN_DIR"
 
-SUP_LOG="$ECOSYSTEM_RUN_DIR/supervisor.log"
-COORD_LOG="$ECOSYSTEM_RUN_DIR/coordinator.log"
+SESSION_KEY=$(printf '%s' "$SESSION" | tr -c 'A-Za-z0-9_.-' '_')
+SUP_LOG="$ECOSYSTEM_RUN_DIR/supervisor-$SESSION_KEY.log"
+COORD_LOG="$FAKE_HERDR_DIR/$SESSION/output"
 TRANSCRIPT="$CHAOS_TMP/transcript.log"
 COUNTER="$ECOSYSTEM_STORE/coordinator.runs"
 FAILURES=0
-
-# The supervisor's production backoff doubles from 5s and is capped at 300s,
-# so by the fourth restart a fixed wait here would be racing a 40s sleep and
-# by the sixth a 160s one. The rehearsal bounds it instead of guessing at it;
-# the backoff path itself is still exercised, just on a short clock.
-SUPERVISOR_BACKOFF_START=2
-SUPERVISOR_BACKOFF_MAX=8
-export SUPERVISOR_BACKOFF_START SUPERVISOR_BACKOFF_MAX
 
 # Every wait below is a poll of an explicit condition with this budget. It is
 # deliberately generous: nothing here is a sleep that assumes work is done.
@@ -84,10 +80,14 @@ state_py() {
 	python3 "$REPO/tools/state.py" "$@"
 }
 
+discard_session() {
+	"$HERDR_BIN" --session "$SESSION" session stop "$SESSION" --json >/dev/null 2>&1 || true
+	"$HERDR_BIN" --session "$SESSION" session delete "$SESSION" --json >/dev/null 2>&1 || true
+}
+
 cleanup() {
 	set +e
-	[ -z "${SUP_PID:-}" ] || kill -TERM "$SUP_PID" 2>/dev/null
-	tmux kill-session -t "$SESSION" 2>/dev/null
+	discard_session
 	docker rm -f "$CONTAINER" >/dev/null 2>&1
 	set -e
 }
@@ -99,7 +99,7 @@ trap cleanup EXIT INT TERM
 
 say "store: $ECOSYSTEM_STORE (the run of record is untouched)"
 docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
-tmux kill-session -t "$SESSION" 2>/dev/null || true
+discard_session
 
 # The first five events of the clean canary run end exactly at `in-progress`
 # under lease token 1; a prefix of a hash chain is itself a valid hash chain.
@@ -155,45 +155,52 @@ wait_for_container() {
 
 # shellcheck disable=SC2329  # called indirectly through wait_until
 session_running() {
-	tmux has-session -t "$SESSION" 2>/dev/null
+	"$HERDR_BIN" --session "$SESSION" status --json server >/dev/null 2>&1
 }
 
 # shellcheck disable=SC2329  # called indirectly through wait_until
 session_gone() {
-	! tmux has-session -t "$SESSION" 2>/dev/null
+	! "$HERDR_BIN" --session "$SESSION" status --json server >/dev/null 2>&1
 }
 
 # Kill the coordinator session, waiting for it to exist first: a kill issued
-# while the supervisor is between restarts hits nothing, and the failure it is
+# while the launcher is between session starts hits nothing, and the failure it is
 # meant to inject never happens.
 kill_coordinator() {
-	wait_until "tmux session $SESSION" session_running || return 1
-	tmux kill-session -t "$SESSION" 2>/dev/null || true
-	wait_until "tmux session $SESSION gone" session_gone
+	wait_until "Herdr session $SESSION" session_running || return 1
+	discard_session
+	wait_until "Herdr session $SESSION gone" session_gone
+}
+
+resume_coordinator() {
+	"$REPO/tools/supervisor.sh" resume --repo "$REPO" --session "$SESSION" \
+		--coordinator-cmd "tests/chaos/fake_coordinator.sh" \
+		>>"$TRANSCRIPT" 2>&1
 }
 
 # ---------------------------------------------------------------------------
 # start
 # ---------------------------------------------------------------------------
 
-say "starting the supervisor"
+say "starting the Herdr launcher"
 "$REPO/tools/supervisor.sh" start --repo "$REPO" --session "$SESSION" \
-	--max-restarts 20 --coordinator-cmd "tests/chaos/fake_coordinator.sh" \
-	>>"$TRANSCRIPT" 2>&1 &
-SUP_PID=$!
+	--coordinator-cmd "tests/chaos/fake_coordinator.sh" \
+	>>"$TRANSCRIPT" 2>&1
 wait_for_run 1
 wait_for_container
 
 # (a) forced compaction -------------------------------------------------------
 cat "$COORD_LOG" >>"$TRANSCRIPT" 2>/dev/null || true
-say "(a) forced compaction: re-prompting the coordinator (kill + supervisor restart)"
+say "(a) forced compaction: re-prompting the coordinator (stop + explicit resume)"
 kill_coordinator
+resume_coordinator
 wait_for_run 2
 
 # (b) kill the coordinator ----------------------------------------------------
 cat "$COORD_LOG" >>"$TRANSCRIPT" 2>/dev/null || true
 say "(b) killing the coordinator session"
 kill_coordinator
+resume_coordinator
 wait_for_run 3
 
 # (c) kill the worker container -----------------------------------------------
@@ -202,6 +209,7 @@ say "(c) killing the worker container $CONTAINER"
 docker kill "$CONTAINER" >/dev/null
 docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
 kill_coordinator
+resume_coordinator
 wait_for_run 4
 
 # (d) expire the lease --------------------------------------------------------
@@ -223,6 +231,7 @@ LEASE
 }
 wait_until "the lease on $TASK to read expired" lease_expired
 kill_coordinator
+resume_coordinator
 wait_for_run 5
 
 # a superseded agent tries to repeat its external mutation ---------------------
@@ -235,26 +244,26 @@ else
 fi
 
 # (e) host restart ------------------------------------------------------------
-say "(e) host restart: tmux kill-server, kill the supervisor, remove the pid file"
+say "(e) host restart: stop the Herdr session and remove its host-local handle"
 : >"$ECOSYSTEM_STORE/finish"
-tmux kill-server 2>/dev/null || true
-kill -TERM "$SUP_PID" 2>/dev/null || true
-wait "$SUP_PID" 2>/dev/null || true
-SUP_PID=""
-rm -f "$ECOSYSTEM_RUN_DIR/coordinator.pid"
+discard_session
+rm -f "$ECOSYSTEM_RUN_DIR/herdr-server-$SESSION_KEY.pid"
 docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
 
 say "re-invoking tools/supervisor.sh resume after the host restart"
-"$REPO/tools/supervisor.sh" resume --repo "$REPO" --session "$SESSION" \
-	--once --coordinator-cmd "tests/chaos/fake_coordinator.sh" \
-	>>"$TRANSCRIPT" 2>&1 || true
-cat "$COORD_LOG" >>"$TRANSCRIPT" 2>/dev/null || true
+resume_coordinator
+wait_for_run 6
+"$REPO/tools/supervisor.sh" read --repo "$REPO" --session "$SESSION" \
+	--pane w1:p1 >>"$TRANSCRIPT" 2>&1 || true
 
 say "resuming once more: a done task must not be re-executed"
+discard_session
 "$REPO/tools/supervisor.sh" resume --repo "$REPO" --session "$SESSION" \
-	--once --coordinator-cmd "tests/chaos/fake_coordinator.sh" \
+	--coordinator-cmd "tests/chaos/fake_coordinator.sh" \
 	>>"$TRANSCRIPT" 2>&1 || true
-cat "$COORD_LOG" >>"$TRANSCRIPT" 2>/dev/null || true
+wait_for_run 7
+"$REPO/tools/supervisor.sh" read --repo "$REPO" --session "$SESSION" \
+	--pane w1:p1 >>"$TRANSCRIPT" 2>&1 || true
 
 # ---------------------------------------------------------------------------
 # assertions
@@ -317,11 +326,11 @@ assert "(d) the expired lease was reconciled" \
 	grep -q "reconcile: releasing lease on $TASK (token .*): expired-ttl" "$TRANSCRIPT"
 assert "(c) the dead worker was reconciled" \
 	grep -q "reconcile: releasing lease on $TASK (token .*): no-live-runner" "$TRANSCRIPT"
-assert "(a)(b) the supervisor resumed from durable state" \
-	grep -q "resuming from durable state" "$TRANSCRIPT"
+assert "(a)(b) the launcher resumed from durable state" \
+	grep -q "restarting from durable run state" "$TRANSCRIPT"
 
 cleanup
-say "containers and tmux sessions created by this rehearsal are removed"
+say "containers and Herdr sessions created by this rehearsal are removed"
 
 if [ "$FAILURES" -eq 0 ]; then
 	say "status: DONE"

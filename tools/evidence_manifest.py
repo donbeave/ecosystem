@@ -13,7 +13,8 @@ Python 3 standard library only.
 Usage:
 
     evidence_manifest.py run --task <id> --bundle-hash <h> \
-        --integrated-sha <sha> [options] -- <cmd> [-- <cmd> ...]
+        --integrated-sha <sha> [--repository <repo> <branch> <sha> <checkout>] \
+        [options] -- <cmd> [-- <cmd> ...]
     evidence_manifest.py validate <path> | --all [--root <dir>]
 
 `run` executes each command, hashes stdout and stderr, records the exit
@@ -151,6 +152,18 @@ def cmd_run(args: argparse.Namespace) -> int:
     manifest["task"] = args.task
     manifest["bundle_hash"] = args.bundle_hash
     manifest["integrated_sha"] = args.integrated_sha
+    if args.repository:
+        manifest["repositories"] = [
+            {
+                "repo": repo,
+                "branch": branch,
+                "integrated_sha": integrated_sha,
+                "checkout": checkout,
+            }
+            for repo, branch, integrated_sha, checkout in args.repository
+        ]
+    else:
+        manifest.pop("repositories", None)
     manifest["attempt"] = args.attempt
     manifest["epoch"] = args.epoch
     manifest["fencing_token"] = args.fencing_token
@@ -220,6 +233,36 @@ def problems(manifest: dict, path: str) -> list:
     sha = manifest.get("integrated_sha")
     if isinstance(sha, str) and not HEX40.match(sha):
         fail("integrated_sha must be 40 lowercase hex characters")
+
+    repositories = manifest.get("repositories")
+    if repositories is not None:
+        if not isinstance(repositories, list) or not repositories:
+            fail("repositories must be a non-empty array when present")
+            repositories = []
+        seen_repositories = set()
+        for index, entry in enumerate(repositories or []):
+            where = "repositories[%d]" % index
+            if not isinstance(entry, dict):
+                fail("%s must be an object" % where)
+                continue
+            for field in ("repo", "branch", "checkout"):
+                value = entry.get(field)
+                if not isinstance(value, str) or not value.strip():
+                    fail("%s.%s must be a non-empty string" % (where, field))
+                elif any(separator in value for separator in ("\t", "\r", "\n")):
+                    fail("%s.%s must not contain tabs or newlines" % (where, field))
+            repo = entry.get("repo")
+            if isinstance(repo, str):
+                if repo in seen_repositories:
+                    fail("repositories contains duplicate repo %s" % repo)
+                seen_repositories.add(repo)
+            repo_sha = entry.get("integrated_sha")
+            if not isinstance(repo_sha, str) or not HEX40.match(repo_sha):
+                fail("%s.integrated_sha must be 40 lowercase hex characters" % where)
+        if repositories and isinstance(repositories[0], dict):
+            first_sha = repositories[0].get("integrated_sha")
+            if isinstance(sha, str) and sha != first_sha:
+                fail("integrated_sha must equal repositories[0].integrated_sha")
 
     bundle = manifest.get("bundle_hash")
     if isinstance(bundle, str) and not (HEX40.match(bundle) or HEX64.match(bundle)):
@@ -302,8 +345,22 @@ def main(argv=None) -> int:
     run = sub.add_parser("run", help="run commands and record the manifest")
     run.add_argument("--task", required=True, help="task id")
     run.add_argument("--bundle-hash", required=True, help="task bundle hash")
-    run.add_argument("--integrated-sha", required=True,
-                     help="40-hex commit the verification runs against")
+    run.add_argument(
+        "--integrated-sha",
+        required=True,
+        help=(
+            "exact 40-hex integration head the verification and task "
+            "transition run against; a later final gate verifies ancestry"
+        ),
+    )
+    run.add_argument(
+        "--repository", action="append", nargs=4,
+        metavar=("REPO", "BRANCH", "SHA", "CHECKOUT"),
+        help=(
+            "exact per-repository integration evidence at task transition; "
+            "repeat for every involved repo"
+        ),
+    )
     run.add_argument("--dir", help="task folder (default: working directory)")
     run.add_argument("--manifest", help="manifest path (default: <dir>/evidence.json)")
     run.add_argument("--attempt", type=int, default=1)
