@@ -1,0 +1,11 @@
+CANARY-01 canary, run readiness-2026-08-28
+base: d358386c57023d20429c71af3dddfdc42464ba3c
+branch: managed/readiness-2026-08-28/CANARY-01
+worker_commit: 71898fdea1df98cea520e5760d57bdd5667e1590
+pull_request: https://github.com/donbeave/ecosystem/pull/1
+pull_request_head: 71898fdea1df98cea520e5760d57bdd5667e1590
+verified_at_head: yes
+linear_issue: blocked-on-human: PREFLIGHT-DEFECTS #4
+commit: d358386c57023d20429c71af3dddfdc42464ba3c
+bundle_hash: 4e4ead908e46e939e14abc04f450d6cf1b3caaf4c6c7ce9710211539c0585dc0
+status: DONE

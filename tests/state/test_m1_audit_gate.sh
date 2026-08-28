@@ -10,7 +10,7 @@
 #   2. The four CTRL-014 early-start ids promote as soon as their dependencies
 #      are done, without M1-12 or an audit.
 #   3. Other M2+ ids stay planned while the audit is missing or failing.
-#   4. Once the file ends with `audit: PASS`, explicit gate reconciliation
+#   4. A file-only PASS still refuses; the exact fenced audit event plus file
 #      promotes the non-exempt row without a duplicate `done` transition.
 #   5. A passing audit cannot dispatch a task absent from the issue mirror.
 #   6. A removed or failing audit immediately makes that ready row non-runnable.
@@ -129,8 +129,9 @@ write_audit() {
 }
 
 write_issue_mirror() {
-	cat >"$ISSUES" <<'JSON'
-{"passes":[{"issues":[{"task_id":"M2-01"}]},{"issues":[{"task_id":"M2-01"}]}]}
+	second_url="${1:-https://linear.app/jackin/issue/JACKIN-1}"
+	cat >"$ISSUES" <<JSON
+{"passes":[{"issues":[{"task_id":"M2-01","url":"https://linear.app/jackin/issue/JACKIN-1"}]},{"issues":[{"task_id":"M2-01","url":"$second_url"}]}]}
 JSON
 }
 
@@ -150,8 +151,11 @@ complete_task M1-01
 assert_early_ready
 printf 'M1-12 and early-start ids ready\n'
 
-printf '== 3. no audit file: M1-12 done does not promote ordinary M2+\n'
-complete_task M1-12
+printf '== 3. no audit file: active M1-12 does not promote ordinary M2+\n'
+M112_LEASE=$(python3 "$STATE" lease M1-12 --owner fixture:M1-12 --ttl 600)
+M112_TOKEN=$(printf '%s\n' "$M112_LEASE" |
+	python3 -c 'import json,sys; print(json.load(sys.stdin)["token"])')
+python3 "$STATE" transition M1-12 in-progress --token "$M112_TOKEN" >/dev/null
 python3 "$STATE" promote >/dev/null
 [ "$(row_status M2-01)" = "planned" ] ||
 	fail "M2-01 was promoted with no audit file (CTRL-006)"
@@ -175,14 +179,33 @@ python3 "$STATE" promote >/dev/null
 assert_early_ready
 printf 'unbound and stale audits promoted no ordinary M2+ row\n'
 
-printf '== 5. a passing audit opens the gate through explicit reconciliation\n'
+printf '== 5. file-only PASS refuses; fenced event plus file opens the gate\n'
 write_audit 1 "$LOCK_HASH"
+FILE_ONLY_STORE="$WORK/file-only-store"
+cp -R "$ECOSYSTEM_STORE" "$FILE_ONLY_STORE"
+ECOSYSTEM_STORE="$FILE_ONLY_STORE" ECOSYSTEM_RUN_LOCK="$ECOSYSTEM_RUN_LOCK" \
+	python3 "$STATE" transition M1-12 'done' --token "$M112_TOKEN" \
+	--result 'audit: PASS' --evidence tasks/M1-12/audit.txt >/dev/null
+ECOSYSTEM_STORE="$FILE_ONLY_STORE" ECOSYSTEM_RUN_LOCK="$ECOSYSTEM_RUN_LOCK" \
+	python3 "$STATE" release M1-12 --token "$M112_TOKEN" >/dev/null
+ECOSYSTEM_STORE="$FILE_ONLY_STORE" ECOSYSTEM_RUN_LOCK="$ECOSYSTEM_RUN_LOCK" \
+	python3 "$STATE" promote >/dev/null
+file_only_status=$(awk -F'|' '$2 ~ "^ M2-01 $" {gsub(/ /, "", $5); print $5}' \
+	"$FILE_ONLY_STORE/tasks-README.md")
+[ "$file_only_status" = "planned" ] ||
+	fail "file-only audit PASS promoted M2-01 without foundation-audit event"
+python3 "$STATE" event M1-12 --operation foundation-audit --attempt 1 \
+	--token "$M112_TOKEN" --result PASS \
+	--evidence tasks/M1-12/audit.txt >/dev/null
+python3 "$STATE" transition M1-12 'done' --token "$M112_TOKEN" \
+	--result 'audit: PASS' --evidence tasks/M1-12/audit.txt >/dev/null
+python3 "$STATE" release M1-12 --token "$M112_TOKEN" >/dev/null
 python3 "$STATE" promote >/dev/null
 [ "$(row_status M2-01)" = "ready" ] || fail "M2-01 was not promoted after the pass"
 [ "$(grep -c '"status":"done","task":"M1-12"' "$ECOSYSTEM_STORE/events.jsonl")" = 1 ] ||
 	fail "audit reconciliation duplicated the M1-12 done transition"
 assert_early_ready
-printf 'M2-01 and early-start ids ready\n'
+printf 'file-only refused; fenced audit promoted M2-01\n'
 
 events_before=$(wc -l <"$ECOSYSTEM_STORE/events.jsonl")
 python3 "$STATE" promote >/dev/null
@@ -196,6 +219,11 @@ fi
 write_issue_mirror
 python3 "$STATE" runnable | grep -qx M2-01 ||
 	fail "M2-01 was not runnable with passing audit and mirrored issue"
+write_issue_mirror https://linear.app/jackin/issue/JACKIN-2
+if python3 "$STATE" runnable | grep -qx M2-01; then
+	fail "M2-01 was runnable with a non-idempotent issue URL"
+fi
+write_issue_mirror
 printf 'tampered but still well-formed\nstatus: DONE\n' \
 	>"$ECOSYSTEM_STORE/audit-M1-01.out"
 if python3 "$STATE" runnable | grep -qx M2-01; then

@@ -14,6 +14,7 @@ import tomllib
 from pathlib import Path
 
 import roadmap_compile as rc
+import state as run_state
 
 EARLY_START = {"M3-01", "M3-03", "M4-02", "M4-03"}
 STATE_TYPE = {
@@ -68,6 +69,42 @@ def mirrored_task_ids(statuses):
     if unknown:
         fail(f"task status has no Linear projection: {unknown}")
     return {task_id for task_id in statuses if not task_id.startswith("M1-")}
+
+
+def event_log(path):
+    """Read the authoritative event log used to capture mirror pass state."""
+    try:
+        rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()
+                if line.strip()]
+    except (OSError, ValueError) as exc:
+        fail(f"cannot read {path}: {exc}")
+    if any(not isinstance(row, dict) or row.get("seq") != index
+           for index, row in enumerate(rows)):
+        fail("run/events.jsonl sequence is not dense")
+    return rows
+
+
+def captured_task_statuses(pass_data, events, mirrored, pass_number):
+    """Bind one GraphQL observation to its own durable state snapshot."""
+    if not isinstance(pass_data, dict):
+        fail(f"pass {pass_number}: must be an object")
+    event_seq = pass_data.get("event_seq")
+    if type(event_seq) is not int or event_seq < 0 or event_seq >= len(events):
+        fail(f"pass {pass_number}: event_seq is not present in run/events.jsonl")
+    captured = pass_data.get("task_statuses")
+    if not isinstance(captured, dict) or set(captured) != mirrored:
+        fail(f"pass {pass_number}: task_statuses must cover the exact mirrored set")
+    replay = run_state.project(events[:event_seq + 1])
+    expected = {
+        task_id: replay["tasks"].get(task_id, {}).get("status")
+        for task_id in mirrored
+    }
+    if captured != expected:
+        fail(f"pass {pass_number}: task_statuses do not match event_seq {event_seq}")
+    unknown = sorted({status for status in captured.values() if status not in STATE_TYPE})
+    if unknown:
+        fail(f"pass {pass_number}: task status has no Linear projection: {unknown}")
+    return captured, event_seq
 
 
 def git_output(root, args, binary=False):
@@ -242,6 +279,7 @@ def main():
         fail("run/LOCK.toml plan.commit is not 40 lowercase hex")
     statuses = task_statuses(root / "tasks/README.md")
     mirrored = mirrored_task_ids(statuses)
+    events = event_log(root / "run/events.jsonl")
     lanes = load_json(root / "tasks/M1-13/lanes.json")
     lock_bundles = lock.get("bundles") or {}
     expected = {}
@@ -286,16 +324,24 @@ def main():
     if not isinstance(passes, list) or len(passes) != 2:
         fail("snapshot must contain exactly two reconciliation passes")
     observed = []
+    previous_event_seq = -1
     for number, pass_data in enumerate(passes, 1):
+        pass_statuses, event_seq = captured_task_statuses(
+            pass_data, events, mirrored, number)
+        if event_seq < previous_event_seq:
+            fail(f"pass {number}: event_seq precedes the previous pass")
+        previous_event_seq = event_seq
         by_task = issue_map(pass_data, expected, number)
         for task_id, want in expected.items():
-            check_issue(task_id, by_task[task_id], want, number,
+            pass_want = dict(want)
+            pass_want["state_type"] = STATE_TYPE[pass_statuses[task_id]]
+            check_issue(task_id, by_task[task_id], pass_want, number,
                         team["id"], project["id"], milestone_ids, workflow)
         attempts = pass_data.get("early_start_attempts")
         if not isinstance(attempts, dict) or set(attempts) != EARLY_START or not all(
                 isinstance(value, int) and value >= 0 for value in attempts.values()):
             fail(f"pass {number}: early_start_attempts must cover the four early tasks")
-        observed.append((by_task, attempts))
+        observed.append((by_task, attempts, event_seq))
     first, second = observed
     for task_id in expected:
         identity = ("id", "identifier", "url", "source_commit")

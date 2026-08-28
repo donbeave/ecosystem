@@ -324,6 +324,7 @@ def project(events: list) -> dict:
         "tokens": {},       # id -> highest fencing token issued
         "keys": set(),      # idempotency keys already accepted
         "progress": [],     # rendered PROGRESS.md rows
+        "foundation_audit": None,  # latest fenced M1-12 audit event
     }
     for event in events:
         kind = event.get("type")
@@ -380,6 +381,18 @@ def project(events: list) -> dict:
             row = state["tasks"].get(event["task"])
             if row is not None and row["status"] == "leased":
                 row["status"] = "ready"
+        elif kind == "event" and event.get("task") == "M1-12" and \
+                event.get("operation") == "foundation-audit":
+            lease = state["leases"].get("M1-12")
+            if lease is not None and event.get("token") == lease.get("token") and \
+                    lease.get("epoch") == state["lock_epoch"]:
+                state["foundation_audit"] = {
+                    "lock_epoch": state["lock_epoch"],
+                    "lock_hash": state["lock_hash"],
+                    "token": event.get("token"),
+                    "result": event.get("result"),
+                    "evidence": event.get("evidence"),
+                }
         elif kind == "lock_epoch":
             state["lock_epoch"] = event["epoch"]
             state["lock_hash"] = event["lock_hash"]
@@ -560,19 +573,24 @@ def text_artifact_sha256(path: str) -> str | None:
 
 
 def issue_mirror_has_task(task_id: str) -> bool:
-    """Require the task in both M1-12 reconciliation observations."""
+    """Require one stable task URL in both M1-12 reconciliation observations."""
     try:
         with open(ISSUE_MIRROR_PATH, "r", encoding="utf-8") as handle:
             snapshot = json.load(handle)
         passes = snapshot["passes"]
         if not isinstance(passes, list) or len(passes) != 2:
             return False
-        return all(
-            isinstance(item, dict) and
-            sum(issue.get("task_id") == task_id
-                for issue in item.get("issues", []) if isinstance(issue, dict)) == 1
-            for item in passes
-        )
+        urls = []
+        for item in passes:
+            if not isinstance(item, dict):
+                return False
+            matches = [issue for issue in item.get("issues", [])
+                       if isinstance(issue, dict) and issue.get("task_id") == task_id]
+            if len(matches) != 1 or not isinstance(matches[0].get("url"), str) or \
+                    not matches[0]["url"].strip():
+                return False
+            urls.append(matches[0]["url"])
+        return urls[0] == urls[1]
     except (OSError, KeyError, TypeError, json.JSONDecodeError):
         return False
 
@@ -589,6 +607,14 @@ def m1_audit_passed(state: dict) -> bool:
     """
     try:
         lock_epoch, lock_hash, lock_data = read_run_lock_details()
+        audit_event = state.get("foundation_audit")
+        if not isinstance(audit_event, dict) or \
+                audit_event.get("lock_epoch") != lock_epoch or \
+                audit_event.get("lock_hash") != lock_hash or \
+                audit_event.get("result") != "PASS" or \
+                audit_event.get("evidence") != "tasks/M1-12/audit.txt" or \
+                type(audit_event.get("token")) is not int:
+            return False
         bundles = lock_data["bundles"]
         if not isinstance(bundles, dict):
             return False
@@ -1059,15 +1085,21 @@ def cmd_render(args) -> None:
 
 
 def cmd_status(args) -> None:
-    state = project(read_events())
+    with Lock():
+        events = read_events()
+        state = project(events)
     counts = {}
     for row in state["tasks"].values():
         counts[row["status"]] = counts.get(row["status"], 0) + 1
     print(json.dumps({
         "run_id": state["run_id"],
+        "event_seq": len(events) - 1,
         "lock_epoch": state["lock_epoch"],
         "lock_hash": state["lock_hash"],
         "tasks": len(state["tasks"]),
+        "task_statuses": {
+            task: state["tasks"][task]["status"] for task in state["order"]
+        },
         "counts": counts,
         "leases": state["leases"],
         "runnable": runnable(state),

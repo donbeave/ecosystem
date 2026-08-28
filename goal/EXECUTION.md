@@ -726,8 +726,10 @@ external resource.
    to rotate, and blocks the commit.
 7. Step 0, then claim the current row. For M1-12, run step 7a under that
    proof lease before its `done` transition; every other M1 row is already
-   `done` by the locked wave order. On audit PASS, transition M1-12 to `done`
-   with result `audit: PASS` and evidence `tasks/M1-12/audit.txt`. For every
+   `done` by the locked wave order. On audit PASS, append `python3 tools/state.py
+   event M1-12 --operation foundation-audit --attempt <n> --token <token>
+   --result PASS --evidence tasks/M1-12/audit.txt`, then transition M1-12 to
+   `done` with result `audit: PASS` and that same evidence. For every
    other task, transition it to `done`. Then release,
    render, and continue; if the task has a Linear issue that
    is not already in a `completed`-type state, move it there on every path,
@@ -753,7 +755,8 @@ external resource.
    locked M1 id as `<id>: bundle=<locked-sha256> verify=<artifact-sha256>`, then
    last line `audit: PASS` (use `audit: FAIL`, leave M1-12 `in-progress`, and
    do not promote on failure). Commit and push those files. Step 7 records the
-   PASS and audit path in M1-12's own transition event/result, then run
+   PASS and audit path in M1-12's fenced `foundation-audit` event and ordinary
+   result/evidence cells, then run
    `python3 tools/state.py promote` to reconcile the external audit gate under
    the state lock after that PASS. Until
    it ends with `audit:

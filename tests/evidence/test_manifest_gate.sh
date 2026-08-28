@@ -1,6 +1,7 @@
 #!/bin/sh
 # Adversarial evidence acceptance tests. Every mutation is committed and
 # pushed so only the evidence defect can make the root oracle reject it.
+# shellcheck disable=SC1091,SC2329
 set -u
 
 REPO=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
@@ -24,6 +25,7 @@ mutate_manifest() {
 	python3 - "$manifest" "$case_name" <<'PY'
 import json
 import pathlib
+import subprocess
 import sys
 
 path = pathlib.Path(sys.argv[1])
@@ -33,9 +35,12 @@ command = data["commands"][0]
 if case == "wrong-task":
     data["task"] = "M9-99"
 elif case == "wrong-bundle":
-    data["bundle_hash"] = "0" * 64
+    other = path.parents[1] / "M1-02" / "evidence.json"
+    data["bundle_hash"] = json.loads(other.read_text(encoding="utf-8"))["bundle_hash"]
 elif case == "wrong-integrated-sha":
-    data["integrated_sha"] = "0" * 40
+    data["integrated_sha"] = subprocess.check_output(
+        ["git", "-C", str(path.parents[2]), "rev-parse", "HEAD"], text=True
+    ).strip()
 elif case == "failed-command":
     command["exit_code"] = 1
 elif case == "invalid-timestamp":
@@ -43,6 +48,10 @@ elif case == "invalid-timestamp":
 elif case == "reversed-timestamps":
     command["started"] = "2026-08-28T00:00:01Z"
     command["finished"] = "2026-08-28T00:00:00Z"
+elif case == "future-timestamps":
+    command["started"] = "2999-01-01T00:00:00Z"
+    command["finished"] = "2999-01-01T00:00:01Z"
+    data["updated"] = "2999-01-01T00:00:01Z"
 elif case == "failed-result":
     data["result_class"] = "FAILED SYSTEM"
 elif case == "unknown-schema-field":
@@ -55,7 +64,7 @@ PY
 
 for case_name in \
 	wrong-task wrong-bundle wrong-integrated-sha failed-command \
-	invalid-timestamp reversed-timestamps failed-result \
+	invalid-timestamp reversed-timestamps future-timestamps failed-result \
 	outside-task-path unknown-schema-field
 do
 	root="$WORK/$case_name"
@@ -82,8 +91,9 @@ done
 # validation (`--require-done`) turns failure evidence into a gate failure.
 mkdir -p "$WORK/unfinished"
 python3 "$REPO/tools/evidence_manifest.py" run --task M1-03 \
-	--dir "$WORK/unfinished" --bundle-hash "$(printf '1%.0s' $(seq 1 64))" \
-	--integrated-sha "$(printf '2%.0s' $(seq 1 40))" -- sh -c 'exit 1' \
+	--dir "$WORK/unfinished" \
+	--bundle-hash 1111111111111111111111111111111111111111111111111111111111111111 \
+	--integrated-sha 2222222222222222222222222222222222222222 -- sh -c 'exit 1' \
 	>"$WORK/unfinished.out" 2>&1
 if python3 "$REPO/tools/evidence_manifest.py" validate \
 	"$WORK/unfinished/evidence.json" >/dev/null; then

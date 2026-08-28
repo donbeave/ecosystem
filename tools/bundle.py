@@ -14,6 +14,7 @@ Standard library only.
 Usage:
     tools/bundle.py generate [--all | <id>...] [--root .]
     tools/bundle.py hash [--all | <id>...] [--root .]
+    tools/bundle.py hash --bundle-dir <path>
     tools/bundle.py verify [--all | <id>...] [--root .]
 """
 import argparse
@@ -584,6 +585,11 @@ def generate(root, roadmap, tasks, lanes, tid, dest_root=None):
 
 
 def bundle_hash(d):
+    missing = [name for name in BUNDLE_FILES
+               if not os.path.isfile(os.path.join(d, name))]
+    if missing:
+        raise FileNotFoundError(
+            "missing canonical bundle file(s): " + ", ".join(missing))
     h = hashlib.sha256()
     for name in BUNDLE_FILES:
         path = os.path.join(d, name)
@@ -604,7 +610,33 @@ def main():
     ap.add_argument("--all", action="store_true")
     ap.add_argument("--root", default=".")
     ap.add_argument("--roadmap", default=None)
+    ap.add_argument(
+        "--bundle-dir",
+        help="hash one canonical five-file bundle directory without requiring "
+             "a ROADMAP.md row",
+    )
     a = ap.parse_args()
+
+    if a.bundle_dir is not None:
+        if a.action != "hash":
+            print("--bundle-dir is only valid with `hash`", file=sys.stderr)
+            return 1
+        if a.all or a.ids:
+            print("--bundle-dir cannot be combined with --all or task ids",
+                  file=sys.stderr)
+            return 1
+        d = os.path.normpath(a.bundle_dir)
+        if not os.path.isdir(d):
+            print(f"bundle directory missing: {d}", file=sys.stderr)
+            return 1
+        label = os.path.basename(os.path.abspath(d))
+        try:
+            digest = bundle_hash(d)
+        except FileNotFoundError as exc:
+            print(f"{label}: {exc}", file=sys.stderr)
+            return 1
+        print(f"{label} {digest}")
+        return 0
 
     roadmap = a.roadmap or os.path.join(a.root, "ROADMAP.md")
     tasks, dupes = rc.parse(roadmap)
@@ -631,7 +663,12 @@ def main():
             if not os.path.isdir(d):
                 print(f"{tid} missing", file=sys.stderr)
                 return 1
-            print(f"{tid} {bundle_hash(d)}")
+            try:
+                digest = bundle_hash(d)
+            except FileNotFoundError as exc:
+                print(f"{tid}: {exc}", file=sys.stderr)
+                return 1
+            print(f"{tid} {digest}")
         return 0
 
     # verify: regenerate into a temporary tree and compare byte for byte

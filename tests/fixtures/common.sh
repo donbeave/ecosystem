@@ -75,12 +75,20 @@ MD
 
 write_fixture_lock() {
   root="$1"
-  python3 - "$root/run/LOCK.toml" <<'PY'
+  epoch="${2:-1}"
+  python3 - "$root/run/LOCK.toml" "$root" "$epoch" <<'PY'
 import hashlib
 import pathlib
 import sys
 
-body = "[run]\nepoch = 1\n"
+root = pathlib.Path(sys.argv[2])
+lines = ["[bundles]"]
+for task_id in ("M1-01", "M1-02", "M1-03"):
+    digest = hashlib.sha256()
+    for name in ("TASK.md", "task.toml", "verify.sh"):
+        digest.update((root / "tasks" / task_id / name).read_bytes())
+    lines.append('"%s" = "%s"' % (task_id, digest.hexdigest()))
+body = "\n".join(lines) + "\n\n[run]\nepoch = %s\n" % sys.argv[3]
 digest = hashlib.sha256(body.encode("utf-8")).hexdigest()
 pathlib.Path(sys.argv[1]).write_text(
     body + 'lock_hash = "%s"\n' % digest,
@@ -88,6 +96,13 @@ pathlib.Path(sys.argv[1]).write_text(
 )
 print(digest)
 PY
+}
+
+refresh_fixture_lock() {
+  root="$1"
+  fixture_lock_hash="$(write_fixture_lock "$root" 2)"
+  ( cd "$root" && python3 tools/state.py lock-epoch --epoch 2 \
+      --lock-hash "$fixture_lock_hash" --key fixture-lock-epoch-2 >/dev/null )
 }
 
 fixture_transition() {
@@ -245,6 +260,7 @@ make_involved() {
   printf 'id = "%s"\nlane = "L1"\npath = "container"\nrepos = ["jackin", "host"]\n' \
       "$id" >"$root/tasks/$id/task.toml"
   printf '%s\n' "$side" >"$root/tasks/$id/checkout.txt"
+  refresh_fixture_lock "$root"
   git -C "$root" add -A
   git -C "$root" commit -q -m "fixture: $id touches an involved repository"
   sha="$(git -C "$root" rev-parse HEAD)"
@@ -310,6 +326,7 @@ make_service_labels() {
   root="$1"; id="$2"
   printf 'id = "%s"\nlane = "L1"\npath = "host"\nrepos = ["host", "Linear", "GitHub", "1Password"]\n' \
       "$id" >"$root/tasks/$id/task.toml"
+  refresh_fixture_lock "$root"
   git -C "$root" add -A
   git -C "$root" commit -q -m "fixture: $id uses external services"
   sha="$(git -C "$root" rev-parse HEAD)"
@@ -363,6 +380,7 @@ make_multi_involved() {
   printf 'id = "%s"\nlane = "L1"\npath = "container"\nrepos = ["jackin", "termrock"]\n' \
       "$id" >"$root/tasks/$id/task.toml"
   printf '%s\n' "$jackin_side" >"$root/tasks/$id/checkout.txt"
+  refresh_fixture_lock "$root"
   git -C "$root" add -A
   git -C "$root" commit -q -m "fixture: $id touches two involved repositories"
   sha="$(git -C "$root" rev-parse HEAD)"

@@ -256,6 +256,13 @@ print(h.hexdigest())' "$1" 2>/dev/null
   fi
 }
 
+locked_bundle_hash() {
+  python3 -c 'import sys,tomllib
+with open("run/LOCK.toml", "rb") as handle:
+    lock = tomllib.load(handle)
+print(lock.get("bundles", {}).get(sys.argv[1], ""))' "$1" 2>/dev/null
+}
+
 # --------------------------------------------------------------------------
 # 4. per task: bundle files, and for a done task its evidence
 # --------------------------------------------------------------------------
@@ -306,19 +313,24 @@ for id in $IDS; do
 
   recorded=$(awk '/^bundle_hash: / {print $2}' "$out" | tail -n 1)
   current=$(bundle_hash "$id")
+  locked=$(locked_bundle_hash "$id")
   if [ -z "$recorded" ]; then
     sysfail "$id: $out records no bundle_hash, so it cannot be shown fresh"
   elif [ -z "$current" ]; then
     sysfail "$id: the bundle hash of $dir cannot be computed"
-  elif [ "$recorded" != "$current" ]; then
-    sysfail "$id: $out is stale — bundle_hash $recorded, bundle is now $current"
+  elif [ -z "$locked" ]; then
+    sysfail "$id: run/LOCK.toml records no bundle hash"
+  elif [ "$current" != "$locked" ]; then
+    sysfail "$id: current bundle hash $current differs from locked hash $locked"
+  elif [ "$recorded" != "$locked" ]; then
+    sysfail "$id: $out is stale — bundle_hash $recorded, locked hash is $locked"
   fi
 
   man="$dir/evidence.json"
   if [ ! -f "$man" ]; then
     sysfail "$id: evidence manifest $man is missing"
   elif ! python3 tools/evidence_manifest.py validate "$man" \
-      --task "$id" --bundle-hash "$current" \
+      --task "$id" --bundle-hash "$locked" \
       --integrated-sha "$want_integrated" --task-dir "$dir" \
       --require-done >"$TMP/man.out" 2>&1; then
     sysfail "$id: $man is invalid: $(tail -n 1 "$TMP/man.out")"

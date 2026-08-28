@@ -77,7 +77,16 @@ printf '%s\n' "$CASES" | while IFS=: read -r name want; do
   fi
 done
 
+if sh "$REPO/tests/evidence/test_manifest_gate.sh" \
+    >"$WORK/evidence-manifest.out" 2>&1; then
+  echo "evidence-manifest: ok — $(tail -n 1 "$WORK/evidence-manifest.out")"
+else
+  echo "evidence-manifest: FAIL — $(tail -n 1 "$WORK/evidence-manifest.out")"
+  echo x >>"$WORK/.failed"
+fi
+
 total=$(printf '%s\n' "$CASES" | grep -c .)
+total=$((total + 1))
 [ -f "$WORK/.failed" ] && fails=$(grep -c x "$WORK/.failed")
 [ "$KEEP" -eq 1 ] && echo "fixtures kept under $WORK"
 

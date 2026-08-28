@@ -1,0 +1,37 @@
+{
+  "task": "CANARY-01",
+  "bundle_hash": "4e4ead908e46e939e14abc04f450d6cf1b3caaf4c6c7ce9710211539c0585dc0",
+  "integrated_sha": "d358386c57023d20429c71af3dddfdc42464ba3c",
+  "attempt": 1,
+  "epoch": 2,
+  "fencing_token": 2,
+  "created": "2026-08-27T19:59:23Z",
+  "commands": [
+    {
+      "cmd": [
+        "sh",
+        "tasks/CANARY-01/verify.sh",
+        "host"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "e0d85ceee0815031afe9ceb842c6b90d97313f6591c066e7f8f1fd1834e84ae8",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "started": "2026-08-27T19:59:23Z",
+      "finished": "2026-08-27T19:59:23Z"
+    }
+  ],
+  "external_object_ids": {
+    "github_pr": "https://github.com/donbeave/ecosystem/pull/1",
+    "linear_issue": "blocked-on-human: PREFLIGHT-DEFECTS #4"
+  },
+  "tool_versions": {
+    "git": "git version 2.50.1 (Apple Git-155)",
+    "jq": "jq-1.7.1-apple",
+    "python3": "Python 3.14.7",
+    "gitleaks": "8.30.1",
+    "gh": "gh version 2.98.0 (2026-08-20)",
+    "docker": "Docker version 29.4.0, build 9d7ad9f"
+  },
+  "result_class": "DONE",
+  "updated": "2026-08-27T19:59:23Z"
+}

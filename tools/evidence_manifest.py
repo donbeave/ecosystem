@@ -16,6 +16,8 @@ Usage:
         --integrated-sha <sha> [--repository <repo> <branch> <sha> <checkout>] \
         [options] -- <cmd> [-- <cmd> ...]
     evidence_manifest.py validate <path> | --all [--root <dir>]
+        [--task <id> --bundle-hash <h> --integrated-sha <sha>
+         --task-dir <dir> --require-done]
 
 `run` executes each command, hashes stdout and stderr, records the exit
 code and the start/finish timestamps, and writes the manifest atomically
@@ -23,10 +25,10 @@ code and the start/finish timestamps, and writes the manifest atomically
 invocations against the same manifest append to `commands` and refresh the
 scalar fields.
 
-`validate` enforces the acceptance semantics of
-`jq -e '.integrated_sha and .commands and .bundle_hash'` plus the
-40-hex-SHA shape and the `result_class` enum, and exits non-zero on the
-first failure.
+`validate` always enforces the declared manifest schema and timestamp
+ordering. The optional acceptance arguments bind a done task's evidence to
+its owner, current bundle, integration SHA, permitted path, successful
+commands, and DONE result without rejecting manifests from unfinished runs.
 """
 
 from __future__ import annotations
@@ -335,6 +337,7 @@ def problems(
         fail("commands must be an array")
         commands = []
     command_times = []
+    future_limit = datetime.now(timezone.utc) + timedelta(minutes=5)
     for index, entry in enumerate(commands or []):
         where = "commands[%d]" % index
         if not isinstance(entry, dict):
@@ -364,6 +367,8 @@ def problems(
         if started is not None and finished is not None:
             if finished < started:
                 fail("%s.finished precedes started" % where)
+            if started > future_limit or finished > future_limit:
+                fail("%s timestamps are in the future" % where)
             command_times.append((where, started, finished))
 
     if not isinstance(manifest.get("tool_versions", {}), dict):
@@ -383,6 +388,10 @@ def problems(
         fail("updated must be a valid UTC timestamp")
     if created is not None and updated is not None and updated < created:
         fail("updated precedes created")
+    if created is not None and created > future_limit:
+        fail("created is in the future")
+    if updated is not None and updated > future_limit:
+        fail("updated is in the future")
     previous_finished = None
     for where, started, finished in command_times:
         if created is not None and started < created:

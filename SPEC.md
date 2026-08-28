@@ -91,7 +91,7 @@ code lives in the involved jackin, termrock, and role repositories.
 | session | Interactive runtime process on the capsule PTY and its Linear agent session. |
 | instance / container | jackin identity and Docker container for one attempt. |
 | workspace | Host checkout reused across attempts for one issue. |
-| dispatchable | Adapter-derived eligibility predicate in SCHED-000. |
+| initially dispatchable | Adapter-derived first-claim eligibility predicate in SCHED-000; later attempts use SCHED-003 secondary claimability. |
 | product `run:waiting` | Daemon requested human input through a Linear elicitation. This is not a delivery-task status. |
 | product `run:blocked` | Runtime stopped for input the daemon did not request. This is not a delivery-task status. |
 | product `run:stuck` | No capsule activity within the configured stall window. |
@@ -286,15 +286,37 @@ code lives in the involved jackin, termrock, and role repositories.
   `<task-id> <task-title>`. Its description MUST begin
   `task_source: https://github.com/tailrocks/ecosystem/tree/<40-hex-commit>/tasks/<task-id>`
   and then contain the bundle's `TASK.md`; its `blocks` relations MUST equal
-  `depends_on` except non-blocking review relationships; its canonical
-  role/agent/model/lane/effort/delivery/repository labels MUST equal the bundle;
-  and it MUST have the raw attachments required by ISSUE-014. Bundle state MUST
+  `depends_on` except non-blocking review relationships; and it MUST have the
+  raw attachments required by ISSUE-014.
+
+  Mirror label resolution is exact. The locked `task.toml` supplies the
+  ISSUE-005 role, runtime, lane, delivery, and repository labels. The locked
+  role manifest MUST resolve the role, MUST list that
+  runtime in `agents`, and MUST NOT override either selection. The
+  `tasks/M1-13/lanes.json` object selected by `<lane>` MUST agree with the task
+  runtime and supplies its literal `model:<model_id>` label and
+  `effort:<effort>` label. Every mirrored task also carries `auto-dispatch`.
+  The locked task fields take precedence over prior Linear labels; the lane
+  record supplies only model and effort; the role manifest supplies only
+  compatibility and trust validation. A missing source, disagreement, empty
+  repository, extra conflicting group value, or non-canonical label fails the
+  mirror instead of being defaulted from Linear.
+
+  Bundle state MUST
   project `planned`, `ready`, `resource-waiting`, `blocked`, and `failed-system`
   to the ordinary `unstarted` state; `leased`, `in-progress`, and `waiting` to
   the ordinary first `started` state; and `done` to the `completed` state. No
   mirrored issue may pre-set a delegate. A content-addressed
   issue map MUST bind task id, Linear issue id/identifier/URL, milestone, and
   source commit so reruns update the same issue instead of creating another.
+  Each of the two idempotence-proof passes MUST atomically capture
+  `{event_seq, task_statuses, issues, early_start_attempts}`: `event_seq` is a
+  valid event-log sequence; `task_statuses` contains exactly every M2+ task and
+  equals replay at that sequence; `issues` contains exactly one full issue
+  observation per such task; and `early_start_attempts` contains exactly the
+  four exempt ids with non-negative integer counts. Pass sequence MUST be
+  monotonic, and issue identities, locked source commit, and early-start counts
+  MUST be unchanged across the two passes.
   When the mirror is created, it MUST backfill those four early-start tasks at
   their current durable status without delegating or rerunning them.
 
@@ -380,10 +402,10 @@ merging = "Merging"
 
 ## 6. Eligibility, scheduling, and concurrency
 
-### 6.1 Dispatchable predicate
+### 6.1 Initial dispatchability and later claimability
 
-- **SCHED-000** An issue is dispatchable if and only if all conditions in the
-  following list hold:
+- **SCHED-000** An issue is initially dispatchable if and only if all conditions
+  in the following list hold:
 
 1. delegate equals the jackin app user;
 2. workflow state type is `unstarted` or `started`, but the state is neither
@@ -400,6 +422,27 @@ merging = "Merging"
   value with reason codes. The scheduler MUST NOT duplicate the predicate.
 - **SCHED-002** A held issue MUST receive at most one activity for the same
   unchanged hold reason. It is re-evaluated each reconciliation tick.
+- **SCHED-003** A continuation, retry, fallback, exhausted-claim resume, merge,
+  or rework does not use initial dispatchability. It is secondarily claimable
+  only when: the app remains delegate; issue/workflow/role/lane validation
+  passes; every blocking relation is terminal; no `claimed` or `running` claim
+  exists; every SCHED-005 capacity is atomically available; and its durable
+  kind-specific trigger is current. Continuation/retry/fallback may claim from
+  the workflow state of the active run; exhausted resume may claim only after
+  the human reply/clear recorded by the manager that owns the durable blocked
+  claim; merge may claim from configured `Merging` or explicit task
+  authorization; and rework may claim from `Review`, `Merging`, or another
+  ordinarily eligible active state only after GitHub proves the prior PR closed
+  or merged. `completed` and `canceled` are never secondarily claimable.
+
+  The active manager is the sole owner of `blocked→claimed` and
+  `released|retry_queued→claimed`. It MUST re-read Linear/GitHub, dependencies,
+  claim state, and caps under its claim transaction; allocate the next ordinal;
+  and then acquire the worker binding. Any authoritative proof-plane transition
+  or named external proof effect also requires the current CTRL-019 lease and
+  fencing token; secondary claimability creates no product-global lease. After
+  restart, a surviving exact tuple is adopted rather than reacquired, while a
+  non-live claim follows SCHED-024 before the manager may use a new ordinal.
 
 ### 6.2 Capacity and order
 
@@ -498,46 +541,73 @@ merging = "Merging"
 | State | Entry | Legal next states | Linear activity |
 | --- | --- | --- | --- |
 | `starting` | Claimed; workspace or launch in progress | `working`, `waiting`, `blocked`, `failed` | `thought` acknowledgement, then `action` launch |
-| `working` | Capsule reports activity | `waiting`, `blocked`, `stuck`, `verifying`, `failed` | `action` on transition only |
-| `waiting` | Manager posted elicitation | `working`, `failed` | `elicitation`; reply produces `action` |
+| `working` | Capsule reports activity | `starting`, `waiting`, `blocked`, `stuck`, `verifying`, `failed` | `action` on transition only; `starting` begins a continuation |
+| `waiting` | Manager posted elicitation or every eligible lane is throttled | `starting`, `working`, `failed` | `elicitation` for input; an `action` records resumed or newly placed work |
 | `blocked` | Runtime waits for input not requested by manager | `working`, `waiting`, `failed` | `elicitation` or `action` with reason and attach target |
-| `stuck` | No capsule activity for stall window | `working`, `failed`, retry/fallback | `action` with last progress and window |
-| `verifying` | Checklist complete and completion bar satisfied | `done`, `failed`, retry | `action` |
-| `failed` | Attempt failed | retry/continuation/fallback, `waiting`, released | `error` once per failure |
-| `done` | Verification passed and PR is ready/review transition completed | released or merging workflow | `response` |
+| `stuck` | No capsule activity for stall window | `working`, `failed` | `action` with last progress and window |
+| `verifying` | Checklist complete and completion bar satisfied | `done`, `failed` | `action` |
+| `failed` | Attempt failed and its container is no longer eligible for reuse | `starting`, `waiting` | `error` once per failure; `starting` begins retry/fallback, `waiting` carries exhaustion elicitation |
+| `done` | Verification passed and PR is ready/review transition completed | `starting` | `response`; `starting` is permitted only for an authorized merge or rework attempt |
 
 - **STATE-001** Illegal transitions MUST be rejected. Replaying the same
   transition MUST emit no tracker write.
 - **STATE-002** `waiting`, `blocked`, and `stuck` are distinct. A runtime
-  permission prompt is `blocked`; a manager elicitation is `waiting`; silence
-  past the activity window is `stuck`.
+  permission prompt is `blocked`; a manager elicitation or a fully throttled
+  lane chain is `waiting`; silence past the activity window is `stuck`.
 - **STATE-003** Runtime resumption MUST clear `blocked` or `stuck` to `working`
   automatically and update label plus activity atomically.
 - **STATE-004** The default stall window is 5 minutes and MUST be configurable.
   Heartbeats do not count as capsule progress.
-- **STATE-005** The claim state enum is `unclaimed`, `claimed`, `running`,
-  `retry_queued`, `blocked`, `released`. Claim state and visible run state MUST
-  be stored separately and reconciled explicitly.
+- **STATE-005** The claim state enum is exactly `unclaimed`, `claimed`,
+  `running`, `retry_queued`, `blocked`, and `released`. Legal claim edges are
+  `unclaimed→claimed`; `claimed→running|retry_queued|blocked|released`;
+  `running→retry_queued|blocked|released`;
+  `retry_queued→claimed|blocked|released`; `blocked→claimed|released`; and
+  `released→claimed`. Claim state and visible run state MUST be stored
+  separately and reconciled explicitly. This is a durable single-manager claim,
+  not a distributed product lease or proof-plane fencing token. Visible
+  `blocked` caused by a live runtime prompt keeps claim `running`; claim
+  `blocked` is reserved for exhaustion or another persisted hold after no live
+  attempt remains.
 
 ### 7.2 Attempt kinds and lifecycle
 
 - **STATE-010** The following attempt-kind table is exhaustive for product
   runs.
 
-| Attempt kind | Trigger | Workspace |
-| --- | --- | --- |
-| initial | First valid claim | Clone/create or reuse clean issue workspace. |
-| continuation | Clean runtime exit with incomplete checklist | Same branch and workspace; new container after 1 second. |
-| retry | Agent-class failure | Same branch and workspace after backoff. |
-| fallback | Quota or recovered stuck condition | Same branch/workspace; new lane and container. |
-| rework | PR closed or merged while issue becomes active again | Reset workspace to current base, then use declared branch policy. |
-| merge | Issue enters merging state or task text authorizes merge | Same workspace; merge prompt frame. |
+| Attempt kind | Trigger | Required state/claim workflow | Workspace |
+| --- | --- | --- | --- |
+| initial | First valid claim | `unclaimed→claimed→running`; visible `starting→working`. | Clone/create or reuse clean issue workspace. |
+| continuation | Clean runtime exit with incomplete checklist | End old `running` claim as `retry_queued`, release capacity, wait one second, then `retry_queued→claimed→running`; visible `working→starting→working`. | Same branch and workspace; always a new container. |
+| retry | Agent-class failure | Visible state reaches `failed`; `running→retry_queued`, capacity release, bounded backoff, then `retry_queued→claimed→running` and `failed→starting→working`. | Same branch and workspace; always a new container. |
+| fallback | Quota or diagnosed/recovered stuck condition | End old claim as `retry_queued`, release capacity, select the next eligible full lane profile, then reacquire `claimed→running`; visible `failed|waiting→starting→working`. | Same branch/workspace; new lane and container. |
+| rework | A closed or merged PR's issue becomes active again | Prior claim is `released`; after capacity reacquisition use `released→claimed→running` and visible `done→starting→working`. | Reset to current base and create/reuse only the branch allowed by current branch policy; never continue the stale tree. |
+| merge | Issue enters merging state or task text authorizes merge | Verification has released the claim; after the per-repository merge slot and other capacity are reacquired use `released→claimed→running` and visible `done→starting→working`. | Same role/runtime/workspace; merge prompt frame. |
 
 - **STATE-011** Every attempt MUST increment the attempt ordinal, create a new
   attachable container and session, preserve prior records, and replace the
   current Linear external URL while retaining all bindings in the ledger.
   Continuation count, retry budget, and attempt ordinal MUST be stored as three
   separate counters.
+- **STATE-012** `claimed` and `running` alone consume manager-host, daemon-host,
+  repository, workflow-state, account-home, role, and merge-slot capacity.
+  Leaving either state for `retry_queued`, `blocked`, or `released` MUST
+  atomically record the attempt outcome, stop/eject its container when one
+  exists, and release every slot; a retry deadline, elicitation, review wait,
+  or retained workspace consumes no run slot. Every later attempt, including
+  continuation, retry, fallback, exhausted resume, merge, and rework, MUST
+  satisfy SCHED-003 and atomically reacquire all applicable slots before the
+  claim becomes `claimed`; it then allocates the next ordinal before launch.
+  The visible `run:*` label MUST equal the STATE-000 state while work is active;
+  terminal issue cleanup removes it.
+- **STATE-013** Recovery MUST reconstruct claims and capacity from Linear,
+  manager/worker ledgers, and backend bindings before dispatch. An exact live
+  tuple is adopted as `running` and counts against capacity. A claim with no
+  provable live binding becomes `retry_queued` only after SCHED-024 resolves or
+  preserves any unknown external effect. `blocked` and `released` claims MUST
+  not restart merely because a workspace remains. Merge and rework triggers
+  are re-read from Linear/GitHub and reacquire capacity through STATE-012;
+  restart MUST NOT create a second tuple, container, merge, or rework branch.
 
 ## 8. End-to-end workflows
 
@@ -637,7 +707,10 @@ merging = "Merging"
   and hashes MUST be retained as evidence; no other text is a pass.
 - **EXEC-033** On pass, the manager marks the PR ready, writes the PR link,
   moves the issue to its configured review state, posts one response, and
-  releases run capacity while retaining the workspace for merge/rework.
+  moves claim `running→released`, stops the completed attempt, releases every
+  STATE-012 slot, and retains only the workspace and durable records for a
+  possible merge/rework. Visible run state is `done`; no review wait holds
+  agent, account, host, role, repository, or workflow capacity.
 - **EXEC-034** Verification failure is an agent-class failure and supplies
   captured output as redacted `last_error` to the next attempt.
 - **EXEC-035** The verifier used to accept an attempt MUST come from the
@@ -679,9 +752,17 @@ merging = "Merging"
 ### 8.6 Escalation, replies, stop, and follow-ups
 
 - **EXEC-050** A Linear elicitation is the canonical request for human input.
-  A prompted reply MUST be delivered to the same PTY and transition the run to
-  working. `signal: stop` MUST stop and release the run without pretending it
-  completed.
+  A prompted reply to a live waiting attempt MUST be delivered to the same PTY
+  and transition the run to `working`. A reply to an exhausted claim has no
+  live PTY: only the active manager that owns the durable blocked claim may
+  accept the human clear, and only after re-evaluating SCHED-003 may it
+  atomically reacquire every STATE-012 slot, follow
+  `blocked→claimed→running`, allocate the next ordinal, acquire a new worker
+  binding, and transition visible `waiting→starting→working`. Recovery MUST
+  adopt a surviving exact tuple or resolve the prior placement through
+  SCHED-024 before that reacquisition; the retained workspace alone grants no
+  resume authority. `signal: stop` MUST stop and release the run without
+  pretending it completed.
 - **EXEC-051** A host/operator injection through the capsule MUST follow the
   same waiting-to-working transition and produce an activity so Linear records
   remains complete.
@@ -699,13 +780,23 @@ merging = "Merging"
   attached to the Linear issue.
 - **EXEC-062** A merge attempt is authorized only by entry into the configured
   merging state or explicit task text. It MUST use the same role, runtime, and
-  workspace; update from base; address checks, conflicts, and review findings;
-  and MUST NOT bypass a failed required check.
+  workspace. The released verified claim MUST re-enter through
+  `released→claimed→running` only after SCHED-003 passes and the per-repository
+  merge slot plus every other STATE-012 slot are atomically reacquired; the visible run uses
+  `done→starting→working`. It MUST update from base, address checks, conflicts,
+  and review findings, and MUST NOT bypass a failed required check.
 - **EXEC-063** One merge attempt per repository may run at a time. The manager
   MUST confirm the PR's merged state through GitHub before moving the issue to
-  `Done`, removing the workspace, and releasing blocking issues.
+  `Done`, moving the claim `running→released`, removing the workspace,
+  releasing all capacity, clearing the run label, and releasing blocking
+  issues. Crash recovery MUST read the PR before retrying merge.
 - **EXEC-064** Closing or merging a PR while work becomes active again creates
-  a rework attempt from current base rather than continuing a stale tree.
+  a rework attempt from current base rather than continuing a stale tree. The
+  released claim MUST reacquire every STATE-012 slot, use the next ordinal,
+  transition visible `done→starting→working`, and reset/create the workspace
+  branch under current branch policy before agent launch. A closed or merged
+  prior PR/branch MUST NOT be reused as if still open; recovery reads Linear,
+  PR state, branch identity, and the ledger before creating the rework branch.
 
 ## 9. Durability, recovery, and multi-host operation
 
@@ -1061,6 +1152,16 @@ None.
   release or wait for a preview package when the branch owns the required
   behavior. Protected-main and release validation remain governed by DEP-021
   and DEP-026.
+- **DEP-029** The host MUST enable jackin-owned DCO injection once with
+  `jackin config git dco enable`. Every container launch MUST receive the exact
+  environment binding `JACKIN_GIT_DCO=1`, and the capsule-owned
+  `prepare-commit-msg` hook MUST add or preserve the `Signed-off-by` trailer for
+  the active Git identity. A role image or role repository MUST NOT install a
+  separate sign-off hook: jackin owns the global `core.hooksPath`, which would
+  shadow or conflict with a role hook. Task commits MUST still use
+  `git commit -s`, and acceptance MUST inspect every required commit for its
+  valid DCO trailer. Disabled DCO configuration, a missing launch binding or
+  capsule hook, or a role-owned sign-off hook fails the DCO contract.
 
 ## 14. Proof-plane contracts for this repository
 
@@ -1077,6 +1178,127 @@ This section specifies shipped control-plane behavior.
   SPEC-content binding; no separate mutable specification snapshot may replace
   it. A locked input changing without a new lock invalidates readiness and
   evidence.
+- **CTRL-074** Every generated `task.toml` MUST be UTF-8 TOML with exactly the
+  following root keys and tables. Required strings are present even when their
+  allowed value is empty; generators MUST materialize defaults, and consumers
+  MUST reject unknown keys, unknown tables, wrong types, duplicates, and values
+  inconsistent with the task id, Roadmap row, lane record, or role manifest.
+
+| Path | Type and cardinality | Required value / default |
+| --- | --- | --- |
+| `id` | one string matching `M[0-9]+-[0-9]+[a-z]*` | Folder name and Roadmap id. |
+| `milestone` | one `M[0-9]+` string | Prefix of `id`. |
+| `title` | one non-empty string | Roadmap title with presentation markup removed. |
+| `repo` | one string | Canonical `owner/name` dispatch repository. It MAY be empty only for an M1 host-only bundle that never enters the managed-issue contract; every M2+ bundle MUST name one. |
+| `repos` | one array of zero or more unique non-empty strings | Roadmap repository/resource cells in source order; default `[]`. |
+| `branch` | one non-empty string | Declared integration branch: `feat/managed-execution` for product repositories, otherwise `main`. |
+| `base` | one non-empty string | `main` unless the Roadmap explicitly selects another immutable base policy. |
+| `role` | one non-empty selector string | Exact role selected by the Roadmap. |
+| `runtime` | one string | `claude`, `codex`, or `host`; MUST be `host` exactly when no role container is dispatched. |
+| `lane` | one string | `L1` through `L6` for a container task; empty for host. |
+| `fallback_lane` | one string | The SCHED-006 stuck fallback for `lane`; empty for host. |
+| `account_home` | one string | Exact SCHED-006 account home for `lane`; empty for host. |
+| `delivery` | one string | `goal` or `prompt`; default `goal`. |
+| `size` | one string | `S`, `M`, or `L`. |
+| `depends_on` | one array of zero or more unique task-id strings | Exact declared dependency order; default `[]`. |
+| `decisions` | one array of zero or more unique `D-NNN` strings | Compatibility references only; every value MUST resolve through the stable alias index and adds no behavior. Default `[]`. |
+| `limits.attempts` | one positive integer | `3` unless the Roadmap explicitly supplies another limit. |
+| `verify.script` | one non-empty relative path string | Exactly `verify.sh`. |
+| `verify.has_container_part` | one Boolean | Whether the container verify part is substantive. |
+| `verify.container`, `verify.host` | one array each of zero or more unique non-empty command strings | Source-order commands for each part; default `[]`. |
+| `evidence[]` | zero or more tables | Each has exactly `path`, `part`, and `contains` under CTRL-075. |
+
+  Every generated `TASK.md` MUST be UTF-8 Markdown whose H1 is
+  `# <id> <title>`, whose metadata table exactly projects `milestone`,
+  dependencies, role, lane, runtime, fallback lane, delivery, size,
+  repositories, and branch from `task.toml`, and whose required second-level
+  sections occur once in this order: `Objective`, `Scope`, `References`,
+  `Steps`, `Checklist`, `Verify contract`, `Evidence expected (D-118)`,
+  `Proof (browser/attach)`, `Definition of done`, `Constraints`,
+  `Preflight (D-050)`, `Authorization (D-055, D-079)`, and
+  `When stuck (D-063)`. The first Markdown task list is the non-empty managed
+  checklist. References are container-relative under `.jackin/task/`; verify
+  text distinguishes container and host parts; constraints require DCO and no
+  secrets; preflight names a proof for each human-only input or says none;
+  authorization grants only merges named by the task; and the stuck section
+  requires fresh diagnosis before fallback or escalation.
+- **CTRL-075** `expected-evidence.toml` MUST be UTF-8 TOML with exactly one root
+  `task` string equal to the folder id and zero or more `[[evidence]]` tables.
+  Each table has exactly: `path`, a non-empty relative regular-file path under
+  that task folder with no `..`; `part`, exactly `container` or `host`; and
+  `contains`, a string that MAY be empty. Paths MUST be unique. A declared file
+  MUST be non-empty, and a non-empty marker MUST occur in its bytes. The
+  `[[evidence]]` sequence in `task.toml` MUST equal this sequence field for
+  field. Runtime-only `evidence.json` and verifier output are not bundle inputs.
+  When CTRL-029 binds a command stream to one of these entries, its manifest
+  path is the normalized repository-relative
+  `tasks/<task-id>/<evidence.path>`; `.` segments, `..`, absolute paths,
+  symlinks, undeclared paths, and paths outside the named task folder are
+  invalid.
+
+  A generated bundle contains exactly these hash inputs in this order:
+  `TASK.md`, `expected-evidence.toml`, `refs/sources.txt`, `task.toml`, and
+  `verify.sh`. Its `bundle_hash` is lowercase SHA-256 and therefore exactly 64
+  hexadecimal characters. Starting from an empty SHA-256 context, for each
+  input append: its UTF-8 relative name bytes; one NUL byte; the ASCII decimal
+  length of its raw file bytes without padding; one NUL byte; and its raw file
+  bytes. The final lowercase hexadecimal digest is the bundle hash. No newline
+  normalization, TOML reserialization, file-mode bit, runtime evidence, or
+  directory metadata participates. Regeneration MUST reproduce all five files
+  byte-for-byte before their locked hash is accepted.
+- **CTRL-076** `run/LOCK.toml` MUST be LF-terminated UTF-8 TOML with the
+  following exact root tables and no root scalar or other table. Every listed
+  field occurs once unless its cardinality says otherwise; there are no
+  implicit defaults except the materialized empty values stated below.
+  Dynamic mapping keys are permitted only where stated. Every digest is
+  lowercase, every commit is exactly 40 hexadecimal characters, every
+  SHA-256 is exactly 64, and a scalar value equal case-insensitively to the
+  moving names `main`, `HEAD`, or `latest` is forbidden.
+
+| Table | Exact fields, types, cardinality, and defaults |
+| --- | --- |
+| `[plan]` | Exactly `commit`, one 40-hex commit containing this SPEC, Roadmap, and generated bundles, and `tag`, one string. `tag` is materialized as `""` only until the human-created review tag exists. |
+| `[external]` | `pending` is required and is a unique string array, default `[]`, containing exactly the unresolved names from `jackin`, `jackin_the_architect`, and `termrock`. For each resolved name, `<name>_default` is required and is 40-hex. `<name>_managed_execution` is optional and is 40-hex, present exactly when that branch resolves. Those six patterned ref keys and `pending` are the only keys. |
+| `[roles]` | `pending` is required and is a unique string array, default `[]`, containing exactly unresolved names from `crew_builder`, `crew_operator`, and `crew_reviewer`. For each resolved name, `<name>_default` is required and is 40-hex. Those three patterned ref keys and `pending` are the only keys. |
+| `[bundles]` | Exactly one task-id key for every Roadmap task; each value is the 64-hex CTRL-075 bundle hash. |
+| `[models]` | Exactly four non-empty strings: `host="claude-fable-5"`, `host_effort="high"`, `subagent="claude-opus-5"`, and `permission_mode="bypassPermissions"`. |
+| `[cli]` | Exactly nine non-empty exact version-line strings under the literal keys `claude`, `codex`, `gh`, `docker`, `herdr`, `gitleaks`, `shellcheck`, `op`, and `jackin`. Each is the trimmed first output line of its locked version probe except `shellcheck`, which is its trimmed line beginning `version:`. |
+| `[images]` | Zero or more keys matching `[A-Za-z0-9_]+`, each derived by replacing every maximal non-alphanumeric run in the source image reference with `_` and trimming boundary `_`. Every value is `<repository-and-tag-or-name>@sha256:<64-lowercase-hex>`; moving tags alone and `unresolved` are invalid final-lock values. An empty table is the materialized default when the Roadmap names no image. |
+| `[permissions]` | Exactly `profile_sha256`, the 64-hex SHA-256 of the active `.claude/settings.json` bytes. |
+| `[run]` | Exactly `epoch`, one positive integer, and `lock_hash`, one 64-hex SHA-256. |
+
+  `lock_hash` is computed over the exact file bytes with the sole
+  `lock_hash = ...` line omitted and every other byte, order, comment, and
+  newline preserved. The writer serializes all preceding tables, ending in LF,
+  hashes those UTF-8 bytes with SHA-256, then appends
+  `lock_hash = "<digest>"` plus LF under `[run]`. Verification MUST parse the
+  TOML, reject every unknown or duplicate root/table key and every omitted
+  materialized default, recompute every bundle/profile binding it can prove
+  offline, validate the key grammars, pending sets, and immutable-reference
+  rules, and recompute that exact self-hash.
+- **CTRL-077** The accepted M1 foundation audit consists of
+  `tasks/M1-12/audit.txt`, `audit-exit-gate.out`, and exactly one
+  `audit-<id>.out` per locked M1 id. Every transcript is non-empty and ends
+  exactly `status: DONE`. SHA values below hash raw artifact bytes. The audit
+  file contains no blank or extra lines and has exactly this grammar and order:
+
+```text
+lock_epoch: <positive-decimal-current-lock-epoch>
+lock_hash: <64-lowercase-hex-current-lock-hash>
+exit_gate_sha256: <64-lowercase-hex-SHA256-of-audit-exit-gate.out>
+<M1-id>: bundle=<64-lowercase-hex-locked-bundle> verify=<64-lowercase-hex-SHA256-of-audit-<M1-id>.out>
+... one line for every locked M1 id, sorted lexicographically ...
+audit: PASS
+```
+
+  File bytes alone never open the gate. While holding M1-12's active,
+  unexpired proof-plane lease, the host MUST append exactly one fenced `event`
+  with `task="M1-12"`, `operation="foundation-audit"`, `result="PASS"`, and
+  `evidence="tasks/M1-12/audit.txt"`. Its projected lock epoch and token MUST
+  match the current lock and lease; the file, current lock, all locked M1
+  statuses, transcript hashes, bundle hashes, and event MUST validate together.
+  A diagnostic file ending `audit: FAIL`, a stale event, or a PASS without its
+  event leaves the gate closed and MUST NOT promote a non-exempt task.
 - **CTRL-003** Static readiness MUST verify graph completeness and acyclicity,
   produced/consumed artifact closure, bundle hashes, lock integrity, disposition
   coverage, shell portability, proof fixtures, invariant lint, state-store
@@ -1092,8 +1314,8 @@ This section specifies shipped control-plane behavior.
   audit before post-foundation work other than `M3-01`, `M3-03`, `M4-02`, and
   `M4-03` becomes ready. A fresh, context-isolated
   `claude-opus-5` auditor MUST rerun every M1 host verifier, compare the locked
-  creation set and exit gate, and write `tasks/M1-12/audit.txt` with last
-  non-empty line exactly `audit: PASS`. A missing, stale, mismatched, or failing
+  creation set and exit gate, and write the exact CTRL-077 transcripts and
+  `tasks/M1-12/audit.txt`. A missing, stale, mismatched, or failing
   artifact MUST keep every non-exempt M2-or-later task unready. The four exempt
   tasks use their locked bundles before M1-12 and MUST be backfilled into the
   Linear mirror by ISSUE-006. The host MUST append an `event` for task `M1-12`
@@ -1132,24 +1354,61 @@ This section specifies shipped control-plane behavior.
 }
 ```
 
-  `init` carries `run_id`, `idempotency`, and `tasks`. `transition` carries
-  `task`, `status`, `lane`, `path`, `result`, `evidence`, `attempt`, `token`,
-  and `idempotency`. `lease` carries `task`, `owner`, `token`, `epoch`, `ttl`,
-  and `expires_at`; `release` carries `task` and `token`; `event` carries
-  `task`, `operation`, `attempt`, `token`, `result`, `evidence`, and
-  `idempotency`. `lock_epoch` carries `epoch`, `lock_hash`, `previous_epoch`,
-  `previous_lock_hash`, `bootstrap`, `fences`, `quiescence`, `resets`, and
-  `idempotency`; each fence has `task`, `from_token`, and `to_token`, and each
-  reset has `task`, `from_status`, `to_status`, `from_attempt_epoch`, and
-  `to_attempt_epoch`. `rejected` carries `reason` plus the flattened detail
-  fields supplied by the refused operation and is not required to carry an
-  idempotency key. `seq` is zero-based and equals the line index. The store
-  does not carry a separate `hash` field.
+  Every event has exactly the four common fields below plus the fields for its
+  `type`; missing, extra, duplicate, or wrongly typed fields invalidate the
+  store. There are no implicit JSON defaults: the append API materializes every
+  serialized field, including empty strings, empty arrays, `false`, or `null`.
+
+| Common field | Exact contract |
+| --- | --- |
+| `seq` | Required integer `>=0`; zero-based and equal to physical line index. |
+| `ts` | Required RFC3339 UTC string ending `Z`; assigned by the append authority. |
+| `type` | Required enum `init|transition|lease|release|event|lock_epoch|rejected`. |
+| `prev` | Required 64-lowercase-hex SHA-256; 64 zeroes at genesis, otherwise CTRL-010 hash of the prior event. |
+
+| Type | Additional required fields, exact types and materialized defaults |
+| --- | --- |
+| `init` | `run_id`: non-empty string; `idempotency`: 64-lowercase-hex initialization key; `tasks`: non-empty array in compiled graph order. Every task object has exactly `id` (task-id string), `milestone` (matching `M[0-9]+`), `depends_on` (unique task-id string array, default `[]`), `wave` (integer `>=0` or `null`), and `status` (literal `planned`). Task ids are unique and dependencies resolve. |
+| `transition` | `task`: task-id string; `status`: CTRL-012 enum; `lane`, `path`, `result`, `evidence`: strings, default `""`; `attempt`: integer `>=0`, with `0` only for internal promotion and otherwise default `1`; `token`: positive integer, except `null` only for internal `planned→ready` promotion and CTRL-012 cap-bookkeeping edges; `idempotency`: non-empty string and CTRL-019 key where that requirement applies. |
+| `lease` | `task`: task-id string; `owner`: non-empty string (`integrator:<repo>` only for repository integration); `token`: positive monotonically increasing integer; `epoch`: positive current lock epoch; `ttl`: positive integer seconds; `expires_at`: integer Unix second strictly after acquisition. |
+| `release` | `task`: task-id string; `token`: positive integer equal to the released lease. No idempotency field exists; exact replay is recognized from the durable release. |
+| `event` | `task`: task-id string; `operation`: non-empty string; `attempt`: integer `>=0`, default `1`, with `0` permitted only for an audited internal reconciliation before a first delivery attempt; `token`: positive active-lease integer; `result`, `evidence`: strings, default `""`; `idempotency`: non-empty CTRL-019 operation key. |
+| `lock_epoch` | `epoch`: positive integer; `lock_hash`: 64-lowercase-hex current CTRL-076 hash; `previous_epoch`: integer `>=0`; `previous_lock_hash`: 64-lowercase-hex or `null`; `bootstrap`: Boolean; `fences`, `resets`: arrays; `quiescence`: object or `null`; `idempotency`: non-empty caller-supplied audited string. |
+| `rejected` | `reason`: non-empty string, followed only by the typed refusal-detail fields listed below. It has no required idempotency key and never changes task state. |
+
+  Each `lock_epoch.fences[]` object has exactly `task` (task-id string),
+  `from_token` and `to_token` (non-negative integers with `to_token =
+  from_token + 1`). Each `resets[]` object has exactly `task`, `from_status`,
+  `to_status="ready"`, `from_attempt_epoch`, and `to_attempt_epoch` (positive
+  integers with the latter exactly one greater). `quiescence`, when non-null,
+  has exactly: `proof_sha256` (64-lowercase-hex), `repository` (absolute
+  canonical path), `session="ecosystem-coordinator"`,
+  `coordinator_running=false`, `active_agents=0`, `active_panes=0`, and
+  `checked_at` (RFC3339 UTC no older than 300 seconds and no more than 30
+  seconds in the future when accepted).
+
+  A `rejected` event permits only this flattened detail-key union in addition
+  to its common fields and `reason`: string fields `task`, `operation`,
+  `idempotency`, `owner`, `current_owner`, `status`, `from_status`, `to_status`,
+  `requested_idempotency`, `requested_lock_hash`, `actual_lock_hash`,
+  `existing_type`, `existing_lock_hash`, `current_lock_hash`, and `error`;
+  integer-or-null `token`; integer fields `current`, `current_token`,
+  `expires_at`, `requested_epoch`, `actual_epoch`, `existing_epoch`,
+  `current_epoch`, and `expected_epoch`; Boolean fields `requested_bootstrap`,
+  `existing_bootstrap`, `quiescent_flag`, and `proof_supplied`; and string-array
+  fields `active_leases` and `active_tasks`. Lock-hash fields MAY be `null` only
+  when their named previous/current lock is not yet bound. No separate `hash`
+  field or other refusal detail is valid.
 
 - **CTRL-010** Only `tools/state.py` may append. It MUST take an exclusive
   flock, open with `O_APPEND`, write one complete line, `fsync`, close, and
   release the flock. `prev` MUST equal SHA-256 of the previous complete canonical JSON
-  object excluding its newline; the first event uses 64 zeroes.
+  object excluding its newline; the first event uses 64 zeroes. Canonical event
+  JSON is UTF-8 `json.dumps(event, sort_keys=True, separators=(",", ":"))`
+  output over the schema-typed object: object keys are lexicographically sorted,
+  no insignificant whitespace is emitted, non-ASCII characters use JSON escape
+  encoding, and one LF is appended only for storage. Hashing consumes the
+  canonical UTF-8 bytes without that LF and returns lowercase SHA-256 hex.
 - **CTRL-011** The store is append-only. An illegal transition, duplicate
   idempotency key, or missing, stale, mismatched, or future fencing token MUST
   be refused with a non-zero result and a `rejected` audit event without
@@ -1275,30 +1534,50 @@ This section specifies shipped control-plane behavior.
 
 - **CTRL-029** Every task folder MUST declare expected evidence before
   execution in `expected-evidence.toml` and MUST record actual evidence in
-  `evidence.json`. The declaration MUST contain `task` and zero or more
-  `[[evidence]]` entries with exactly `path`, `part`, and `contains`: `path` is
-  relative to `tasks/<id>/`, `part` is `container` or `host`, the file is
-  non-empty, and a non-empty `contains` marker occurs in it. The generated task
-  verifier checks those declarations. The manifest validator requires only the
-  fields marked required below; the supported producer MAY also emit the
-  optional fields shown and MUST NOT invent another acceptance schema.
+  the sole regular, non-symlink file `tasks/<id>/evidence.json`. The declaration
+  uses the exact CTRL-075 schema. The manifest is a UTF-8 JSON object with only
+  the fields below; repository and command entries likewise reject unknown
+  fields. The supported producer MAY emit only the optional fields shown and
+  MUST NOT invent another acceptance schema.
 
 | Field | Contract |
 | --- | --- |
-| `task` | Required non-empty string equal to folder/id. |
-| `bundle_hash` | Required non-empty 40- or 64-lowercase-hex hash matching `run/LOCK.toml`. |
-| `integrated_sha` | Required 40-lowercase-hex scalar; when `repositories[]` exists, equals its first SHA. |
-| `repositories[]` | Optional; when present, one object per touched repository with `repo`, `branch`, `integrated_sha`, and `checkout`; scalar `integrated_sha` equals the first entry. |
-| `commands[]` | Required non-empty array; each entry has non-empty string-array `cmd`, integer `exit_code`, 64-lowercase-hex raw-byte `stdout_sha256` and `stderr_sha256`, and non-empty `started`/`finished` timestamp strings. |
-| `tool_versions` | Optional object of exact relevant version lines; MAY be empty. |
-| `external_object_ids` | Optional object containing Linear issue/session, PR, container, release, or other external ids; MAY be empty. |
-| `attempt`, `epoch`, `fencing_token` | Optional integer values current when evidence was written. |
+| `task` | Required non-empty string exactly equal to folder/id and the accepted task argument. |
+| `bundle_hash` | Required exactly 64-lowercase-hex CTRL-075 SHA-256 equal to `[bundles].<task>` in the current lock. |
+| `integrated_sha` | Required exactly 40 lowercase hex; equals the exact commit verified and, when `repositories[]` exists, its first entry's SHA. |
+| `repositories[]` | Optional non-empty array when present; exactly one object per touched repository, unique by `repo`, with only non-empty `repo`, `branch`, `checkout` strings and a 40-hex `integrated_sha`. Strings contain no tab, CR, or LF. |
+| `commands[]` | Required non-empty array. Each object has only: `cmd`, a non-empty array of strings; integer `exit_code`; required 64-lowercase-hex SHA-256 `stdout_sha256` and `stderr_sha256` over raw bytes; valid UTC `started` and `finished`; and optional `stdout_path` and `stderr_path`. Each present path is a normalized repository-relative string exactly equal to the CTRL-075 binding for that stream. Unknown command fields are rejected. |
+| `tool_versions` | Optional object of tool name to exact version-line value; MAY be empty. |
+| `external_object_ids` | Optional object containing Linear issue/session, PR, container, release, or other external ids; MAY be empty. Secret values are forbidden. |
+| `attempt`, `epoch`, `fencing_token` | Optional integers current when evidence was written. |
 | `result_class` | Required; one of `DONE`, `BLOCKED HUMAN`, `FAILED SYSTEM`, `PENDING`. |
-| `created`, `updated` | Optional UTC timestamp strings written by the manifest producer. |
+| `created`, `updated` | Optional valid UTC timestamp strings written by the manifest producer. |
+
+  Timestamps MUST have an explicit zero UTC offset, MUST NOT exceed verifier
+  time by more than five minutes, and MUST satisfy `created <= command.started
+  <= command.finished <= updated` when the outer values exist. Command entries
+  are in execution order, so each later `started` MUST be at or after the prior
+  `finished`. Acceptance additionally supplies the expected task, current
+  bundle hash, exact verified integration SHA, and task directory to the
+  validator and requires `result_class=DONE` and every `exit_code=0`.
+
+  A command's `stdout_sha256` and `stderr_sha256` are non-authoritative,
+  supplemental provenance metadata unless the corresponding `stdout_path` or
+  `stderr_path` is present. A present path is the deterministic binding of that
+  command index and stream to the raw artifact declared by CTRL-075; it is
+  valid only when the locked verifier names the same binding and the regular
+  artifact exists. The root oracle MUST read those exact bytes, recompute
+  SHA-256, and require equality with the corresponding digest. A path without
+  its digest is invalid; a digest without its path remains supplemental and
+  proves no behavior; an undeclared, missing, non-regular, symlinked, or
+  mismatched artifact MUST NOT satisfy an evidence requirement.
 
 - **CTRL-030** Evidence writing MUST be atomic through a same-directory
-  temporary file and `os.replace`. Output hashes cover raw bytes. A failed
-  command is recorded and makes evidence generation fail non-zero.
+  temporary file and `os.replace`. When its corresponding path is present and
+  valid under CTRL-029, an output hash covers the exact raw artifact bytes and
+  is independently recomputed by the root oracle; without that path it remains
+  supplemental metadata. A failed command is recorded and makes evidence
+  generation fail non-zero.
 - **CTRL-031** Task `verify.sh` MUST be POSIX `sh`, accept `container` or
   `host`, run only that part, and end with `status: DONE` on pass or a
   non-DONE status on failure. When both parts exist, host verification MUST
@@ -1322,6 +1601,11 @@ This section specifies shipped control-plane behavior.
   repository MUST be clean and pushed, and required commits MUST carry DCO.
   The root oracle MUST reject any task-id, hash, SHA, result, exit-code,
   timestamp, path, schema, ancestry, cleanliness, push, or DCO mismatch.
+  Semantic acceptance MUST derive from the actual bundle-permitted evidence
+  artifact bytes and the locked verifier, never from a command digest alone;
+  an invalid path/digest pair, missing bound artifact, or recomputed digest
+  mismatch MUST be rejected, while an unbound digest is ignored for semantic
+  acceptance.
 
 ### 14.5 Attempt epochs and human blockers
 
@@ -1439,20 +1723,20 @@ This section specifies shipped control-plane behavior.
 
 | ID | Owner repository / component | Roadmap proof producers | Required P / N / F acceptance | Allowed and fresh evidence |
 | --- | --- | --- | --- | --- |
-| **ACC-001** | `tailrocks/ecosystem` / proof-plane state projection and Linear issue mirror | M1-01, M1-07, M1-09 through M1-12, M2-05, M2-07 | P: exact app, callback, token, JACKIN team/project/milestones, every M2+ task mirror regardless of durable status, all nine status projections, required labels, workflow defaults, assignment trigger, and four permitted backfills work. N: M1 issues, duplicate or missing M2+ issues, and dispatch of any non-exempt task before its mirror are rejected; absent webhook and invalid or missing labels launch nothing. F: rate limit and stale mirror-map replay remain bounded and idempotent. | Owning task verifiers, proof-plane projection snapshots, GraphQL/text snapshots, mirror-map bytes, webhook/token transcripts, and Linear browser references captured in the producing attempt. |
+| **ACC-001** | `tailrocks/ecosystem` / proof-plane state projection and Linear issue mirror | M1-01, M1-07, M1-09 through M1-12, M2-05, M2-07 | P: exact app, callback, token, JACKIN team/project/milestones, every M2+ task mirror regardless of durable status, all nine status projections, exact locked-task/role-manifest/lane-record label precedence, mandatory `auto-dispatch`, assignment trigger, and four permitted backfills work; both passes carry replay-equal `event_seq`/`task_statuses`. N: M1 issues, empty repository, incompatible role/runtime/lane, conflicting labels, duplicate or missing M2+ issues, and dispatch of any non-exempt task before its mirror are rejected; absent webhook launches nothing. F: a state change between observations binds each pass to its own event sequence, while rate limit and stale mirror-map replay remain bounded and idempotent without changing identity or early-attempt counts. | Owning task verifiers, event log and projection snapshots, two-pass GraphQL issue-map bytes, role/lanes source identities, webhook/token transcripts, and Linear browser references captured in the producing attempt. |
 | **ACC-002** | `jackin-project/jackin` / manager Linear poller | M2-02 through M2-04, M2-07 | P: one aliased paginated request per tick, app-user session filtering, ten-second acknowledgement, watermarks, and sole-manager polling work. N: workers and webhooks never decide correctness. F: HTTP-400 `RATELIMITED` pauses until reset and ordered writes resume without consuming an attempt. | Owning task verifiers plus request, fake-clock, watermark, and event transcripts tied to tested adapter SHA and live workspace identity where used. |
 | **ACC-003** | `jackin-project/jackin` / launch, capsule, daemon, and remote APIs | M3-01, M4-01 through M4-05, M10-01, M12-01 | P: interactive CLI compatibility, resolved non-TTY launch, six-runtime attach/prompt/event/exec/blocked behavior, and remote schemas work. N: prompt residue, observer mutation, and remote-to-local fallback are rejected. F: post-ready prompt, timeout, and unreachable peer return explicit outcomes. | Owning task verifiers, binary/version text, runtime labels, protocol transcripts, and live runtime-matrix outputs tied to tested binary and source SHAs. |
-| **ACC-004** | `jackin-project/jackin` / scheduler and manager/worker ledgers | M3-05, M5-01, M6-05, M7-02, M12-02 | P: exact runnable predicate, order, caps, lanes, fallbacks, legal states, distinct monotonic counters, tuple replay, and merge serialization work. N: no unsupported product-global lease, CAS, fence, or second bound tuple exists. F: busy, quota, partition, delayed response, and manager failover wait or fail closed without duplicate effects. | Owning task verifiers plus deterministic fake-clock, provider, backend, ledger, and concurrency traces bound to integrated SHA. |
+| **ACC-004** | `jackin-project/jackin` / scheduler and manager/worker ledgers | M1-13, M3-05, M5-01, M6-05, M7-02, M9-01, M12-02 | P: exact runnable predicate, order, caps, six M1-13 lane records, account-home accounting, fallbacks, visible/claim transitions, release and full-slot reacquisition for every new attempt, distinct monotonic counters, tuple replay, and merge serialization work. N: queued, blocked, released, or retained-workspace work consumes no run slot; no unsupported product-global lease, CAS, fence, illegal pseudo-state, or second bound tuple exists. F: busy, quota, retry deadline, merge/rework reacquisition, partition, delayed response, and manager restart recompute capacity and wait or fail closed without duplicate effects. | M1-13 `lanes.json` and lane/grant smoke evidence; owning implementation verifiers; deterministic fake-clock, provider, backend, state/claim, ledger, recovery, and concurrency traces bound to integrated SHA. |
 | **ACC-005** | `jackin-project/jackin` / checklist and plan projection | M6-01 through M6-03 | P: first-list extraction, mandatory delegated research/implementation/fresh verification, one tick/event, fresh read-modify-write, and plan replacement work. N: unrelated human edits and unchanged items survive without writes. F: conflicting edit aborts and replay remains idempotent. | Owning task verifiers, checklist fixtures, delegate records, and write logs captured under current bundle and integrated SHA. |
 | **ACC-006** | `jackin-project/jackin` / verifier, retry, fallback, and diagnostics | M7-01 through M7-04 | P: locked verifier provenance, exact final line/evidence, continuation cap, retry budget, stall timer, exact lane fallback chains, fresh diagnostics, and one exhaustion elicitation work. N: quota and continuation do not consume retry budget; unverifiable agent-written verifier cannot pass. F: exit, timeout, stall, verification, quota, and throttle faults select the specified retry, fallback, wait, or exhaustion outcome. | Owning task verifiers plus fake-clock, attempt-ledger, diagnostic-subagent, and verifier-stream evidence bound to the attempt and tested SHA. |
 | **ACC-007** | `jackin-project/jackin` / capsule guidance and Linear escalation | M4-06, M7-03, M7-04 | P: elicitation/reply and host guidance reach the same PTY with complete activity; stop releases resources; safe follow-up is linked and unassigned. N: no implicit auto-delegation occurs. F: duplicate reply and stop are replay-safe. | Owning task verifiers plus live PTY/session/activity records identifying issue, run, capsule, host, and capture time. |
-| **ACC-008** | `jackin-project/jackin` / GitHub adapter and release validator | M8-01 through M8-04, M9-01 through M9-03, M11-01a | P: both `repository_selection=all` installations, scoped tokens, idempotent scratch branch/PR/link, authorized green merge, confirmation, cleanup, preview-main, and all-role validation work. N: non-scratch destructive targets, failed checks, unauthorized merge, and cross-organization installation are refused. F: retry after ambiguous PR or merge reads and reconciles before mutation. | Owning task verifiers, GitHub API/text records, scratch PR/check/merge evidence, preview validator output, and browser references captured against live installations. |
+| **ACC-008** | `jackin-project/jackin` / GitHub adapter, merge, rework, and release validator | M8-01 through M8-04, M9-01 through M9-03, M11-01a | P: both `repository_selection=all` installations, scoped tokens, idempotent scratch branch/PR/link, authorized green merge, confirmed cleanup, and M9-01 rework from current base after a closed or merged PR work; preview-main and all-role validation work. N: non-scratch destructive targets, failed checks, unauthorized merge, cross-organization installation, stale-tree continuation, and reuse of a closed/merged PR as open are refused. F: ambiguous PR/merge reads before mutation; close-or-merge then reactivate and crash-after-capacity-release scenarios reacquire slots, use a new ordinal, create one policy-valid rework branch, and produce no duplicate PR or merge. | M8 and M9 owning verifiers, GitHub API/text records, scratch PR/check/merge/rework traces, claim/capacity ledger, preview validator output, and browser references captured against live installations. |
 | **ACC-009** | `jackin-project/jackin` / reconciliation and multi-host placement | M3-07, M12-01 through M12-04 | P: restart adoption by exact tuple, persisted counters/watermarks, least-load and prior-host selection, and saturation wait work. N: mismatched or unlabeled containers are quarantined; ledger state alone never revives work. F: pre-effect loss may re-place, post-effect loss uses a new ordinal, and unknown partition waits without duplication. | Owning task verifiers plus two-host chaos transcripts, ledgers, container inventories, and effect logs tied to host identities and tested daemon SHAs. |
 | **ACC-010** | `tailrocks/termrock` and `jackin-project/jackin` / fleet observability | M5-02 through M5-06, M10-01 through M10-06 | P: complete side-effect-free snapshot/detail/event/evidence, heartbeat timeline, distinct waiting/blocked/stuck, host-loop drain, TerminalPane behavior, fleet rows, and one-action attach work. N: absent console and empty source do not alter execution or redraw. F: control characters, secret canaries, dropped peers, and attachment failures remain redacted and explicit. | Owning task verifiers, forty-minute live timeline, host-blessed golden text, performance output, and attach transcripts tied to source and service identity. |
 | **ACC-011** | `jackin-project/jackin` plus `donbeave/jackin-crew-builder`, `donbeave/jackin-crew-operator`, and `donbeave/jackin-crew-reviewer` / credential and trust boundary | M1-03, M1-05b through M1-05d, M1-06, M1-07, M1-10, M8-01, M11-01, M11-03 | P: exact 1Password items/fields, host-coordinator/manager-only Linear mint and read authority, allowed secret stores, memory/stdin binding flow, role/network/mount separation, and immutable supply refs work. N: worker, role, or reviewer Linear tokens, forbidden files, cross-organization App use, and broader yolo grants are rejected. F: canaries, rotation, malicious input, gitleaks hit, and unsafe browser profile fail safely. | Owning task verifiers, redacted inspections/scans, threat fixtures, rotation results, and live service-account tests; no secret value may appear in proof. |
-| **ACC-012** | `donbeave/jackin-role-template`, `donbeave/jackin-crew-builder`, `donbeave/jackin-crew-operator`, `donbeave/jackin-crew-reviewer`, and `jackin-project/jackin` / roles and deployment | M1-04a, M1-05a through M1-05d, M3-02, M3-02a, M11-01a through M11-03, M12-01 through M12-03 | P: exact role matrix, tools, hooks, grants, `v1alpha7` defaults, public signed multi-architecture images, local/server/multi-host profiles, and locked tool versions work. N: forbidden tools, credentials, and grants are rejected without mutation. F: restart, remote loss, and unsafe profile handling preserve workspaces and credential boundaries. | Owning task verifiers, manifests, image attestations, CI output, and live smoke records tied to immutable image/source identities. |
-| **ACC-013** | `tailrocks/ecosystem` / locked bundles and Linear issue mirror | M1-01, M1-12 | P: all 81 generated bundles match the graph and lock, and M1-12 creates the exact locked-source issue mirror including four early-task backfills. N: missing or drifted bundles, duplicate issues, wrong source commits, preset delegates, and mismatched labels, states, blockers, or attachments fail verification. F: mirror rerun reconciles existing issues idempotently without creating another issue or rerunning an early task. | M1-01 and M1-12 verifiers, M1-12 issue-map JSON evidence, GraphQL/text snapshots, and permitted task evidence bound to `plan.commit`. |
-| **ACC-014** | `tailrocks/ecosystem` / repository integration and task evidence | M1-01, M1-02, M1-04a, M1-05a through M1-05c, M1-08, M1-12, M1-13; M2-01 through M2-08; M3-01, M3-02, M3-02a, M3-03 through M3-08; M4-01 through M4-07; M5-01 through M5-07; M6-01 through M6-05; M7-01 through M7-05; M8-02 through M8-04; M9-01 through M9-03; M10-01 through M10-06; M11-01a, M11-02 through M11-05; M12-01 through M12-04 | P: per-task worktrees, one integrator lease, integrated-SHA verification, expected-evidence closure, atomic evidence, DCO/pushed ancestry, and durable epochs work. N: worker-tip, stale lease, secret hit, unpushed or dirty tree, and agent-cleared exhaustion cannot pass. F: parallel integration, verifier failure, replacement crash, and stale external proof mutation fail closed or recover. | Each owning task's allowed verifier/evidence files plus repository ancestry, state events, evidence manifests, and text fault logs tied to current bundle and integrated SHA. |
+| **ACC-012** | `donbeave/jackin-role-template`, `donbeave/jackin-crew-builder`, `donbeave/jackin-crew-operator`, `donbeave/jackin-crew-reviewer`, `jackin-project/jackin-the-architect`, and `jackin-project/jackin` / roles and deployment | M1-02a, M1-04a, M1-05a through M1-05d, M1-13, M3-02, M3-02a, M11-01a through M11-03, M12-01 through M12-03 | P: the branch build, exact `jackin config git dco enable` configuration, launch `JACKIN_GIT_DCO=1`, capsule-owned sign-off hook, signed commit, exact role matrix, tools, hooks, M1-13 role grants and cache mounts, exact six lane/profile injection paths, authorized architect bootstrap changes, `v1alpha7` defaults, public signed multi-architecture images, local/server/multi-host profiles, and locked tool versions work. N: preview-binary selection, a missing DCO configuration/binding/capsule hook, a role-owned sign-off hook, manifest model pins, forbidden tools, credentials, grants, lane-owned role grants, and unauthorized architect changes are rejected without mutation. F: sourced-hook and sign-off replay, restart, remote loss, and unsafe profile handling preserve one valid trailer, workspaces, exact account/model selection, and credential boundaries. | M1-02a PATH/DCO/branch evidence; M1-13 `lanes.json`, six workspace probes, four role-grant probes, and DinD evidence; owning role/deployment verifiers, manifests, image attestations, CI output, and live smoke records tied to immutable image/source identities. |
+| **ACC-013** | `tailrocks/ecosystem` / locked bundles, foundation audit, and Linear issue mirror | M1-01, M1-12 | P: all 81 generated CTRL-074/075 bundles reproduce byte-for-byte, their 64-hex hashes and the CTRL-076 self-hash match the current lock, the exact CTRL-077 audit file/transcripts/event open the gate, and M1-12 creates the exact locked-source two-pass issue mirror including four early-task backfills. N: 40-hex bundle values, unknown schema fields, byte/order/hash drift, file-only or stale audit PASS, missing event/status/locked-M1 transcript, duplicate issues, wrong source commits, preset delegates, and mismatched labels, states, blockers, or attachments fail verification. F: single-byte bundle/transcript/lock mutation and mirror rerun are detected; a valid rerun reconciles existing issues idempotently without creating another issue or rerunning an early task. | M1-01 schema/hash/lock verifiers; M1-12 raw audit transcripts, `audit.txt`, fenced event, two-pass issue-map JSON, GraphQL/text snapshots, and permitted task evidence bound to `plan.commit`. |
+| **ACC-014** | `tailrocks/ecosystem` / repository integration and task evidence | M1-01, M1-02, M1-04a, M1-05a through M1-05c, M1-08, M1-12, M1-13; M2-01 through M2-08; M3-01, M3-02, M3-02a, M3-03 through M3-08; M4-01 through M4-07; M5-01 through M5-07; M6-01 through M6-05; M7-01 through M7-05; M8-02 through M8-04; M9-01 through M9-03; M10-01 through M10-06; M11-01a, M11-02 through M11-05; M12-01 through M12-04 | P: per-task worktrees, one integrator lease, integrated-SHA verification, expected-evidence closure, atomic evidence, raw-artifact digest recomputation when bound, DCO/pushed ancestry, and durable epochs work. N: worker-tip, stale lease, secret hit, unpushed or dirty tree, unbound or arbitrary command digest as proof, and agent-cleared exhaustion cannot pass. F: parallel integration, verifier failure, raw-artifact/digest mismatch, replacement crash, and stale external proof mutation fail closed or recover. | Each owning task's allowed verifier/evidence files plus repository ancestry, state events, evidence manifests, stored raw text artifacts, and text fault logs tied to current bundle and integrated SHA. |
 | **ACC-018** | `jackin-project/jackin`, `tailrocks/termrock`, all four `donbeave/jackin-*` role repositories, and `tailrocks/ecosystem` / end-to-end managed execution | M4-06, M5-06, M6-03, M7-04, M8-03, M9-02, M10-05, M11-04, M12-03 | P: one local and one server issue each complete assignment, attachable agent, verified checklist, and linked PR while two hosts run two issues concurrently. N: no observer, webhook, foreground CLI, or human review is required for correctness. F: one-host failure causes no duplicate run/effect and recovery preserves exact state and evidence. | Owning task verifiers plus live issue/session/container/PR/two-host timeline, source identities, and milestone browser references captured by crew-operator. |
 
   The product MUST be accepted only when **ACC-001** through **ACC-014** and
@@ -1473,7 +1757,7 @@ PRD-001..PRD-006.
 ## D-003
 EXEC-020..EXEC-025; EXEC-030..EXEC-035; CTRL-001.
 ## D-004
-PRD-003; ISSUE-010; SCHED-000..SCHED-002; SCHED-005..SCHED-007; SCHED-010..SCHED-014.
+PRD-003; ISSUE-010; SCHED-000..SCHED-003; SCHED-005..SCHED-007; SCHED-010..SCHED-014.
 ## D-005
 EXEC-001..EXEC-006; OBS-001..OBS-005.
 ## D-006
@@ -1503,11 +1787,11 @@ DEP-001; REC-014.
 ## D-018
 ISSUE-019..ISSUE-023.
 ## D-019
-SCHED-020..SCHED-024; REC-001..REC-005.
+SCHED-020..SCHED-024; STATE-005; STATE-010..STATE-013; REC-001..REC-005.
 ## D-020
-SCHED-000; STATE-000..STATE-005.
+SCHED-000..SCHED-003; STATE-000..STATE-005; STATE-012; STATE-013.
 ## D-021
-STATE-004; EXEC-040..EXEC-047.
+STATE-004; STATE-010..STATE-013; EXEC-040..EXEC-047.
 ## D-022
 SCHED-005..SCHED-007; SCHED-010..SCHED-014.
 ## D-023
@@ -1541,7 +1825,7 @@ EXEC-025; CTRL-008.
 ## D-037
 ACC-000.
 ## D-038
-CTRL-001; CTRL-029..CTRL-034.
+CTRL-001; CTRL-029..CTRL-034; CTRL-074; CTRL-075.
 ## D-039
 SCHED-005..SCHED-007; SCHED-010..SCHED-014; ROLE-002.
 ## D-040
@@ -1563,7 +1847,7 @@ CTRL-020..CTRL-023.
 ## D-048
 ROLE-017; DEP-027.
 ## D-049
-ISSUE-015; OBS-003..OBS-005; STATE-000..STATE-005.
+ISSUE-015; OBS-003..OBS-005; STATE-000..STATE-013.
 ## D-050
 CTRL-041..CTRL-043; SEC-016.
 ## D-051
@@ -1643,11 +1927,15 @@ ISSUE-003; EXEC-002..EXEC-005; SEC-009; SEC-013.
 ## D-088
 CTRL-001..CTRL-006; CTRL-014..CTRL-016.
 ## D-089
-DEP-012; DEP-021; CTRL-034.
+ROLE-005; ROLE-010; ROLE-017; SEC-015; SEC-022; SEC-023; DEP-021;
+DEP-024..DEP-027; DEP-029; EXEC-060..EXEC-063; CTRL-022; CTRL-034.
 ## D-090
-DEP-001..DEP-003; SEC-012; SEC-016.
+SCHED-005..SCHED-007; SCHED-011; SCHED-014; SEC-001; SEC-005;
+SEC-009..SEC-016; ROLE-003; ROLE-013; ROLE-016; ROLE-018;
+DEP-001..DEP-003; DEP-023; DEP-026; DEP-028.
 ## D-091
-CTRL-032..CTRL-034.
+ISSUE-006; SCHED-006; SCHED-010; SCHED-014; ROLE-004; ROLE-006;
+ROLE-018; OBS-001..OBS-005; CTRL-029..CTRL-034; CTRL-061..CTRL-064.
 ## D-092
 CTRL-008; CTRL-060..CTRL-067.
 ## D-093
@@ -1693,7 +1981,7 @@ CTRL-020..CTRL-023.
 ## D-113
 CTRL-019..CTRL-023.
 ## D-114
-CTRL-001; CTRL-002.
+CTRL-001; CTRL-002; CTRL-074..CTRL-076.
 ## D-115
 CTRL-071.
 ## D-116
@@ -1701,7 +1989,7 @@ CTRL-070.
 ## D-117
 CTRL-072.
 ## D-118
-CTRL-007; CTRL-029.
+CTRL-007; CTRL-029; CTRL-074; CTRL-075.
 ## D-119
 CTRL-006; CTRL-014..CTRL-017.
 ## D-120
@@ -1711,6 +1999,6 @@ AUTH-004; EXEC-011; SEC-020.
 ## D-122
 DEP-023.
 ## D-123
-CTRL-006.
+CTRL-006; CTRL-077.
 ## D-124
 CTRL-060..CTRL-067.
