@@ -31,29 +31,30 @@ the prompt the runner executes and holds nothing else.
 
 ### Operator kickoff
 
-Run both readiness gates against the same `run/LOCK.toml` hash:
+Enter this repository, then run the complete fresh-start sequence below. Replace the example
+path with the checkout's absolute path:
 
 ```sh
-sh tools/readiness.sh static
-sh tools/readiness.sh live
+cd /path/to/ecosystem && \
+  sh tools/readiness.sh static && \
+  sh tools/readiness.sh live && \
+  sh tools/supervisor.sh start --dry-run && \
+  sh tools/supervisor.sh start
 ```
 
 Neither gate launches an AI agent or makes an AI-provider request. The live gate checks command
 versions, host/service state, `autoContinueAtUsageLimit`, presence of `claude-yolo`, and the
 literal yolo flag/config setting in `tools/supervisor.sh`; it never starts Herdr, Claude, or a
 roadmap task. Provider-login calls listed in `goal/PREFLIGHT.md` §1 are separate standing checks.
-Fix every reported failure. Continue only when both gates end with:
+Fix every reported failure. Both readiness commands must end with:
 
 ```text
 status: READY
 ```
 
-The successful gate prints the next command, but does not run it. The operator starts the run
-manually:
-
-```sh
-sh tools/supervisor.sh start
-```
+They must also print the same `lock_hash`. The dry run must pass before the real `start` command.
+It prints the launch plan without starting the coordinator. A successful readiness gate may print
+the next command, but does not run it.
 
 `start` is the only ignition point. Readiness never calls it. Before launching anything, it prints
 the exact Herdr server/workspace commands, interactive Claude launch, canonical `/goal` line, and
@@ -83,10 +84,10 @@ Inspect durable run state without attaching:
 sh tools/supervisor.sh status
 ```
 
-Read recent coordinator output without attaching:
+Read the latest 200 lines of coordinator output without attaching:
 
 ```sh
-sh tools/supervisor.sh read
+sh tools/supervisor.sh read --lines 200
 ```
 
 To stop intentionally, stop the named Herdr session and confirm the result:
@@ -97,15 +98,24 @@ sh tools/supervisor.sh status
 ```
 
 `stop` runs `herdr session stop ecosystem-coordinator --json`; Herdr terminates every pane process in
-that isolated session, including Claude and task/probe panes. Status must report
-`coordinator: not running` before another kickoff.
+that isolated session, including Claude and task/probe panes. Status must report both Herdr and the
+coordinator as not running before another kickoff.
 
-After a crash or intentional stop, first run the live readiness gate again. When it reports
-`status: READY`, resume durable state interactively:
+After a crash, an intentional stop, or a BLOCKED result, first satisfy every open
+`PREFLIGHT-DEFECTS.md` proof command. Then run the complete resume sequence from this repository:
 
 ```sh
-sh tools/supervisor.sh resume
+cd /path/to/ecosystem && \
+  sh tools/readiness.sh static && \
+  sh tools/readiness.sh live && \
+  sh tools/supervisor.sh resume --dry-run && \
+  sh tools/supervisor.sh resume
 ```
+
+Both readiness commands must end with `status: READY` for the same lock hash, and the resume dry
+run must pass before the real `resume` command. `resume` is the authoritative continuation path;
+after any stop, use `resume`, never `start`. Do not launch Claude separately or manually rerun the
+`/goal` invocation.
 
 `resume` attaches to a live coordinator; if none survives, it reconciles durable state, prints
 every command again, relaunches the named Claude agent, submits the same `/goal`, and attaches.
@@ -171,8 +181,9 @@ work remains and the run has simply not finished, and `status: FAILED SYSTEM`, a
 failure — forged, stale, dirty, unpushed, or contradicting the state store — that no operator
 input would clear. A failing check, a design question, a review, a quota
 wait, a capsule dialog, and a defect in an involved project are never reasons to stop.
-Re-running the same line after BLOCKED, a crash, or a context compaction resumes; nothing
-finished is redone (`goal/EXECUTION.md` §1).
+After BLOCKED, a crash, or an intentional stop, `sh tools/supervisor.sh resume` resumes durable
+state; nothing finished is redone (`goal/EXECUTION.md` §1). A live coordinator handles context
+compaction itself.
 
 ## Map
 
