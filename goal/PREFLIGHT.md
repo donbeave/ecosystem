@@ -235,7 +235,7 @@ never lowers the bar. Clear those items in §1..§5 below and re-run it.
       Linear plan allows one more team and at least 150 more issues (Free:
       fewer than 2 teams and under 100 issues; Basic: fewer than 5 teams;
       Business and Enterprise: always). M1-09 creates the team `JACKIN` and
-      M1-12 creates roughly 100 issues, plus every proof run's scratch
+      M1-12 creates 64 roadmap issues, plus every proof run's scratch
       issues. Proof: Settings → Plans shows the plan and the issue count,
       Settings → Teams the team count. A workspace at its team or issue cap
       is never a run-time defect the session can clear.

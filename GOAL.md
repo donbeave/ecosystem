@@ -40,10 +40,12 @@ Runnable predicate (D-119). A row is Runnable (D-119) iff its status is `ready`;
 `depends_on` id is `done`; a lane slot is free under the caps (at most two
 host subagents on `~/.claude`, at most three in flight, D-071) and the §4
 reserve rule; and, except for M3-01, M3-03, M4-02, M4-03, an M2+ row has
-M1-12 `done` and a valid lock-bound CTRL-006 audit. Those four ids
+M1-12 `done`, a valid lock-bound CTRL-006 audit, and one matching issue in
+both passes of `tasks/M1-12/issues.json`. Those four ids
 bypass both gates, run locked bundles, and receive issue backfill from M1-12
-without rerun (ISSUE-006, CTRL-006, CTRL-014). `planned`, `blocked`,
-`waiting`, and `in-progress` are not runnable or `done` (D-084).
+without rerun (ISSUE-006, CTRL-006, CTRL-014). `planned`, `leased`, `blocked`,
+`waiting`, `resource-waiting`, `in-progress`, `failed-system`, and `done` are
+not runnable (D-084).
 
 Arming (D-072): `state.py arm` readies wave 0 once; each `done` transition readies tasks
 whose deps are `done`; no task runs from a bare row.

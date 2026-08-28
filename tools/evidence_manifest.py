@@ -40,13 +40,22 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 RESULT_CLASSES = ("DONE", "BLOCKED HUMAN", "FAILED SYSTEM", "PENDING")
 HEX40 = re.compile(r"\A[0-9a-f]{40}\Z")
 HEX64 = re.compile(r"\A[0-9a-f]{64}\Z")
 
 MANIFEST_NAME = "evidence.json"
+MANIFEST_FIELDS = frozenset((
+    "task", "bundle_hash", "integrated_sha", "repositories", "commands",
+    "tool_versions", "external_object_ids", "attempt", "epoch",
+    "fencing_token", "result_class", "created", "updated",
+))
+REPOSITORY_FIELDS = frozenset(("repo", "branch", "integrated_sha", "checkout"))
+COMMAND_FIELDS = frozenset((
+    "cmd", "exit_code", "stdout_sha256", "stderr_sha256", "started", "finished",
+))
 
 # Tools whose version is recorded when they are on PATH.
 DEFAULT_TOOL_VERSIONS = (
@@ -65,6 +74,20 @@ def now() -> str:
 
 def sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+def utc_timestamp(value):
+    """Return an aware UTC datetime for an ISO timestamp, otherwise None."""
+    if not isinstance(value, str) or not value:
+        return None
+    normalized = value[:-1] + "+00:00" if value.endswith("Z") else value
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None or parsed.utcoffset() != timedelta(0):
+        return None
+    return parsed.astimezone(timezone.utc)
 
 
 def tool_versions() -> dict:
@@ -211,11 +234,34 @@ def cmd_run(args: argparse.Namespace) -> int:
     return worst
 
 
-def problems(manifest: dict, path: str) -> list:
+def problems(
+    manifest: dict,
+    path: str,
+    *,
+    expected_task=None,
+    expected_bundle_hash=None,
+    expected_integrated_sha=None,
+    require_done=False,
+    task_dir=None,
+) -> list:
     found = []
 
     def fail(msg):
         found.append("%s: %s" % (path, msg))
+
+    if not isinstance(manifest, dict):
+        fail("manifest must be an object")
+        return found
+
+    unknown = sorted(set(manifest) - MANIFEST_FIELDS)
+    if unknown:
+        fail("unknown field(s): %s" % ", ".join(unknown))
+
+    if task_dir is not None:
+        actual = os.path.abspath(path)
+        expected = os.path.abspath(os.path.join(task_dir, MANIFEST_NAME))
+        if actual != expected or os.path.realpath(actual) != actual:
+            fail("acceptance evidence must be the regular file %s" % expected)
 
     # `jq -e '.integrated_sha and .commands and .bundle_hash'` semantics:
     # each field must be present and truthy (not null, not false, and for
@@ -229,6 +275,8 @@ def problems(manifest: dict, path: str) -> list:
     task = manifest.get("task")
     if not isinstance(task, str) or not task.strip():
         fail("task must be a non-empty string")
+    if expected_task is not None and task != expected_task:
+        fail("task %r does not match expected task %r" % (task, expected_task))
 
     sha = manifest.get("integrated_sha")
     if isinstance(sha, str) and not HEX40.match(sha):
@@ -245,6 +293,9 @@ def problems(manifest: dict, path: str) -> list:
             if not isinstance(entry, dict):
                 fail("%s must be an object" % where)
                 continue
+            extra = sorted(set(entry) - REPOSITORY_FIELDS)
+            if extra:
+                fail("%s has unknown field(s): %s" % (where, ", ".join(extra)))
             for field in ("repo", "branch", "checkout"):
                 value = entry.get(field)
                 if not isinstance(value, str) or not value.strip():
@@ -267,32 +318,53 @@ def problems(manifest: dict, path: str) -> list:
     bundle = manifest.get("bundle_hash")
     if isinstance(bundle, str) and not (HEX40.match(bundle) or HEX64.match(bundle)):
         fail("bundle_hash must be 40 or 64 lowercase hex characters")
+    if expected_bundle_hash is not None and bundle != expected_bundle_hash:
+        fail("bundle_hash does not match the current locked task bundle")
+
+    if expected_integrated_sha is not None and sha != expected_integrated_sha:
+        fail("integrated_sha does not match the verified integration SHA")
 
     result_class = manifest.get("result_class")
     if result_class not in RESULT_CLASSES:
         fail("result_class must be one of %s" % ", ".join(RESULT_CLASSES))
+    if require_done and result_class != "DONE":
+        fail("accepted evidence result_class must be DONE")
 
     commands = manifest.get("commands")
     if commands is not None and not isinstance(commands, list):
         fail("commands must be an array")
         commands = []
+    command_times = []
     for index, entry in enumerate(commands or []):
         where = "commands[%d]" % index
         if not isinstance(entry, dict):
             fail("%s must be an object" % where)
             continue
+        extra = sorted(set(entry) - COMMAND_FIELDS)
+        if extra:
+            fail("%s has unknown field(s): %s" % (where, ", ".join(extra)))
         cmd = entry.get("cmd")
         if not (isinstance(cmd, list) and cmd and all(isinstance(a, str) for a in cmd)):
             fail("%s.cmd must be a non-empty array of strings" % where)
-        if not isinstance(entry.get("exit_code"), int):
+        exit_code = entry.get("exit_code")
+        if type(exit_code) is not int:
             fail("%s.exit_code must be an integer" % where)
+        elif require_done and exit_code != 0:
+            fail("%s.exit_code must be 0 for accepted evidence" % where)
         for field in ("stdout_sha256", "stderr_sha256"):
             value = entry.get(field)
             if not (isinstance(value, str) and HEX64.match(value)):
                 fail("%s.%s must be 64 lowercase hex characters" % (where, field))
-        for field in ("started", "finished"):
-            if not isinstance(entry.get(field), str) or not entry.get(field):
-                fail("%s.%s must be a timestamp string" % (where, field))
+        started = utc_timestamp(entry.get("started"))
+        finished = utc_timestamp(entry.get("finished"))
+        if started is None:
+            fail("%s.started must be a valid UTC timestamp" % where)
+        if finished is None:
+            fail("%s.finished must be a valid UTC timestamp" % where)
+        if started is not None and finished is not None:
+            if finished < started:
+                fail("%s.finished precedes started" % where)
+            command_times.append((where, started, finished))
 
     if not isinstance(manifest.get("tool_versions", {}), dict):
         fail("tool_versions must be an object")
@@ -300,8 +372,26 @@ def problems(manifest: dict, path: str) -> list:
         fail("external_object_ids must be an object")
     for field in ("attempt", "epoch", "fencing_token"):
         value = manifest.get(field)
-        if value is not None and not isinstance(value, int):
+        if value is not None and type(value) is not int:
             fail("%s must be an integer" % field)
+
+    created = utc_timestamp(manifest.get("created")) if "created" in manifest else None
+    updated = utc_timestamp(manifest.get("updated")) if "updated" in manifest else None
+    if "created" in manifest and created is None:
+        fail("created must be a valid UTC timestamp")
+    if "updated" in manifest and updated is None:
+        fail("updated must be a valid UTC timestamp")
+    if created is not None and updated is not None and updated < created:
+        fail("updated precedes created")
+    previous_finished = None
+    for where, started, finished in command_times:
+        if created is not None and started < created:
+            fail("%s.started precedes manifest creation" % where)
+        if updated is not None and finished > updated:
+            fail("%s.finished follows manifest update" % where)
+        if previous_finished is not None and started < previous_finished:
+            fail("%s.started precedes the previous command finish" % where)
+        previous_finished = finished
 
     return found
 
@@ -328,7 +418,15 @@ def cmd_validate(args: argparse.Namespace) -> int:
             print("%s: missing" % path)
             failures += 1
             continue
-        found = problems(load(path), path)
+        found = problems(
+            load(path),
+            path,
+            expected_task=args.task,
+            expected_bundle_hash=args.bundle_hash,
+            expected_integrated_sha=args.integrated_sha,
+            require_done=args.require_done,
+            task_dir=args.task_dir,
+        )
         if found:
             failures += 1
             for line in found:
@@ -378,6 +476,14 @@ def main(argv=None) -> int:
     validate.add_argument("--all", action="store_true",
                           help="validate every tasks/<id>/evidence.json")
     validate.add_argument("--root", help="task root for --all (default: tasks)")
+    validate.add_argument("--task", help="required task id for acceptance")
+    validate.add_argument("--bundle-hash", help="required current locked bundle hash")
+    validate.add_argument("--integrated-sha", help="required verified integration SHA")
+    validate.add_argument("--task-dir", help="required owning task directory")
+    validate.add_argument(
+        "--require-done", action="store_true",
+        help="require DONE result and zero exit codes for acceptance",
+    )
     validate.set_defaults(func=cmd_validate)
 
     args = parser.parse_args(argv)

@@ -1155,9 +1155,11 @@ This section specifies shipped control-plane behavior.
   be refused with a non-zero result and a `rejected` audit event without
   changing task status; rejection alone MUST NOT create `failed-system`.
   Append, lock, `fsync`, or other state-store infrastructure failure MAY move
-  the affected task to `failed-system`. Invalid JSON, sequence gap, or broken
-  hash chain makes the root result `FAILED SYSTEM`. Repair MUST NOT rewrite
-  prior events.
+  the affected task to `failed-system`; that task status is reserved for an
+  infrastructure failure and MUST NOT encode a validation rejection, duplicate
+  or stale request, verifier failure, or product/business failure. Invalid JSON,
+  sequence gap, or broken hash chain makes the root result `FAILED SYSTEM`.
+  Repair MUST NOT rewrite prior events.
 - **CTRL-012** Task status values are exactly `planned`, `ready`, `leased`,
   `in-progress`, `waiting`, `resource-waiting`, `blocked`, `failed-system`, and
   `done`. Lease and resource-wait facts MUST also remain
@@ -1167,7 +1169,8 @@ This section specifies shipped control-plane behavior.
   delivery attempt; `waiting` means every lane in the fallback chain is
   throttled; `resource-waiting` means a host, role, repository, or account cap
   is the only constraint; `blocked` requires that task's own open human-input
-  or `exhausted:` defect; `failed-system` is proof/control-plane invalidity;
+  or `exhausted:` defect; `failed-system` is infrastructure failure attributed
+  to that task;
   and `done` has accepted evidence. These values MUST NOT encode product
   `run:*` state, attempt kind, claim state, or an elicitation.
 
@@ -1311,13 +1314,14 @@ This section specifies shipped control-plane behavior.
   satisfies its declared schema; `evidence.json.task` is the exact task id;
   its `bundle_hash` equals the current locked hash; `result_class` is `DONE`;
   every recorded command has `exit_code` 0 and parseable UTC `started` and
-  `finished` timestamps ordered `started <= finished`; and the manifest and
-  bundle otherwise validate. For each touched repository, the recorded
-  integrated SHA MUST be the current tested pushed integration head or its
-  accepted ancestor as the owning verifier specifies; every touched repository
-  MUST be clean and pushed, and required commits MUST carry DCO. The root oracle
-  MUST reject any task-id, hash, SHA, result, exit-code, timestamp, path, schema,
-  ancestry, cleanliness, push, or DCO mismatch.
+  `finished` timestamps ordered `started <= finished`, and the command records
+  are in nondecreasing execution order; and the manifest and bundle otherwise
+  validate. For each touched repository, the recorded
+  integrated SHA MUST equal the exact commit against which the verifier ran and
+  MUST be an ancestor of the current pushed integration head; every touched
+  repository MUST be clean and pushed, and required commits MUST carry DCO.
+  The root oracle MUST reject any task-id, hash, SHA, result, exit-code,
+  timestamp, path, schema, ancestry, cleanliness, push, or DCO mismatch.
 
 ### 14.5 Attempt epochs and human blockers
 
@@ -1445,7 +1449,7 @@ This section specifies shipped control-plane behavior.
 | **ACC-008** | `jackin-project/jackin` / GitHub adapter and release validator | M8-01 through M8-04, M9-01 through M9-03, M11-01a | P: both `repository_selection=all` installations, scoped tokens, idempotent scratch branch/PR/link, authorized green merge, confirmation, cleanup, preview-main, and all-role validation work. N: non-scratch destructive targets, failed checks, unauthorized merge, and cross-organization installation are refused. F: retry after ambiguous PR or merge reads and reconciles before mutation. | Owning task verifiers, GitHub API/text records, scratch PR/check/merge evidence, preview validator output, and browser references captured against live installations. |
 | **ACC-009** | `jackin-project/jackin` / reconciliation and multi-host placement | M3-07, M12-01 through M12-04 | P: restart adoption by exact tuple, persisted counters/watermarks, least-load and prior-host selection, and saturation wait work. N: mismatched or unlabeled containers are quarantined; ledger state alone never revives work. F: pre-effect loss may re-place, post-effect loss uses a new ordinal, and unknown partition waits without duplication. | Owning task verifiers plus two-host chaos transcripts, ledgers, container inventories, and effect logs tied to host identities and tested daemon SHAs. |
 | **ACC-010** | `tailrocks/termrock` and `jackin-project/jackin` / fleet observability | M5-02 through M5-06, M10-01 through M10-06 | P: complete side-effect-free snapshot/detail/event/evidence, heartbeat timeline, distinct waiting/blocked/stuck, host-loop drain, TerminalPane behavior, fleet rows, and one-action attach work. N: absent console and empty source do not alter execution or redraw. F: control characters, secret canaries, dropped peers, and attachment failures remain redacted and explicit. | Owning task verifiers, forty-minute live timeline, host-blessed golden text, performance output, and attach transcripts tied to source and service identity. |
-| **ACC-011** | `jackin-project/jackin` plus `donbeave/jackin-crew-builder`, `donbeave/jackin-crew-operator`, and `donbeave/jackin-crew-reviewer` / credential and trust boundary | M1-03, M1-05b through M1-05d, M1-06, M1-07, M1-10, M8-01, M11-01, M11-03 | P: exact 1Password items/fields, manager-only Linear mint, allowed secret stores, stdin/binding flow, role/network/mount separation, and immutable supply refs work. N: worker role/reviewer tokens, forbidden files, cross-organization App use, and broader yolo grants are rejected. F: canaries, rotation, malicious input, gitleaks hit, and unsafe browser profile fail safely. | Owning task verifiers, redacted inspections/scans, threat fixtures, rotation results, and live service-account tests; no secret value may appear in proof. |
+| **ACC-011** | `jackin-project/jackin` plus `donbeave/jackin-crew-builder`, `donbeave/jackin-crew-operator`, and `donbeave/jackin-crew-reviewer` / credential and trust boundary | M1-03, M1-05b through M1-05d, M1-06, M1-07, M1-10, M8-01, M11-01, M11-03 | P: exact 1Password items/fields, host-coordinator/manager-only Linear mint and read authority, allowed secret stores, memory/stdin binding flow, role/network/mount separation, and immutable supply refs work. N: worker, role, or reviewer Linear tokens, forbidden files, cross-organization App use, and broader yolo grants are rejected. F: canaries, rotation, malicious input, gitleaks hit, and unsafe browser profile fail safely. | Owning task verifiers, redacted inspections/scans, threat fixtures, rotation results, and live service-account tests; no secret value may appear in proof. |
 | **ACC-012** | `donbeave/jackin-role-template`, `donbeave/jackin-crew-builder`, `donbeave/jackin-crew-operator`, `donbeave/jackin-crew-reviewer`, and `jackin-project/jackin` / roles and deployment | M1-04a, M1-05a through M1-05d, M3-02, M3-02a, M11-01a through M11-03, M12-01 through M12-03 | P: exact role matrix, tools, hooks, grants, `v1alpha7` defaults, public signed multi-architecture images, local/server/multi-host profiles, and locked tool versions work. N: forbidden tools, credentials, and grants are rejected without mutation. F: restart, remote loss, and unsafe profile handling preserve workspaces and credential boundaries. | Owning task verifiers, manifests, image attestations, CI output, and live smoke records tied to immutable image/source identities. |
 | **ACC-013** | `tailrocks/ecosystem` / locked bundles and Linear issue mirror | M1-01, M1-12 | P: all 81 generated bundles match the graph and lock, and M1-12 creates the exact locked-source issue mirror including four early-task backfills. N: missing or drifted bundles, duplicate issues, wrong source commits, preset delegates, and mismatched labels, states, blockers, or attachments fail verification. F: mirror rerun reconciles existing issues idempotently without creating another issue or rerunning an early task. | M1-01 and M1-12 verifiers, M1-12 issue-map JSON evidence, GraphQL/text snapshots, and permitted task evidence bound to `plan.commit`. |
 | **ACC-014** | `tailrocks/ecosystem` / repository integration and task evidence | M1-01, M1-02, M1-04a, M1-05a through M1-05c, M1-08, M1-12, M1-13; M2-01 through M2-08; M3-01, M3-02, M3-02a, M3-03 through M3-08; M4-01 through M4-07; M5-01 through M5-07; M6-01 through M6-05; M7-01 through M7-05; M8-02 through M8-04; M9-01 through M9-03; M10-01 through M10-06; M11-01a, M11-02 through M11-05; M12-01 through M12-04 | P: per-task worktrees, one integrator lease, integrated-SHA verification, expected-evidence closure, atomic evidence, DCO/pushed ancestry, and durable epochs work. N: worker-tip, stale lease, secret hit, unpushed or dirty tree, and agent-cleared exhaustion cannot pass. F: parallel integration, verifier failure, replacement crash, and stale external proof mutation fail closed or recover. | Each owning task's allowed verifier/evidence files plus repository ancestry, state events, evidence manifests, and text fault logs tied to current bundle and integrated SHA. |

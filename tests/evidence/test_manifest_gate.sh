@@ -10,6 +10,7 @@ fixture_repo_root() { printf '%s\n' "$REPO"; }
 WORK=$(mktemp -d) || exit 2
 trap 'rm -rf "$WORK"' EXIT INT TERM
 failures=0
+build_base "$WORK/template" || exit 2
 
 mutate_manifest() {
 	root=$1
@@ -58,7 +59,10 @@ for case_name in \
 	outside-task-path unknown-schema-field
 do
 	root="$WORK/$case_name"
-	build_base "$root" || exit 2
+	git clone -q "$WORK/template" "$root" || exit 2
+	git init -q --bare "$WORK/$case_name.origin.git"
+	git -C "$root" remote set-url origin "$WORK/$case_name.origin.git"
+	git -C "$root" push -q -u origin main
 	mutate_manifest "$root" "$case_name"
 	git -C "$root" add -A
 	git -C "$root" commit -q -m "fixture: $case_name evidence"
@@ -73,6 +77,21 @@ do
 		failures=$((failures + 1))
 	fi
 done
+
+# Generic validation still permits a failed-attempt manifest. Only acceptance
+# validation (`--require-done`) turns failure evidence into a gate failure.
+mkdir -p "$WORK/unfinished"
+python3 "$REPO/tools/evidence_manifest.py" run --task M1-03 \
+	--dir "$WORK/unfinished" --bundle-hash "$(printf '1%.0s' $(seq 1 64))" \
+	--integrated-sha "$(printf '2%.0s' $(seq 1 40))" -- sh -c 'exit 1' \
+	>"$WORK/unfinished.out" 2>&1
+if python3 "$REPO/tools/evidence_manifest.py" validate \
+	"$WORK/unfinished/evidence.json" >/dev/null; then
+	printf '%s\n' 'unfinished-manifest: ok'
+else
+	printf '%s\n' 'unfinished-manifest: generic validation rejected it'
+	failures=$((failures + 1))
+fi
 
 if [ "$failures" -eq 0 ]; then
 	printf '%s\n' 'status: DONE'

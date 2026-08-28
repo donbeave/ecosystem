@@ -1,0 +1,19 @@
+M1-02a host path, run goal-run-1
+jackin 0.6.4+f42d702
+commit: bfadb99074df40375733042e9dd971f0754ba83b
+bundle_hash: af24fcc54e113767f9fdd2f7a40700cceadcffec40e51acc4e45fdd60db336e3
+run: ! brew list --formula | grep -qx jackin-preview
+ok: ! brew list --formula | grep -qx jackin-preview
+run: grep -q 'dco = true' "${JACKIN_CONFIG_DIR:-$HOME/.config/jackin}/config.toml"
+ok: grep -q 'dco = true' "${JACKIN_CONFIG_DIR:-$HOME/.config/jackin}/config.toml"
+run: jackin workspace remove task-probe >/dev/null 2>&1; jackin workspace create task-probe --workdir ~/.jackin/managed/probe --mount ~/.jackin/managed/probe
+Created workspace "task-probe" (workdir: ~/.jackin/managed/probe, 1 mount(s)).
+telemetry: invocation f588ace2-f3e9-40c4-8ecb-a9959835a0b1 - OpenTelemetry export disabled
+ok: jackin workspace remove task-probe >/dev/null 2>&1; jackin workspace create task-probe --workdir ~/.jackin/managed/probe --mount ~/.jackin/managed/probe
+run: script -q /dev/null jackin load the-architect task-probe --agent codex --dry-run --format json </dev/null | grep -q '"workspace": *"task-probe"'
+ok: script -q /dev/null jackin load the-architect task-probe --agent codex --dry-run --format json </dev/null | grep -q '"workspace": *"task-probe"'
+run: jackin workspace remove task-probe
+Removed workspace "task-probe".
+telemetry: invocation 08885ea4-70d7-435f-82f0-62c2ee2fa8c2 - OpenTelemetry export disabled
+ok: jackin workspace remove task-probe
+status: DONE

@@ -1,0 +1,36 @@
+{
+  "task": "M1-02a",
+  "bundle_hash": "af24fcc54e113767f9fdd2f7a40700cceadcffec40e51acc4e45fdd60db336e3",
+  "integrated_sha": "bfadb99074df40375733042e9dd971f0754ba83b",
+  "attempt": 2,
+  "epoch": 1,
+  "fencing_token": 4,
+  "created": "2026-08-28T03:36:31Z",
+  "commands": [
+    {
+      "cmd": [
+        "sh",
+        "tasks/M1-02a/verify.sh",
+        "host"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "fea502b42b7e9ef892730baa6de555771e89ebfec477da13ba4b5bf1b22543cc",
+      "stderr_sha256": "62edac6a6155f34f90c13ff5b1400b890b5b86f644f821a9f4c529a5d2a97143",
+      "started": "2026-08-28T03:36:31Z",
+      "finished": "2026-08-28T03:36:31Z"
+    }
+  ],
+  "external_object_ids": {
+    "jackin_version": "jackin 0.6.4+f42d702"
+  },
+  "tool_versions": {
+    "git": "git version 2.50.1 (Apple Git-155)",
+    "jq": "jq-1.7.1-apple",
+    "python3": "Python 3.14.7",
+    "gitleaks": "8.30.1",
+    "gh": "gh version 2.98.0 (2026-08-20)",
+    "docker": "Docker version 29.4.0, build 9d7ad9f"
+  },
+  "result_class": "DONE",
+  "updated": "2026-08-28T03:36:31Z"
+}

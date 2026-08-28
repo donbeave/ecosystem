@@ -317,7 +317,10 @@ for id in $IDS; do
   man="$dir/evidence.json"
   if [ ! -f "$man" ]; then
     sysfail "$id: evidence manifest $man is missing"
-  elif ! python3 tools/evidence_manifest.py validate "$man" >"$TMP/man.out" 2>&1; then
+  elif ! python3 tools/evidence_manifest.py validate "$man" \
+      --task "$id" --bundle-hash "$current" \
+      --integrated-sha "$want_integrated" --task-dir "$dir" \
+      --require-done >"$TMP/man.out" 2>&1; then
     sysfail "$id: $man is invalid: $(tail -n 1 "$TMP/man.out")"
   else
     integrated=$(python3 -c 'import json,sys
