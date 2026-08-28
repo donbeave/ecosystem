@@ -39,7 +39,7 @@ https://docs.github.com/en/apps/sharing-github-apps/registering-a-github-app-fro
 https://docs.github.com/en/rest/apps/apps]. The manifest flow is preferable
 for M7-01 because the five secrets arrive in one JSON response that can be
 piped straight into `op item create` without ever being shown on a page. Second, every task that *creates* a credential
-must write it to 1Password in the same step [D-035, `DECISIONS.md:401-423`],
+must write it to 1Password in the same step [`SPEC.md` D-035],
 so the role needs a write path into vault `jackin` from inside the container.
 
 ## 2. Tool list
@@ -239,7 +239,7 @@ that task doubles as the proof).
 
 Name `donbeave/jackin-the-operator` (repository `jackin-the-operator` under
 the `donbeave` GitHub account, selector `donbeave/the-operator`) [D-045,
-`DECISIONS.md:646-660`]. Trust is granted once with `jackin config trust
+`SPEC.md` D-045]. Trust is granted once with `jackin config trust
 grant donbeave/the-operator` (Q-022) [doc: `security-model.mdx:86-95`].
 
 Base: `projectjackin/construct:0.36-trixie` digest-pinned, to match

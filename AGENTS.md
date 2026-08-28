@@ -6,12 +6,12 @@ Rules for any agent or person working here. `CLAUDE.md` symlinks to this file; r
 
 | Mode | Scope | Rule |
 | --- | --- | --- |
-| Planning | `VISION.md`, `SPEC.md`, `DECISIONS.md`, `OPEN-QUESTIONS.md`, `ROADMAP.md`, `concept/`, `analysis/`, `README.md` | Markdown only, at these paths. No source code, build files, scaffolding, or prototypes here. This never forbids the machine files the Execution row permits (D-118): the run writes and commits them as evidence and tooling. |
+| Planning | `VISION.md`, `SPEC.md`, `OPEN-QUESTIONS.md`, `ROADMAP.md`, `concept/`, `analysis/`, `README.md` | Markdown only, at these paths. No source code, build files, scaffolding, or prototypes here. This never forbids the machine files the Execution row permits (D-118): the run writes and commits them as evidence and tooling. |
 | Execution | `GOAL.md`, `goal/`, `tasks/`, `tools/`, `tests/`, `run/`, `findings/`, `PROGRESS.md`, `PREFLIGHT-DEFECTS.md`, root `verify.sh`, `.claude/` | Machine files allowed at exactly these paths and nowhere else (D-118): `tools/` (DAG compiler, state store, supervisor, fixture runner — POSIX `sh` or Python 3 stdlib only), `tests/` (fixtures and harnesses, same two languages), `run/LOCK.toml`, `run/state.db` or `run/events.jsonl` (state store; text preferred), `findings/disposition.toml`, `.claude/settings.json` (D-095), the root `verify.sh` (D-069), and under `tasks/<id>/` — `TASK.md`, `task.toml`, `verify.sh`, `expected-evidence.toml`, `evidence.json`, `refs/`, and text evidence (`.out`, `.log`, `.json`, `.toml`, `.txt`, `.cast`) (D-038, D-059). |
 
-Execution edits a planning document only to record a decision (`DECISIONS.md` + `SPEC.md`,
-same commit) or a graph amendment. The host session never makes that edit itself: it
-delegates it to a subagent and commits the subagent's edit (D-104).
+Execution edits a planning document only to update the normative contract (`SPEC.md`) or
+amend the graph (`ROADMAP.md`). The host session never makes that edit itself: it delegates
+it to a subagent and commits the subagent's edit (D-104).
 
 ## Entry point, run mode, source of truth
 
@@ -23,19 +23,20 @@ delegates it to a subagent and commits the subagent's edit (D-104).
    `GOAL.md` and `goal/EXECUTION.md` §1 and §5, then run §1 steps 2–3; state is re-derived
    from `tasks/README.md`, `PROGRESS.md`, `tasks/<id>/attempts.log`, and `git log` only,
    never from memory.
-3. What to do, in order of precedence: `ROADMAP.md` > `SPEC.md` > `DECISIONS.md` >
-   `concept/`. Whether a point is *decided*: `DECISIONS.md` only, with a date and a
-   rationale. A document that contradicts a decision is corrected in the same commit; a
-   decision that must change is changed first, in `DECISIONS.md` and `SPEC.md`.
+3. Domain owners: `ROADMAP.md` owns graph and order; `SPEC.md` owns the product
+   contract and dated D-NNN definition registry; `GOAL.md` + `goal/EXECUTION.md` own
+   run procedure; `concept/` is non-normative elaboration. For overlapping points,
+   `ROADMAP.md` > `SPEC.md` > `concept/`. Correct contradictions in the same commit;
+   update a new or revised D-NNN definition with every affected domain owner.
 4. Undecided design points live in `OPEN-QUESTIONS.md` and never block a run: apply the
-   recommended answer and record it as a decision (D-053).
+   recommended answer, record its D-NNN definition, and update affected owners (D-053).
 
 ## Delegation law (D-036, D-082, D-092)
 
 - The top-level session coordinates only. It may read `GOAL.md`, `AGENTS.md`,
   `goal/EXECUTION.md`, `goal/PREFLIGHT.md`, `tasks/README.md`, `PROGRESS.md`,
   `PREFLIGHT-DEFECTS.md`, and the current task folder. Nothing else.
-- Every read of a large file (`ROADMAP.md`, `SPEC.md`, `DECISIONS.md`, `concept/*`,
+- Every read of a large file (`ROADMAP.md`, `SPEC.md`, `concept/*`,
   `analysis/*`, any involved repository), every implementation, every verification, and
   every proof runs in a subagent launched with `model: "claude-opus-5"` — the exact id
   D-095 pins, not the family alias (D-092, amended by D-095). The session may
@@ -129,7 +130,7 @@ credential to rotate, and blocks the commit.
 
 ## Token economy
 
-- The host session never `Read`s `ROADMAP.md`, `SPEC.md`, `DECISIONS.md`, `concept/*`, or
+- The host session never `Read`s `ROADMAP.md`, `SPEC.md`, `concept/*`, or
   `analysis/*`; a subagent reads them and returns what is needed.
 - Every subagent returns at most 15 lines: verdict, evidence paths, next action — no file
   dumps, no restated instructions, no code excerpts.
@@ -141,7 +142,7 @@ credential to rotate, and blocks the commit.
 | Content | File |
 | --- | --- |
 | Problem, insights, target state; undecided questions | `VISION.md`, `OPEN-QUESTIONS.md` |
-| Agreed decisions and the specification they feed (update both in one change) | `DECISIONS.md`, `SPEC.md` |
+| Product contract and dated D-NNN definition registry | `SPEC.md` |
 | Manager, task on-disk format and `verify` contract, roles, workflow | `concept/manager.md`, `concept/task-format.md`, `concept/roles.md`, `concept/workflow.md` |
 | Milestones, tasks, dependencies, waves, roles, lanes | `ROADMAP.md` |
 | The `/goal` prompt (that file is the prompt and nothing else), its procedure, the human's checklist | `GOAL.md`, `goal/EXECUTION.md`, `goal/PREFLIGHT.md` (D-069) |

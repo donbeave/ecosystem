@@ -54,8 +54,9 @@ when two authoritative documents disagree — the D-119 runnable predicate
 stated differently in `GOAL.md` and `goal/EXECUTION.md`, a `~/.claude`
 concurrency cap other than 2 (D-071), a retired `v1alpha8`, an
 unexpanded `<org>`, a `jackin workspace` teardown written as `delete`
-where the subcommand is `remove` (D-085), a cited `D-0nn`/`D-1nn` with no heading in `DECISIONS.md` or a
-`Q-0nn` with no heading in `QUESTIONS.md`, a claim that open questions
+where the subcommand is `remove` (D-085), a cited `D-0nn`/`D-1nn` with no
+heading in the `SPEC.md` registry, a cited `Q-0nn` with no heading in
+`QUESTIONS.md`, a claim that open questions
 remain, a `GOAL.md` over its 4000-byte prompt cap, a `tasks/README.md` or
 `PROGRESS.md` that differs from what `tools/state.py render` produces
 (rendered into a temporary copy of the store, so the real projections are

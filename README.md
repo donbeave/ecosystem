@@ -178,11 +178,10 @@ finished is redone (`goal/EXECUTION.md` §1).
 
 | File | Purpose |
 | --- | --- |
-| [SPEC.md](SPEC.md) | The living specification: only decided points, with open questions marked. Improved every conversation. |
+| [SPEC.md](SPEC.md) | Living product contract and dated D-NNN definition registry. Improved every conversation. |
 | [ROADMAP.md](ROADMAP.md) | Milestones, tasks, dependencies, roles, and the decisions that gate each milestone. Proposal until finalized. |
 | [VISION.md](VISION.md) | The problem, today's workflow, observed insights, and the target we are building toward. Start here. |
-| [DECISIONS.md](DECISIONS.md) | Dated decision log. Anything agreed is recorded here before it is elaborated elsewhere. |
-| [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) | Questions not yet decided. Each one is closed by moving it into `DECISIONS.md`. |
+| [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) | Questions not yet settled. Each closes through its owning document and a `SPEC.md` registry update. |
 | [concept/manager.md](concept/manager.md) | The manager itself: daemon, roadmap watching, task scheduling, agent launching, verification. |
 | [concept/task-format.md](concept/task-format.md) | The on-disk format of a plan and its tasks, and the `verify` contract. |
 | [concept/roles.md](concept/roles.md) | Proposed jackin agent roles that build the product: builder, operator, reviewer; naming, specs, trust, credentials. |
@@ -203,5 +202,5 @@ finished is redone (`goal/EXECUTION.md` §1).
 ## Working rules
 
 - Planning only in the planning documents. No source code, no prototypes, no scaffolding in this repository; that rule never forbids the run's own machine files, which are permitted at exactly these paths (D-118): `tools/` (POSIX `sh` or Python 3 stdlib only), `tests/` (fixtures and harnesses, same two languages), `run/LOCK.toml`, `run/state.db` or `run/events.jsonl`, `findings/disposition.toml`, `.claude/settings.json` (D-095), the root `verify.sh` (D-069), and under `tasks/<id>/` — `TASK.md`, `task.toml`, `verify.sh`, `expected-evidence.toml`, `evidence.json`, `refs/`, and text evidence (D-038, D-093).
-- Decisions are explicit. If it is not in `DECISIONS.md`, it is not decided.
+- Domain ownership is explicit: `ROADMAP.md` graph/order, `SPEC.md` product contract and D-NNN registry, `GOAL.md` + `goal/EXECUTION.md` run procedure; `concept/` is non-normative.
 - Analyses cite files and lines in the real repositories; opinions are labeled as such.

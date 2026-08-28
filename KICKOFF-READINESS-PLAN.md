@@ -5,8 +5,8 @@ round-three findings (now dispositioned in `findings/disposition.toml`) and a li
 the repository and host into 55 rows, and applied every row that an agent could apply; the
 resulting changes are the commit range `3adb0d3..397effa` on `main`. The findings tables,
 the recommendation plan and the proposed decisions that made up sections 1–6 of this
-document were consumed by that run and have been removed; what they decided lives in
-`DECISIONS.md`, `SPEC.md` and `ROADMAP.md`, and what they measured lives in
+document were consumed by that run and have been removed; their settled
+contract lives in `SPEC.md` and `ROADMAP.md`, and what they measured lives in
 `findings/disposition.toml`.
 
 ## Run record

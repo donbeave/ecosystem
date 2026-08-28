@@ -30,7 +30,6 @@ AUTHORITATIVE = [
     "SPEC.md",
     "ROADMAP.md",
     "VISION.md",
-    "DECISIONS.md",
     "QUESTIONS.md",
     "OPEN-QUESTIONS.md",
     "PREFLIGHT-DEFECTS.md",
@@ -169,7 +168,7 @@ def check_retired_strings():
         for match in re.finditer(r"v1alpha8", text):
             line = text.count("\n", 0, match.start()) + 1
             fail("v1alpha8", "%s:%d" % (path, line),
-                 "the run carries one manifest schema bump only (D-096 row 2.4)")
+                 "the run carries one manifest schema bump only (readiness plan row 2.4)")
 
     for path in ("goal/EXECUTION.md", "ROADMAP.md"):
         text = read(path)
@@ -212,24 +211,27 @@ def check_op_org_placeholder():
 
 
 # --------------------------------------------------------------------------
-# 4. Every cited decision and question resolves
+# 4. Every cited D-NNN definition and question resolves
 # --------------------------------------------------------------------------
 
 def check_citations():
-    decisions = set(re.findall(r"^## (D-\d{3})", read("DECISIONS.md"), re.M))
+    decisions = set(re.findall(r"^## (D-\d{3})", read("SPEC.md"), re.M))
     questions = set(re.findall(r"^## (Q-\d{3})", read("QUESTIONS.md"), re.M))
 
     for path in CITING + globbed("goal") + globbed("concept"):
         text = read(path)
-        if path == "DECISIONS.md":
-            continue
+        if path == "SPEC.md":
+            # Definition bodies preserve historical proposal labels and
+            # rationale. As when the registry was a separate source file,
+            # only documents that cite the registry are citation-checked.
+            text = text.split("\n# Decision registry", 1)[0]
         for match in re.finditer(r"\bD-[01]\d{2}\b", text):
             cited = match.group(0)
             if cited in decisions:
                 continue
             line = text.count("\n", 0, match.start()) + 1
             fail("decision-citation", "%s:%d" % (path, line),
-                 "cites %s, which has no `## %s` heading in DECISIONS.md"
+                 "cites %s, which has no `## %s` heading in SPEC.md"
                  % (cited, cited))
         for match in re.finditer(r"\bQ-0\d{2}\b", text):
             cited = match.group(0)
@@ -306,7 +308,7 @@ def check_projections():
             if want != have:
                 fail("projections", "%s:0" % actual,
                      "differs from `python3 tools/state.py render` output; "
-                     "the projections are generated, never hand-edited (D-098)")
+                     "the projections are generated, never hand-edited (D-111)")
     finally:
         shutil.rmtree(temp, ignore_errors=True)
 
@@ -332,8 +334,8 @@ def check_clean_tree():
 # --------------------------------------------------------------------------
 
 def _decision_bodies():
-    """(id, body, first line number) per `## D-0xx` section of DECISIONS.md."""
-    text = read("DECISIONS.md")
+    """(id, body, first line number) per `## D-0xx` section of SPEC.md."""
+    text = read("SPEC.md")
     heads = list(re.finditer(r"^## (D-\d{3})\b.*$", text, re.M))
     out = []
     for index, head in enumerate(heads):
@@ -443,7 +445,7 @@ def check_amendments_reciprocal():
                 continue  # the citation check already reports an unknown id
             if ident not in amended_by[target]:
                 fail("amendments-reciprocal",
-                     "DECISIONS.md:%d" % line_of[target],
+                     "SPEC.md:%d" % line_of[target],
                      "%s says it amends %s, but %s carries no "
                      '"Amended by %s" note' % (ident, target, target, ident))
 
@@ -453,7 +455,7 @@ def check_amendments_reciprocal():
                 continue
             if target not in amends[source]:
                 fail("amendments-reciprocal",
-                     "DECISIONS.md:%d" % line_of[source],
+                     "SPEC.md:%d" % line_of[source],
                      '%s carries "Amended by %s", but %s does not say it '
                      "amends %s" % (target, source, source, target))
 

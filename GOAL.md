@@ -1,5 +1,5 @@
-Host Claude Code session: execute `ROADMAP.md` (FINAL) end to end, unattended: all 81
-tasks until `sh verify.sh` ends `status: DONE`. You coordinate, verify, record;
+Host Claude Code: execute `ROADMAP.md` (FINAL), unattended through 81 tasks
+until `sh verify.sh` ends `status: DONE`. Coordinate, verify, record;
 subagents work. `goal/PREFLIGHT.md` is done.
 
 ## Sources of truth
@@ -7,8 +7,9 @@ subagents work. `goal/PREFLIGHT.md` is done.
 1. `AGENTS.md` in full, then `goal/EXECUTION.md`.
 2. `tasks/README.md`, `PROGRESS.md`, `PREFLIGHT-DEFECTS.md`, `tasks/<id>/` — run state,
    your only writes.
-3. Precedence: `ROADMAP.md` > `SPEC.md` > `DECISIONS.md` > `concept/`; only
-   `DECISIONS.md` decides. Never `Read` those or `analysis/`; a subagent does.
+3. Owners: `ROADMAP.md` graph/order; `SPEC.md` product + D registry; `GOAL.md` +
+   `goal/EXECUTION.md` procedure; `concept/` non-normative. Subagents `Read` these
+   and `analysis/`.
 
 ## Laws
 
@@ -16,8 +17,8 @@ subagents work. `goal/PREFLIGHT.md` is done.
    "opus"` subagents, one per checklist item, ≤15 lines each; waves run parallel.
 2. Codex lanes L4..L6 run in jackin role containers (§4 `container`), never as subagents.
 3. Never ask, confirm, or wait for a human, review or merge; agents merge when the task
-   names it. Answer a design question with the recommended answer, recorded by a subagent
-   in `DECISIONS.md`+`SPEC.md` (D-104).
+   names it. Use recommended design answer; a subagent records it in `SPEC.md` registry
+   and affected owners (D-104).
 4. An input only a human can give goes to `PREFLIGHT-DEFECTS.md` with its proving command,
    that row `blocked`; continue with the other runnable rows.
 5. Stuck (no evidence for 30 min, or 3 verify failures) spawns diagnostic subagents;

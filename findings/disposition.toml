@@ -20,7 +20,7 @@ title = """Two manifest schema bumps on one rolling PR (M3-02 v1alpha7, M4-01 v1
 disposition = "fixed"
 evidence = """Fixed: SPEC.md names `default_agent`/v1alpha7 as the run's single schema bump and M4-01 delivers the prompt through `JACKIN_INITIAL_PROMPT` with no second bump (plan row 2.4 landed)."""
 file = "SPEC.md"
-line = 408
+line = 407
 quote = """the only manifest schema bump of the run"""
 
 [[finding]]
@@ -38,7 +38,7 @@ title = """DCO pre-push gate counts merge commits, so merge-backs break the shar
 disposition = "fixed"
 evidence = """Fixed: the DCO pre-push gate now counts with `--no-merges` on both sides, so the mandated merge-backs no longer break the shared branch."""
 file = "goal/EXECUTION.md"
-line = 534
+line = 535
 quote = """git log --no-merges origin/main..HEAD"""
 
 [[finding]]
@@ -65,7 +65,7 @@ title = """Rolling PR and squash merge ignore jackin .github/AGENTS.md PR contra
 disposition = "fixed"
 evidence = """Fixed: the rolling PR body is built from the repository pull request template and the squash body comes from `jackin-pr-trailers`, so jackin's PR contract is met."""
 file = "goal/EXECUTION.md"
-line = 667
+line = 668
 quote = """PULL_REQUEST_TEMPLATE"""
 
 [[finding]]
@@ -101,7 +101,7 @@ title = """GOAL prompt Runnable formula has no milestone gate while goal/EXECUTI
 disposition = "fixed"
 evidence = """Fixed by D-119: the runnable predicate is one paragraph, byte-identical in GOAL.md and goal/EXECUTION.md; `python3 tools/invariant_lint.py` check d119-predicate passes at HEAD."""
 file = "GOAL.md"
-line = 41
+line = 42
 quote = """Runnable predicate (D-119). A row is Runnable (D-119) iff: its status is"""
 
 [[finding]]
@@ -119,7 +119,7 @@ title = """M1-13 sits in wave 5b with M1-03 but must wait for L6 to eject; stuck
 disposition = "fixed"
 evidence = """Fixed: wave 5b is M1-03 alone with M1-13 in its own later wave, and the stuck clock stops for lane-cap and eject waits."""
 file = "goal/EXECUTION.md"
-line = 220
+line = 221
 quote = """eject"""
 
 [[finding]]
@@ -137,7 +137,7 @@ title = """M2-08 review anchor ambiguous; pr.txt head fixed by a non-jackin task
 disposition = "fixed"
 evidence = """Fixed: the review record pins tasks/<id>/pr.txt to three lines and never rewrites the reviewed head sha, so the review anchor cannot drift."""
 file = "goal/EXECUTION.md"
-line = 687
+line = 688
 quote = """never rewritten"""
 
 [[finding]]
@@ -239,7 +239,7 @@ title = """M4-05 preflight offers an API-key path no laptop-side mechanism consu
 disposition = "fixed"
 evidence = """Fixed: the preflight now states the host login is the only form M4-05 can use on this laptop, and the daemon API key items belong to M11 alone."""
 file = "goal/PREFLIGHT.md"
-line = 343
+line = 344
 quote = """M4-05"""
 
 [[finding]]
@@ -248,7 +248,7 @@ title = """gh scope proof (repo, workflow) insufficient for org-level proofs and
 disposition = "fixed"
 evidence = """Fixed: the gh scope item now requires `admin:org` and proves it with a scope grep plus an organisation installations call."""
 file = "goal/PREFLIGHT.md"
-line = 132
+line = 133
 quote = """admin:org"""
 
 [[finding]]
@@ -266,7 +266,7 @@ title = """M10 crates.io item conditional on a decision no task or document make
 disposition = "fixed"
 evidence = """Fixed: the conditional crates.io item is gone; termrock 0.14 is not published in this run and D-122 records that."""
 file = "goal/PREFLIGHT.md"
-line = 363
+line = 364
 quote = """M10: nothing to do"""
 
 [[finding]]
@@ -284,7 +284,7 @@ title = """Issue convention agent:<lane value> contradicts M2-05 validation; dae
 disposition = "fixed"
 evidence = """Fixed: `agent:<runtime>` is now `claude` or `codex` only, a separate `lane:L<n>` label carries the lane, and the daemon resolves the per-launch account home from a `[lanes]` config table."""
 file = "SPEC.md"
-line = 67
+line = 66
 quote = """agent:"""
 
 [[finding]]
@@ -329,7 +329,7 @@ title = """Daemon ~/.claude cap: D-056/SPEC/M3-05 say 3, D-071/EXECUTION say 2, 
 disposition = "fixed"
 evidence = """Fixed: the procedure now writes the daemon account caps into the daemon config before the first start, so `~/.claude` is 2 everywhere and each Codex home is 1."""
 file = "goal/EXECUTION.md"
-line = 592
+line = 593
 quote = """max = 2"""
 
 [[finding]]
@@ -337,8 +337,8 @@ id = "R3-38"
 title = """Documents read first still forbid actions the run requires (D-045/D-048 the-architect as is; AGENTS.md Markdown only)"""
 disposition = "fixed"
 evidence = """Fixed: D-048 now records the exception that lets M1-13 and M3-02 change the-architect, with a reciprocal note on D-045."""
-file = "DECISIONS.md"
-line = 1044
+file = "SPEC.md"
+line = 1642
 quote = """D-074"""
 
 [[finding]]
@@ -407,7 +407,7 @@ title = """Auto-disabled webhook may drop the app's agent status mid-run; nothin
 disposition = "fixed"
 evidence = """Fixed: the procedure re-checks the agent webhook every session with a scratch delegation, and on failure the next crew-operator task re-enables it from the filed app URL."""
 file = "goal/EXECUTION.md"
-line = 80
+line = 81
 quote = """webhook"""
 
 [[finding]]
@@ -416,7 +416,7 @@ title = """Stale Chromium SingletonLock in the shared operator profile kills lat
 disposition = "fixed"
 evidence = """Fixed: teardown closes the browser before ejecting, and every crew-operator launch removes stale Singleton files once no operator container is running."""
 file = "goal/EXECUTION.md"
-line = 343
+line = 344
 quote = """Singleton"""
 
 [[finding]]
@@ -425,7 +425,7 @@ title = """Reserve rule leaves Claude-lane tasks neither runnable, waiting, nor 
 disposition = "fixed"
 evidence = """Fixed: the D-119 runnable predicate folds the §4 reserve rule into runnability, so a reserve-refused Claude-lane row is simply `ready` and not runnable, and cap waits have the `resource-waiting` status (tools/state.py) (plan rows 1.4, 1.9)."""
 file = "goal/EXECUTION.md"
-line = 256
+line = 257
 quote = """reserve rule"""
 
 [[finding]]
@@ -434,7 +434,7 @@ title = """Hop target lanes share ~/.claude; 'next lane busy' undefined so hops 
 disposition = "fixed"
 evidence = """Fixed: the fallback rule now defines a busy lane and sends the row back to `ready` at the head of its wave, consuming no attempt, instead of stalling as `waiting`."""
 file = "goal/EXECUTION.md"
-line = 408
+line = 409
 quote = """busy"""
 
 [[finding]]
@@ -458,7 +458,7 @@ title = """Session-side 5-second model polling of tmux panes drains the ~/.claud
 disposition = "fixed"
 evidence = """Fixed and migrated by D-124: pane waiting uses Herdr's blocking `pane wait-output` or `agent wait`, so it costs no model turn and drains no account bucket."""
 file = "goal/EXECUTION.md"
-line = 224
+line = 225
 quote = """herdr pane wait-output"""
 
 [[finding]]
@@ -473,7 +473,7 @@ title = """Six-container cap and same-account-home check count DinD sidecars and
 disposition = "fixed"
 evidence = """Fixed: the container count is label-filtered to role containers so DinD sidecars never count, and the account home is read from the task lane."""
 file = "goal/EXECUTION.md"
-line = 242
+line = 243
 quote = """jackin.kind=role"""
 
 [[finding]]
@@ -491,14 +491,14 @@ title = """Per-task saved workspace has no /workspace: workdir and mount mirror 
 disposition = "fixed"
 evidence = """Fixed: the workspace mount always names `/workspace` as its target, so the per-task saved workspace no longer mirrors the host path."""
 file = "goal/EXECUTION.md"
-line = 343
+line = 344
 quote = """/workspace"""
 
 [[finding]]
 id = "R3-57"
 title = """M1-05d primary verify calls `jackin config env list --format json`, a flag that may not exist"""
 disposition = "host-probe-required"
-evidence = """ROADMAP.md:137 still names it primary and DECISIONS.md:2361 D-090 (3) makes it authoritative; settled by: jackin config env list --role donbeave/crew-operator --format json"""
+evidence = """ROADMAP.md:137 names it primary and SPEC.md D-090 (3) makes it authoritative; settled by: jackin config env list --role donbeave/crew-operator --format json"""
 
 [[finding]]
 id = "R3-58"
@@ -506,7 +506,7 @@ title = """Container-name lookup grep -- "-task-<id slug>-" can never match the 
 disposition = "fixed"
 evidence = """Fixed: the container lookup computes the compacted lowercase slug before grepping, so it matches the workspace component jackin actually writes."""
 file = "goal/EXECUTION.md"
-line = 343
+line = 344
 quote = """tr -cd"""
 
 [[finding]]
@@ -527,7 +527,7 @@ title = """jackin workspace delete task-<id> is not a command; the subcommand is
 disposition = "fixed"
 evidence = """Fixed by Phase 0 row 0.13: `grep -rn 'workspace delete' --include='*.md' .` returns nothing, and goal/EXECUTION.md now ends the task lifecycle with `jackin workspace remove`."""
 file = "goal/EXECUTION.md"
-line = 343
+line = 344
 quote = """remove `task-<id>`"""
 
 [[finding]]
@@ -536,7 +536,7 @@ title = """Runner has a third terminal outcome the plan never handles: goal CLEA
 disposition = "fixed"
 evidence = """Fixed: tools/supervisor.sh re-invokes the coordinator after any exit whose log carries neither GOAL COMPLETE nor GOAL BLOCKED, context-limit clears included, after reconciling the durable store (plan rows 1.12, 1.7)."""
 file = "GOAL.md"
-line = 61
+line = 62
 quote = """`tools/supervisor.sh resume` restarts you after a non-terminal exit."""
 
 [[finding]]
@@ -545,7 +545,7 @@ title = """Runner re-prompt after BLOCKED silently opens a new attempt epoch for
 disposition = "fixed"
 evidence = """Unchanged at HEAD: an `exhausted:` row is closed by the human alone (goal/EXECUTION.md:52), repeated for the section 6 re-prompt."""
 file = "goal/EXECUTION.md"
-line = 56
+line = 57
 quote = """closed by the human"""
 
 [[finding]]
@@ -554,7 +554,7 @@ title = """Outcome (B) and half of (A) are prose the evaluator cannot check"""
 disposition = "fixed"
 evidence = """Fixed: the outcomes are now the exact strings verify.sh prints, with the prose conditions moved inside the script's checks."""
 file = "goal/EXECUTION.md"
-line = 787
+line = 788
 quote = """sh verify.sh` at the repository root derives the outcome"""
 
 [[finding]]
@@ -563,7 +563,7 @@ title = """Attempt counter of an in-progress task lives only in the model's cont
 disposition = "fixed"
 evidence = """`tasks/<id>/attempts.log` is the authority at HEAD (goal/EXECUTION.md:547, AGENTS.md, GOAL.md, SPEC.md, D-093)."""
 file = "goal/EXECUTION.md"
-line = 573
+line = 574
 quote = """attempts.log"""
 
 [[finding]]
@@ -581,7 +581,7 @@ title = """Final-message shape contradicts the evaluator; (A) has no first-line 
 disposition = "fixed"
 evidence = """Fixed: the final-message shape names the exact first-line markers the evaluator reads, so outcome (A) carries a marker too."""
 file = "goal/EXECUTION.md"
-line = 803
+line = 804
 quote = """Line 1"""
 
 [[finding]]
@@ -590,7 +590,7 @@ title = """PREFLIGHT §1 lacks host preconditions: interactive session only, and
 disposition = "fixed"
 evidence = """Fixed: the preflight now carries the interactive-session precondition and an item proving no Bash-rewriting hook is active for the evidence commands."""
 file = "goal/PREFLIGHT.md"
-line = 198
+line = 199
 quote = """PreToolUse"""
 
 [[finding]]
@@ -608,7 +608,7 @@ title = """PREFLIGHT §1 standing check carries an unresolvable <TAILROCKS_SKILL
 disposition = "fixed"
 evidence = """Fixed: the standing check reads the sha from the file M1-05a writes, so the placeholder is gone."""
 file = "goal/PREFLIGHT.md"
-line = 219
+line = 220
 quote = """tailrocks-skills"""
 
 [[finding]]
@@ -617,7 +617,7 @@ title = """M1-05a..c 'inside the role' checks and jackin role validate have no r
 disposition = "fixed"
 evidence = """Fixed: the procedure defines a labelled Herdr probe tab and recorded pane for the M1-05a..c throwaway loads, and the roadmap cells split host role validation from container checks."""
 file = "goal/EXECUTION.md"
-line = 346
+line = 347
 quote = """Throwaway load"""
 
 [[finding]]
@@ -653,7 +653,7 @@ title = """DCO sign-off hook duplicates a jackin built-in and is shadowed by its
 disposition = "fixed"
 evidence = """Fixed: sign-off comes from jackin's built-in DCO hook enabled by the session, and M1-04a asserts the image sets no core.hooksPath."""
 file = "goal/PREFLIGHT.md"
-line = 167
+line = 168
 quote = """DCO trailer injection"""
 
 [[finding]]

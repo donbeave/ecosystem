@@ -4,7 +4,7 @@ Every design question raised while planning, with the text it was asked in
 and the decision that closed it. Nothing here is open: `OPEN-QUESTIONS.md`
 holds the open list and it is empty. A `Q-0nn` reference anywhere in this
 repository resolves to a heading below. New questions are appended here with
-their closing decision, in `DECISIONS.md` order.
+their closing outcome, in question-number order.
 
 ## Q-001 — Where does the manager live?
 

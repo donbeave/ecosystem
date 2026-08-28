@@ -17,7 +17,7 @@ the code, manifest, or doc named.
 | M4-07 | jackin M4 diff | security: prompt content is untrusted input, no credential leakage into argv; D-016 preserved | same |
 | M5-03 .. M11-03 | proof-run PRs across `jackin`, `termrock`, `ecosystem` | — | evidence folder plus review |
 
-Lane rule (`ROADMAP.md` §5, D-039 in `DECISIONS.md`): "a review runs on the
+Lane rule (`ROADMAP.md` §5, `SPEC.md` D-039): "a review runs on the
 runtime the implementer did not use". Implementation lanes are Claude (L1..L3)
 for most jackin/termrock work, so most reviews land on Codex (L4..L6); the
 role must therefore be fully functional under `codex` and `claude`, with the

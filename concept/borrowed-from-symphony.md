@@ -4,18 +4,18 @@ Date: 2026-08-27. Source: `SPEC.md` of https://github.com/openai/symphony (Draft
 HEAD `8001b52`), read in full. `analysis/symphony.md` already describes the project and its Elixir
 implementation; this document does not repeat that. It walks the specification section by section
 and records, for each, what Symphony specifies, whether we adopt, adapt, or reject it, and which of
-our decisions (`DECISIONS.md`, D-NNN) and open questions (`OPEN-QUESTIONS.md`, Q-NNN) it touches.
+our contract rules (`SPEC.md`, D-NNN) and open questions (`OPEN-QUESTIONS.md`, Q-NNN) it touches.
 Every claim about Symphony cites a SPEC section. A few items the prompt asked about (the
 "Completion bar", the `land`/`pull` skills) are not in the SPEC; they come from the reference
 `elixir/WORKFLOW.md` and `.codex/skills/` and are treated in a separate section at the end of the
 walk.
 
 > **Status (D-053, 2026-08-27): ADOPTED.** Every proposal below, D-018..D-031, is adopted as
-> written by D-053 (`DECISIONS.md`), keeping its number as the reference; the question closures and
+> written by D-053, keeping its number as the reference; the question closures and
 > narrowings for Q-004..Q-015 are adopted with them. The polling answer for Q-015 is the adopted
 > event path. "PROPOSED" wording that survives in the walk is historical; the headings under
-> "Consolidated proposals" carry the adopted status. Any item may be overridden by a later decision
-> in `DECISIONS.md`.
+> "Consolidated proposals" carry the adopted status. Any item may be overridden by a later adopted
+> rule recorded under the same domain-ownership policy.
 
 Decisions D-018 onward and question closures are collected at the end; they were drafted here
 before D-053 adopted them.
@@ -553,21 +553,21 @@ which Linear renders natively; a free-form workpad would be a second progress re
 
 ## Consolidated proposals
 
-### New decisions (draft text for `DECISIONS.md`)
+### Adopted rules D-018..D-031
 
 All dated 2026-08-27, adopted by D-053 with these numbers as references. Numbering continues from D-017.
 
-The full text of D-018..D-031 now lives in `DECISIONS.md` as `## D-018` .. `## D-031`
-headings, in id order between D-017 and D-032 (D-103). No normative decision text is
-kept here; this section records only that these fourteen decisions originated as
-proposals in the walk above and were adopted by D-053.
+The normative effects of D-018..D-031 are incorporated into their owning
+product, graph, or run-procedure documents; `SPEC.md` holds their canonical
+definitions (D-103). This section records only that these fourteen rules
+originated as proposals in the walk above and were adopted by D-053.
 
 ### Closures and narrowings for Q-004..Q-015 (adopted, D-053)
 
 Q-004..Q-015 are closed or narrowed by D-053 through D-020..D-031. The full
-text of each question and the decision that closed it is in `QUESTIONS.md`;
-the decisions themselves are in `DECISIONS.md`. No normative closure text is
-kept here (D-103).
+text of each question and its closing outcome is in `QUESTIONS.md`; owning
+documents carry normative effects and `SPEC.md` carries canonical definitions.
+No normative closure text is kept here (D-103).
 
 ### What Symphony has that jackin lacks
 

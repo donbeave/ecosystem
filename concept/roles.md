@@ -8,15 +8,15 @@
 > `crew`: `crew-builder`, `crew-operator`, `crew-reviewer`; template
 > repository; local-only builds until the server milestone; role `host` for
 > human steps) and the D-032 amendment (browser proof by the operator role)
-> are the working decision. The role set is adopted under D-053; §8 points at
-> that decision instead of restating its text (D-103).
+> are the working contract. The role set is adopted under D-053; §8 points at
+> its normative specification instead of restating it (D-103).
 
 # Roles that build this product (Q-016, D-045)
 
 Status: **ADOPTED (D-053), 2026-08-27**. Consolidates the four analyses
 under `analysis/roles/` into one role set, one naming scheme, one spec per
-role, and the decision text that D-053 adopted. Any item may be overridden
-by a later decision in `DECISIONS.md`. Sources are cited as `dev §n`
+role, and the contract that D-053 adopted. Any item may be overridden by a
+later revision to `SPEC.md`. Sources are cited as `dev §n`
 (`analysis/roles/jackin-dev-needs.md`), `tr §n`
 (`analysis/roles/termrock-and-docs-needs.md`), `op §n`
 (`analysis/roles/operator-needs.md`), and `rev A.n` / `conv B.n`
@@ -340,11 +340,10 @@ Task deltas: the ROADMAP rows these deltas produced are live in
 there rather than here, so the applied instructions cannot drift from the
 rows they produced.
 
-## 8. Decision text (adopted under D-053)
+## 8. Normative contract (adopted under D-053)
 
-The decision this section recorded is `DECISIONS.md` D-053 ("Recommended
-answers are adopted as defaults"), which adopted the role set, the template
-repository, the local-only builds until the server milestone, the role `host`
-for human steps, and the D-032 amendment (the role that performs the browser
-proof ships `agent-browser`). No normative decision text lives outside
-`DECISIONS.md` (D-103); the specifications it points at are §1..§6 above.
+D-053 ("Recommended answers are adopted as defaults") adopted the role set,
+the template repository, the local-only builds until the server milestone,
+the role `host` for human steps, and the D-032 amendment (the role that
+performs the browser proof ships `agent-browser`). `SPEC.md` owns the
+normative role contract; §1..§6 above elaborate it (D-103).

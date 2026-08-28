@@ -1,10 +1,11 @@
 # Execution guide for the `/goal` run
 
-Read by the host Claude Code session after `GOAL.md`. It restates nothing
-that `ROADMAP.md`, `SPEC.md`, or `DECISIONS.md` decide; it only wires the
-prompt in `GOAL.md` to those files and fixes the mechanical procedure so
-every run behaves the same way. Where this file and a decision disagree,
-the decision wins and this file is corrected in the same commit.
+Read by the host Claude Code session after `GOAL.md`. It restates no
+normative contract or graph rule from `SPEC.md` or `ROADMAP.md`; it only
+wires the prompt in `GOAL.md` to those files and fixes the mechanical
+procedure so every run behaves the same way. Where these files disagree,
+the precedence in `AGENTS.md` applies and the lower-precedence file is
+corrected in the same commit.
 
 ## 1. Session start (every run, including a resume or a re-prompt)
 
@@ -98,7 +99,7 @@ After any context compaction, and after any re-prompt, re-read `GOAL.md`
 and this file's §1 and §5, then repeat steps 2 and 3 before dispatching
 anything. The whole state of the run is re-derived from `tasks/README.md`,
 `PROGRESS.md`, `tasks/<id>/attempts.log`, and `git log` — never from
-memory, and never by re-reading `ROADMAP.md`, `SPEC.md`, or `DECISIONS.md`
+memory, and never by re-reading `ROADMAP.md` or `SPEC.md`
 in this session (§8, D-092, D-093).
 
 Every agent runtime runs in its yolo mode — Claude Code with
@@ -821,7 +822,7 @@ What this session may do itself, and nothing more:
   `tasks/README.md`, `PROGRESS.md`, `PREFLIGHT-DEFECTS.md`, and the
   current `tasks/<id>/` folder (its `TASK.md`, `task.toml`, `verify.*.out`,
   `attempts.log`, `container.txt`, `herdr-*.txt`, `pr*.txt`).
-- Never read in this session: `ROADMAP.md`, `SPEC.md`, `DECISIONS.md`,
+- Never read in this session: `ROADMAP.md`, `SPEC.md`,
   `concept/*`, `analysis/*`, or any file in an involved repository. A
   single literal may be `grep`ed out of them (`grep -n '^| M3-05 ' ROADMAP.md`);
   anything larger is a subagent's job, and the subagent returns at most 15
@@ -832,12 +833,12 @@ What this session may do itself, and nothing more:
 - Write: `tasks/README.md`, `PROGRESS.md`, `PREFLIGHT-DEFECTS.md`, and
   `tasks/<id>/` files — in this repository only, then commit and push at
   once (D-086).
-- Recording a decision (D-053 applies): the session never edits
-  `DECISIONS.md` or `SPEC.md` itself, because it may not read them. It
-  delegates the edit of `DECISIONS.md` and `SPEC.md` to a subagent, which
-  appends the decision and corrects the specification in the working tree
-  and returns the id and the touched paths; the session then commits and
-  pushes both files in one commit (D-104).
+- Updating a contract rule (D-053 applies): the session never edits
+  `SPEC.md` itself, because it may not read it. It delegates the edit to a
+  subagent, which updates the `SPEC.md` registry and every affected domain
+  owner (`SPEC.md`, `ROADMAP.md`, `GOAL.md`, or this procedure), corrects any
+  stale `concept/` elaboration, and returns the rule id and touched paths; the
+  session then commits and pushes those files together (D-104).
 - Delegate: everything else, with `model: "claude-opus-5"` (D-092, D-095),
   in parallel up
   to three host subagents in flight and the §4 reserve rule.
