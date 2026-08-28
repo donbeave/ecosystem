@@ -17,8 +17,39 @@ for arg in "$@"; do line="$line <$arg>"; done
 printf '%s\n' "$line" >>"$ROOT/trace.log"
 
 case "${1:-} ${2:-} ${3:-}" in
+"session list --json")
+	[ "${FAKE_HERDR_FAIL:-}" != "session-list" ] || exit 1
+	python3 - "$ROOT" <<'PY'
+import json, os, sys
+
+root = sys.argv[1]
+sessions = [{
+    "name": "default",
+    "default": True,
+    "running": os.path.isfile(os.path.join(root, "default", "live")),
+    "socket_path": os.path.join(root, "default", "herdr.sock"),
+    "session_dir": os.path.join(root, "default"),
+}]
+for name in sorted(os.listdir(root)):
+    directory = os.path.join(root, name)
+    if name == "default" or not os.path.isdir(directory):
+        continue
+    sessions.append({
+        "name": name,
+        "default": False,
+        "running": os.path.isfile(os.path.join(directory, "live")),
+        "socket_path": os.path.join(directory, "herdr.sock"),
+        "session_dir": directory,
+    })
+print(json.dumps({"sessions": sessions}, separators=(",", ":")))
+PY
+	;;
 "status --json server")
 	[ "${FAKE_HERDR_FAIL:-}" != "status" ] || exit 1
+	if [ "${FAKE_HERDR_AUTOSTART_ON_STATUS:-0}" = 1 ]; then
+		mkdir -p "$ROOT/default"
+		touch "$ROOT/default/live" "$ROOT/auto-started"
+	fi
 	if [ -f "$STATE/live" ]; then running=true; status=running; else running=false; status=not_running; fi
 	printf '{"status":"%s","running":%s,"session":"%s"}\n' "$status" "$running" "$SESSION"
 	;;

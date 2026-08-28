@@ -44,6 +44,7 @@ SESSION="ecosystem-coordinator"
 COORDINATOR_AGENT="ecosystem-coordinator"
 HERDR_BIN="${HERDR_BIN:-herdr}"
 DOCKER_BIN="${DOCKER_BIN:-docker}"
+PGREP_BIN="${PGREP_BIN:-pgrep}"
 DRY_RUN=0
 COORDINATOR_CMD=""
 REPO=""
@@ -80,18 +81,30 @@ herdr_available() {
 
 session_state() {
 	herdr_available || return 2
-	status_json="$(herdr status --json server 2>/dev/null)" || return 2
-	printf '%s\n' "$status_json" | python3 -c '
+	# `session list` reads session directories and probes their sockets. Unlike
+	# an active-session control command, it cannot launch or attach a server.
+	sessions_json="$("$HERDR_BIN" session list --json 2>/dev/null)" || return 2
+	printf '%s\n' "$sessions_json" | python3 -c '
 import json, sys
 try:
-    payload = json.load(sys.stdin)
-    running = payload["running"]
+    sessions = json.load(sys.stdin)["sessions"]
+    if not isinstance(sessions, list):
+        raise TypeError
+    matches = [row for row in sessions
+               if isinstance(row, dict) and row.get("name") == sys.argv[1]]
+    if len(matches) > 1:
+        raise TypeError
+    if not matches:
+        print("stopped")
+        raise SystemExit(0)
+    running = matches[0]["running"]
+    socket_path = matches[0]["socket_path"]
 except (KeyError, TypeError, ValueError):
     raise SystemExit(2)
-if not isinstance(running, bool):
+if not isinstance(running, bool) or not isinstance(socket_path, str) or not socket_path:
     raise SystemExit(2)
 print("running" if running else "stopped")
-'
+' "$SESSION"
 }
 
 session_live() {
@@ -294,20 +307,47 @@ process_cwd() {
 	fi
 }
 
+supervisor_process_tree_contains() {
+	# $1 PID. Exclude this supervisor and any helper/subshell it created. Do
+	# not exclude ancestors: a Claude process that invoked the proof is active.
+	candidate="$1"
+	current="$candidate"
+	steps=0
+	while [ "$steps" -lt 64 ]; do
+		[ "$current" = "$$" ] && return 0
+		parent="$(ps -o ppid= -p "$current" 2>/dev/null | tr -d '[:space:]')"
+		case "$parent" in
+		'' | *[!0-9]* | 0 | 1) return 1 ;;
+		esac
+		current="$parent"
+		steps=$((steps + 1))
+	done
+	return 1
+}
+
 legacy_coordinator_pids() {
 	if [ -s "$LEGACY_PID_FILE" ]; then
 		pid="$(sed -n '1p' "$LEGACY_PID_FILE")"
 		case "$pid" in
 		'' | *[!0-9]*) : ;;
-		*) kill -0 "$pid" 2>/dev/null && printf '%s\n' "$pid" ;;
+		*)
+			if kill -0 "$pid" 2>/dev/null && ! supervisor_process_tree_contains "$pid"; then
+				printf '%s\n' "$pid"
+			fi
+			;;
 		esac
 	fi
 	# An unrecorded Claude whose cwd is this repository is also a legacy
 	# coordinator when the named Herdr coordinator is not live.
-	if ! coordinator_live && command -v pgrep >/dev/null 2>&1; then
-		for pid in $(pgrep -x claude 2>/dev/null || true); do
-			[ "$(process_cwd "$pid")" = "$REPO" ] && printf '%s\n' "$pid"
-		done
+	coordinator_known="${1:-unknown}"
+	if [ "$coordinator_known" = "false" ] ||
+		{ [ "$coordinator_known" = "unknown" ] && ! coordinator_live; }; then
+		if command -v "$PGREP_BIN" >/dev/null 2>&1; then
+			for pid in $("$PGREP_BIN" -x claude 2>/dev/null || true); do
+				supervisor_process_tree_contains "$pid" && continue
+				[ "$(process_cwd "$pid")" = "$REPO" ] && printf '%s\n' "$pid"
+			done
+		fi
 	fi
 }
 
@@ -792,7 +832,7 @@ cmd_quiescence_proof() {
 		done
 	fi
 
-	for pid in $(legacy_coordinator_pids | sort -u); do
+	for pid in $(legacy_coordinator_pids "$coordinator_running" | sort -u); do
 		active_agents="${active_agents}${active_agents:+
 }legacy-pid:$pid"
 	done

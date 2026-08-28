@@ -54,6 +54,32 @@ stop_process() {
 }
 
 case "${1:-} ${2:-} ${3:-}" in
+"session list --json")
+	python3 - "$ROOT" <<'PY'
+import json, os, sys
+
+root = sys.argv[1]
+sessions = [{
+    "name": "default",
+    "default": True,
+    "running": os.path.isfile(os.path.join(root, "default", "live")),
+    "socket_path": os.path.join(root, "default", "herdr.sock"),
+    "session_dir": os.path.join(root, "default"),
+}]
+for name in sorted(os.listdir(root)):
+    directory = os.path.join(root, name)
+    if name == "default" or not os.path.isdir(directory):
+        continue
+    sessions.append({
+        "name": name,
+        "default": False,
+        "running": os.path.isfile(os.path.join(directory, "live")),
+        "socket_path": os.path.join(directory, "herdr.sock"),
+        "session_dir": directory,
+    })
+print(json.dumps({"sessions": sessions}, separators=(",", ":")))
+PY
+	;;
 "status --json server")
 	[ -f "$STATE/live" ] || exit 1
 	printf '{"result":{"running":true,"session":"%s"}}\n' "$SESSION"

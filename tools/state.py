@@ -137,8 +137,10 @@ def is_sha256(value: str) -> bool:
 
 def lock_hash_of(text: str) -> str:
     """Match tools/lock.py: hash the lock text without its self-hash line."""
-    payload = "\n".join(
-        line for line in text.splitlines()
+    # keepends=True is part of the lock format: tools/lock.py hashes the final
+    # newline before `lock_hash`, not a normalized reconstruction of lines.
+    payload = "".join(
+        line for line in text.splitlines(keepends=True)
         if not line.lstrip().startswith("lock_hash")
     )
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()

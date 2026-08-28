@@ -287,8 +287,17 @@ grep -q "failed-system: done task(s) hold a lease: $BAD_TASK" "$WORK/done-lease.
 printf '== 12. quiescence proof is atomic, read-only, and fails closed\n'
 PROOF="$WORK/quiescence.json"
 MUTATIONS_BEFORE="$(grep -Ec '^session=[^ ]+ <server>$|<workspace> <create>|<agent> <start>|<pane> <run>' "$TRACE")"
+STATUS_PROBES_BEFORE="$(grep -c '<status> <--json> <server>' "$TRACE" || true)"
+export FAKE_HERDR_AUTOSTART_ON_STATUS=1
+PROOF_STARTED="$(date +%s)"
 sh "$WORK/tools/supervisor.sh" quiescence-proof "$PROOF" \
 	--repo "$WORK" --session "$SESSION"
+PROOF_ELAPSED=$(($(date +%s) - PROOF_STARTED))
+[ "$PROOF_ELAPSED" -lt 5 ] || fail 'absent-session quiescence proof did not complete quickly'
+[ ! -e "$FAKE_HERDR_DIR/auto-started" ] && [ ! -e "$FAKE_HERDR_DIR/default/live" ] ||
+	fail 'absent-session proof invoked an auto-starting Herdr status command'
+[ "$(grep -c '<status> <--json> <server>' "$TRACE" || true)" -eq "$STATUS_PROBES_BEFORE" ] ||
+	fail 'quiescence proof invoked Herdr status instead of session inventory'
 python3 - "$PROOF" "$WORK" "$SESSION" <<'PY' || fail 'quiet proof schema is invalid'
 import json, os, re, sys
 proof, repository, session = sys.argv[1:]
@@ -303,6 +312,19 @@ assert data["coordinator_running"] is False
 assert data["active_agents"] == []
 assert data["active_panes"] == []
 assert re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", data["checked_at"])
+PY
+
+export PGREP_BIN="$SRC/tests/supervisor/fake_pgrep.sh"
+(cd "$WORK" && sh tools/supervisor.sh quiescence-proof "$WORK/self-proof.json" \
+	--repo "$WORK" --session "$SESSION") ||
+	fail 'proof treated its own supervisor subprocess as legacy Claude'
+unset PGREP_BIN
+python3 - "$WORK/self-proof.json" <<'PY' || fail 'self-filtered proof is not quiescent'
+import json, sys
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+assert data["coordinator_running"] is False
+assert data["active_agents"] == []
+assert data["active_panes"] == []
 PY
 
 # Create only fake backend records; no server or child process is launched.
@@ -330,14 +352,14 @@ fi
 unset FAKE_HERDR_FAIL
 [ "$(cksum "$PROOF")" = "$PROOF_BEFORE" ] ||
 	fail 'failed Herdr query replaced the prior proof'
-export FAKE_HERDR_FAIL=status
+export FAKE_HERDR_FAIL=session-list
 if sh "$WORK/tools/supervisor.sh" quiescence-proof "$PROOF" \
-	--repo "$WORK" --session "$SESSION" >"$WORK/status-fail.out" 2>&1; then
-	fail 'failed Herdr status probe produced a successful proof'
+	--repo "$WORK" --session "$SESSION" >"$WORK/inventory-fail.out" 2>&1; then
+	fail 'failed Herdr session inventory produced a successful proof'
 fi
 unset FAKE_HERDR_FAIL
 [ "$(cksum "$PROOF")" = "$PROOF_BEFORE" ] ||
-	fail 'failed Herdr status probe replaced the prior proof'
+	fail 'failed Herdr session inventory replaced the prior proof'
 
 rm -f "$FAKE_HERDR_DIR/$SESSION/agent"
 export FAKE_HERDR_PANE_IDLE=1
@@ -369,6 +391,9 @@ rm -f "$WORK/logs/coordinator.pid"
 MUTATIONS_AFTER="$(grep -Ec '^session=[^ ]+ <server>$|<workspace> <create>|<agent> <start>|<pane> <run>' "$TRACE")"
 [ "$MUTATIONS_AFTER" -eq "$MUTATIONS_BEFORE" ] ||
 	fail 'quiescence proof launched or mutated a Herdr runner'
+[ ! -e "$FAKE_HERDR_DIR/auto-started" ] && [ ! -e "$FAKE_HERDR_DIR/default/live" ] ||
+	fail 'quiescence proof auto-started the default Herdr session'
+unset FAKE_HERDR_AUTOSTART_ON_STATUS
 [ -z "$(find "$WORK" -name '.quiescence-*.json' -print -quit)" ] ||
 	fail 'quiescence proof left an atomic-write temporary file'
 

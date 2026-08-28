@@ -23,11 +23,23 @@ fail() {
 }
 
 write_lock() {
-	python3 - "$ECOSYSTEM_RUN_LOCK" "$1" <<'PY'
+	python3 - "$ECOSYSTEM_RUN_LOCK" "$1" "$SRC/run/LOCK.toml" <<'PY'
 import hashlib, pathlib, sys
-path, epoch = pathlib.Path(sys.argv[1]), int(sys.argv[2])
-body = "[run]\nepoch = %d\n" % epoch
-digest = hashlib.sha256(body.rstrip("\n").encode()).hexdigest()
+path, epoch, template = pathlib.Path(sys.argv[1]), int(sys.argv[2]), pathlib.Path(sys.argv[3])
+lines = template.read_text(encoding="utf-8").splitlines(keepends=True)
+body_lines = []
+in_run = False
+for line in lines:
+    if line.strip() == "[run]":
+        in_run = True
+    if in_run and line.lstrip().startswith("epoch ="):
+        ending = "\n" if line.endswith("\n") else ""
+        line = "epoch = %d%s" % (epoch, ending)
+    if line.lstrip().startswith("lock_hash"):
+        continue
+    body_lines.append(line)
+body = "".join(body_lines)
+digest = hashlib.sha256(body.encode()).hexdigest()
 path.write_text(body + 'lock_hash = "%s"\n' % digest, encoding="utf-8")
 print(digest)
 PY
@@ -56,6 +68,18 @@ cat >"$WORK/dag.json" <<'JSON'
 JSON
 
 hash_one=$(write_lock 1)
+python3 - "$STATE" "$SRC/tools/lock.py" "$ECOSYSTEM_RUN_LOCK" <<'PY' ||
+import importlib.util, pathlib, sys
+modules = []
+for name, path in (("state", sys.argv[1]), ("lock", sys.argv[2])):
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    modules.append(module)
+text = pathlib.Path(sys.argv[3]).read_text(encoding="utf-8")
+assert modules[0].lock_hash_of(text) == modules[1].lock_hash_of(text)
+PY
+fail "state and repository lock hashing algorithms differ"
 python3 "$STATE" init --dag "$WORK/dag.json" --run-id lock-epoch-test >/dev/null
 python3 "$STATE" transition DONE "done" --attempt 1 --result complete \
 	--evidence keep-this-evidence >/dev/null
