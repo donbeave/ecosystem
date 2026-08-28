@@ -1,0 +1,45 @@
+M4-02 container part — jackin repo gates on the task branch
+
+$ mise run lint   -> ci gate OK  (fmt, clippy -D warnings all-features, xtask lint --strict, ratchet, telemetry registry)
+$ mise run test   -> ci gate OK  (cargo check --all-targets, nextest --workspace --all-features, doc tests)
+
+Protocol round-trip tests (no Docker):
+        PASS [   0.016s] ( 1/38) jackin-capsule clipboard::tests::chunk_activity_resets_idle_window
+        PASS [   0.016s] ( 2/38) jackin-capsule daemon::events::tests::state_changes_are_never_throttled_by_the_activity_budget
+        PASS [   0.018s] ( 3/38) jackin-capsule daemon::events::tests::exit_is_the_last_record_and_clears_the_activity_budget
+        PASS [   0.018s] ( 4/38) jackin-capsule daemon::events::tests::session_send_reply_maps_both_outcomes
+        PASS [   0.020s] ( 5/38) jackin-capsule daemon::events::tests::a_hung_up_subscriber_is_reaped_on_the_next_publish
+        PASS [   0.019s] ( 6/38) jackin-capsule daemon::events::tests::activity_records_are_throttled_per_session
+        PASS [   0.020s] ( 7/38) jackin-capsule daemon::events::tests::state_change_reaches_subscribers_and_carries_the_previous_state
+        PASS [   0.010s] ( 8/38) jackin-capsule daemon::tests::status_tick_select_arm_stays_above_pty_output
+        PASS [   0.010s] ( 9/38) jackin-protocol control::tests::events_request_omits_absent_filter_and_declares_itself_a_subscription
+        PASS [   0.012s] (10/38) jackin-capsule session::tests::focus_events_flag_tracks_dec_1004
+        PASS [   0.008s] (11/38) jackin-protocol control::tests::session_send_roundtrips_text_verbatim
+        PASS [   0.011s] (12/38) jackin-capsule tui::message::tests::dialog_lets_wheel_events_through_for_body_scroll
+        PASS [   0.009s] (13/38) jackin-protocol control::tests::session_send_replies_roundtrip
+        PASS [   0.010s] (14/38) jackin-protocol control::tests::session_event_records_roundtrip_every_kind
+        PASS [   0.009s] (15/38) jackin-protocol control::tests::state_changed_carries_the_working_transition_the_host_waits_on
+        PASS [   0.013s] (16/38) jackin-runtime runtime::session_control::tests::bytes_sent_reports_a_refusal_as_an_error_not_a_zero_write
+        PASS [   0.014s] (17/38) jackin-runtime runtime::session_control::tests::events_exec_script_passes_the_session_filter_through
+        PASS [   0.015s] (18/38) jackin-runtime apple_container_client::tests::parse_ndjson_shape
+        PASS [   0.014s] (19/38) jackin-runtime runtime::session_control::tests::ndjson_reader_decodes_the_records_the_capsule_cli_prints
+        PASS [   0.015s] (20/38) jackin-runtime runtime::cleanup::tests::eject_role_phase1_failure_prevents_phase2_calls
+        PASS [   0.011s] (21/38) jackin-runtime runtime::session_control::tests::single_quote_survives_every_prompt_byte
+        PASS [   0.011s] (22/38) jackin-runtime runtime::session_control::tests::wait_for_state_accepts_a_baseline_that_already_reports_the_state
+        PASS [   0.010s] (23/38) jackin-runtime runtime::session_control::tests::wait_for_state_fails_fast_when_the_session_exits_first
+        PASS [   0.010s] (24/38) jackin-runtime runtime::session_control::tests::wait_for_state_matches_the_working_transition
+        PASS [   0.011s] (25/38) jackin-runtime runtime::session_control::tests::wait_for_state_ignores_other_sessions
+        PASS [   0.033s] (26/38) jackin-runtime runtime::session_control::tests::next_event_distinguishes_a_quiet_stream_from_an_ended_one
+        PASS [   0.070s] (27/38) jackin-runtime runtime::session_control::tests::wait_for_state_times_out_rather_than_blocking_forever
+        PASS [   0.115s] (28/38) jackin-capsule daemon::tests::an_unchanged_status_tick_publishes_no_state_record
+        PASS [   0.121s] (29/38) jackin-capsule daemon::tests::a_status_tick_publishes_the_working_transition_the_host_waits_on
+        PASS [   0.123s] (30/38) jackin-capsule daemon::tests::session_send_then_status_tick_is_observable_end_to_end_in_process
+        PASS [   0.126s] (31/38) jackin-capsule daemon::tests::events_subscription_opens_with_a_baseline_record_per_live_session
+        PASS [   0.127s] (32/38) jackin-capsule daemon::tests::session_send_records_input_recency_but_never_authors_state
+        PASS [   0.128s] (33/38) jackin-capsule daemon::events::tests::observations_report_activity_recency_in_milliseconds
+        PASS [   0.128s] (34/38) jackin-capsule daemon::tests::events_subscription_filters_to_the_requested_session
+        PASS [   0.129s] (35/38) jackin-capsule daemon::tests::session_send_to_an_unknown_session_denies_and_writes_nothing
+        PASS [   0.128s] (36/38) jackin-capsule daemon::tests::ready_status_tick_wins_over_ready_pty_output
+        PASS [   0.128s] (37/38) jackin-capsule daemon::tests::session_send_reports_a_closed_writer_instead_of_claiming_delivery
+        PASS [   0.128s] (38/38) jackin-capsule daemon::tests::session_send_writes_the_payload_verbatim_into_the_addressed_pty
+     Summary [   0.130s] 38 tests run: 38 passed, 1558 skipped
