@@ -4,7 +4,7 @@
 # are forbidden as values, and every commit is a full 40-hex sha.
 
 [plan]
-commit = "6f398136f7347151a7302d6bd59ae9f92f466902"
+commit = "f60d59ceab2529a143b142a74f964f74abd325bc"
 tag = ""
 # tag is empty: creating the review tag is a human-only step
 # (readiness plan row 0.2). Fill it in and re-run write.
@@ -128,5 +128,5 @@ jackin = "jackin 0.6.4+f42d702"
 profile_sha256 = "3c49e3d43bb16afe2f2b2a3c2481c9260c2938dc1064b5fc30d72cb4d7daf1d1"
 
 [run]
-epoch = 2
-lock_hash = "1ad9e3e9a1637c69ce19cc5f831b18022524e2af0bf7d0b6d08bef2658e2f58e"
+epoch = 3
+lock_hash = "9a05c68735836950a401078ba4b7b3a09e03d1577969cdd5fcf540929a64b0a3"
