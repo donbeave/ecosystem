@@ -19,3 +19,5 @@ separate rows; the lane cell names where the work actually ran
 | M1-02 | L1 | subagents | done — attempts 1/3; jackin fix f42d702 integrated into feat/managed-execution | tasks/M1-02/verify.out | 2026-08-27T22:39:01Z |
 | M1-02a | host | host | done — attempts 2/3 (attempt 1 interrupted by lock-epoch migration) | tasks/M1-02a/verify.out | 2026-08-28T03:36:40Z |
 | M1-04a | L4 | container | blocked — attempts 2/3; attempt 1 interrupted by lock-epoch migration; attempt 2: capsule cache rebuilt (build-jackin-capsule), then jackin load failed on 1Password authorization timeout (defect 8) | tasks/M1-04a/load-debug.log | 2026-08-28T04:12:02Z |
+| M3-03 | L4 | container | blocked — attempts 0/3; not dispatched: 1Password CLI authorization timeout blocks jackin load (defect 9) | tasks/M3-03/attempts.log | 2026-08-28T04:13:32Z |
+| M4-03 | L4 | container | blocked — attempts 0/3; not dispatched: 1Password CLI authorization timeout blocks jackin load (defect 10) | tasks/M4-03/attempts.log | 2026-08-28T04:13:32Z |
